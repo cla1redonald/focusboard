@@ -48,6 +48,7 @@ function migrateV1ToV2(v1State: V1State): AppState {
   return {
     cards,
     columns,
+    templates: [],
     settings: {
       celebrations: v1Settings.celebrations ?? DEFAULT_SETTINGS.celebrations,
       reducedMotionOverride: v1Settings.reducedMotionOverride ?? DEFAULT_SETTINGS.reducedMotionOverride,
@@ -65,6 +66,7 @@ export function loadState(): AppState {
       return {
         cards: parsed.cards ?? [],
         columns: parsed.columns?.length ? parsed.columns : DEFAULT_COLUMNS,
+        templates: parsed.templates ?? [],
         settings: {
           ...DEFAULT_SETTINGS,
           ...(parsed.settings ?? {}),
@@ -85,9 +87,9 @@ export function loadState(): AppState {
     }
 
     // Fresh start
-    return { cards: [], columns: DEFAULT_COLUMNS, settings: DEFAULT_SETTINGS };
+    return { cards: [], columns: DEFAULT_COLUMNS, templates: [], settings: DEFAULT_SETTINGS };
   } catch {
-    return { cards: [], columns: DEFAULT_COLUMNS, settings: DEFAULT_SETTINGS };
+    return { cards: [], columns: DEFAULT_COLUMNS, templates: [], settings: DEFAULT_SETTINGS };
   }
 }
 

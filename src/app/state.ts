@@ -1,6 +1,6 @@
 import React from "react";
 import { nanoid } from "nanoid";
-import type { AppState, Card, Column, ColumnId, ColumnTransition, Settings } from "./types";
+import type { AppState, Card, CardTemplate, Column, ColumnId, ColumnTransition, Settings } from "./types";
 import { loadState, saveState } from "./storage";
 import { nowIso } from "./utils";
 
@@ -8,6 +8,7 @@ const MAX_HISTORY = 50;
 
 type Action =
   | { type: "ADD_CARD"; column: ColumnId; title: string }
+  | { type: "ADD_CARD_FROM_TEMPLATE"; templateId: string }
   | { type: "UPDATE_CARD"; card: Card }
   | { type: "DELETE_CARD"; id: string }
   | { type: "MOVE_CARD"; id: string; to: ColumnId; patch?: Partial<Card> }
@@ -16,6 +17,9 @@ type Action =
   | { type: "UPDATE_COLUMN"; column: Column }
   | { type: "DELETE_COLUMN"; id: ColumnId; migrateCardsTo?: ColumnId }
   | { type: "REORDER_COLUMNS"; columns: Column[] }
+  | { type: "ADD_TEMPLATE"; template: Omit<CardTemplate, "id"> }
+  | { type: "UPDATE_TEMPLATE"; template: CardTemplate }
+  | { type: "DELETE_TEMPLATE"; id: string }
   | { type: "UNDO" }
   | { type: "REDO" };
 
@@ -127,6 +131,62 @@ function appReducer(state: AppState, action: Action): AppState {
         ...state,
         columns: action.columns.map((c, idx) => ({ ...c, order: idx })),
       };
+    }
+
+    case "ADD_TEMPLATE": {
+      const newTemplate: CardTemplate = {
+        ...action.template,
+        id: nanoid(),
+      };
+      return { ...state, templates: [...state.templates, newTemplate] };
+    }
+
+    case "UPDATE_TEMPLATE": {
+      return {
+        ...state,
+        templates: state.templates.map((t) =>
+          t.id === action.template.id ? action.template : t
+        ),
+      };
+    }
+
+    case "DELETE_TEMPLATE": {
+      return {
+        ...state,
+        templates: state.templates.filter((t) => t.id !== action.id),
+      };
+    }
+
+    case "ADD_CARD_FROM_TEMPLATE": {
+      const template = state.templates.find((t) => t.id === action.templateId);
+      if (!template) return state;
+
+      const now = nowIso();
+      const initialTransition: ColumnTransition = {
+        from: null,
+        to: template.defaultColumn,
+        at: now,
+      };
+
+      const card: Card = {
+        id: nanoid(),
+        column: template.defaultColumn,
+        title: template.title,
+        icon: template.icon,
+        notes: template.notes,
+        tags: template.tags ? [...template.tags] : [],
+        checklist: template.checklist
+          ? template.checklist.map((item) => ({
+              id: nanoid(),
+              text: item.text,
+              done: item.done,
+            }))
+          : [],
+        createdAt: now,
+        updatedAt: now,
+        columnHistory: [initialTransition],
+      };
+      return { ...state, cards: [card, ...state.cards] };
     }
 
     default:

@@ -44,6 +44,7 @@ describe("Security Tests", () => {
       const state: AppState = {
         cards: [card],
         columns: DEFAULT_COLUMNS,
+        templates: [],
         settings: DEFAULT_SETTINGS,
       };
 
@@ -91,6 +92,7 @@ describe("Security Tests", () => {
       const state: AppState = {
         cards: [card],
         columns: DEFAULT_COLUMNS,
+        templates: [],
         settings: DEFAULT_SETTINGS,
       };
 
@@ -164,6 +166,7 @@ describe("Security Tests", () => {
           },
         ],
         columns: DEFAULT_COLUMNS,
+        templates: [],
         settings: DEFAULT_SETTINGS,
       };
 
@@ -188,6 +191,7 @@ describe("Security Tests", () => {
       const state: AppState = {
         cards: [card],
         columns: DEFAULT_COLUMNS,
+        templates: [],
         settings: DEFAULT_SETTINGS,
       };
 
@@ -212,6 +216,7 @@ describe("Security Tests", () => {
       const state: AppState = {
         cards: [card],
         columns: DEFAULT_COLUMNS,
+        templates: [],
         settings: DEFAULT_SETTINGS,
       };
 
@@ -237,6 +242,7 @@ describe("Security Tests", () => {
       const state: AppState = {
         cards: [card],
         columns: DEFAULT_COLUMNS,
+        templates: [],
         settings: DEFAULT_SETTINGS,
       };
 
@@ -308,6 +314,7 @@ describe("Security Tests", () => {
       const state: AppState = {
         cards: [card],
         columns: DEFAULT_COLUMNS,
+        templates: [],
         settings: DEFAULT_SETTINGS,
       };
 
@@ -337,6 +344,7 @@ describe("Security Tests", () => {
       const state: AppState = {
         cards: [card],
         columns: DEFAULT_COLUMNS,
+        templates: [],
         settings: DEFAULT_SETTINGS,
       };
 
@@ -364,6 +372,7 @@ describe("Security Tests", () => {
       const state: AppState = {
         cards: [card],
         columns: DEFAULT_COLUMNS,
+        templates: [],
         settings: DEFAULT_SETTINGS,
       };
 

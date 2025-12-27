@@ -15,6 +15,7 @@ describe("storage", () => {
       expect(state).toEqual({
         cards: [],
         columns: DEFAULT_COLUMNS,
+        templates: [],
         settings: DEFAULT_SETTINGS,
       });
     });
@@ -24,6 +25,7 @@ describe("storage", () => {
       expect(state).toEqual({
         cards: [],
         columns: DEFAULT_COLUMNS,
+        templates: [],
         settings: DEFAULT_SETTINGS,
       });
     });
@@ -42,6 +44,7 @@ describe("storage", () => {
           },
         ],
         columns: DEFAULT_COLUMNS,
+        templates: [],
         settings: {
           ...DEFAULT_SETTINGS,
           celebrations: false,
@@ -111,6 +114,7 @@ describe("storage", () => {
       expect(state).toEqual({
         cards: [],
         columns: DEFAULT_COLUMNS,
+        templates: [],
         settings: DEFAULT_SETTINGS,
       });
     });
@@ -157,6 +161,7 @@ describe("storage", () => {
       const state: AppState = {
         cards: [],
         columns: DEFAULT_COLUMNS,
+        templates: [],
         settings: DEFAULT_SETTINGS,
       };
 
@@ -189,6 +194,7 @@ describe("storage", () => {
       const state: AppState = {
         cards: [card],
         columns: DEFAULT_COLUMNS,
+        templates: [],
         settings: DEFAULT_SETTINGS,
       };
 
@@ -204,6 +210,7 @@ describe("storage", () => {
       const state: AppState = {
         cards: [],
         columns: DEFAULT_COLUMNS,
+        templates: [],
         settings: {
           ...DEFAULT_SETTINGS,
           celebrations: false,
@@ -230,6 +237,7 @@ describe("storage", () => {
       const state: AppState = {
         cards: [],
         columns: customColumns,
+        templates: [],
         settings: DEFAULT_SETTINGS,
       };
 
@@ -270,6 +278,7 @@ describe("storage", () => {
         columns: DEFAULT_COLUMNS.map((col) =>
           col.id === "backlog" ? { ...col, color: "#123456" } : col
         ),
+        templates: [],
         settings: {
           celebrations: false,
           reducedMotionOverride: true,

@@ -68,6 +68,17 @@ export type MetricsState = {
   lastSnapshotDate?: string;
 };
 
+export type CardTemplate = {
+  id: string;
+  name: string;
+  icon?: string;
+  defaultColumn: ColumnId;
+  title: string;
+  notes?: string;
+  tags?: string[];
+  checklist?: { text: string; done: boolean }[];
+};
+
 export type Settings = {
   celebrations: boolean;
   reducedMotionOverride: boolean; // if true, treat as reduced motion
@@ -77,5 +88,6 @@ export type Settings = {
 export type AppState = {
   cards: Card[];
   columns: Column[];
+  templates: CardTemplate[];
   settings: Settings;
 };
