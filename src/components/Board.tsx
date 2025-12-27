@@ -1,11 +1,13 @@
 import React from "react";
 import { DndContext } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
-import type { Card, Column as ColumnType, ColumnId, MetricsState, Settings } from "../app/types";
+import type { Card, Column as ColumnType, ColumnId, FilterState, MetricsState, Settings } from "../app/types";
 import { CONFETTI_COLORS } from "../app/constants";
 import { groupByColumn, isToday, nowIso } from "../app/utils";
+import { DEFAULT_FILTER, filterCards, getAllTags } from "../app/filters";
 import { Column } from "./Column";
 import { TopStrip } from "./TopStrip";
+import { FilterBar } from "./FilterBar";
 import { WipModal } from "./WipModal";
 import { ConfettiBurst } from "./ConfettiBurst";
 
@@ -51,11 +53,16 @@ export function Board({
   onRedo: () => void;
 }) {
   const reducedMotion = usePrefersReducedMotion() || settings.reducedMotionOverride;
+  const [filter, setFilter] = React.useState<FilterState>(DEFAULT_FILTER);
 
   // Sort columns by order
   const sortedColumns = [...columns].sort((a, b) => a.order - b.order);
 
-  const byCol = groupByColumn(cards, columns);
+  // Apply filters
+  const filteredCards = filterCards(cards, filter);
+  const allTags = getAllTags(cards);
+
+  const byCol = groupByColumn(filteredCards, columns);
   const doingCol = sortedColumns.find((c) => c.id === "doing");
   const doingCard = doingCol ? byCol[doingCol.id]?.[0] : undefined;
   const blockedCol = sortedColumns.find((c) => c.id === "blocked");
@@ -238,11 +245,21 @@ export function Board({
         </div>
         <button
           onClick={onSettings}
+          aria-label="Settings"
           className="rounded-full border border-emerald-700/20 bg-emerald-600/10 px-4 py-2 text-sm text-emerald-900 shadow-[0_8px_24px_rgba(0,0,0,0.12)] transition hover:-translate-y-0.5 hover:border-emerald-700/40 hover:bg-emerald-600/15"
         >
           Settings
         </button>
       </div>
+
+      <FilterBar
+        filter={filter}
+        onChange={setFilter}
+        columns={sortedColumns}
+        allTags={allTags}
+        resultCount={filteredCards.length}
+        totalCount={cards.length}
+      />
 
       <DndContext onDragEnd={onDragEnd}>
         <div className="flex gap-5 overflow-x-auto pb-6">

@@ -1,10 +1,25 @@
 import React from "react";
 import { nanoid } from "nanoid";
-import type { AppState, Card, CardTemplate, Column, ColumnId, ColumnTransition, Settings } from "./types";
+import type { AppState, Card, CardRelation, CardTemplate, Column, ColumnId, ColumnTransition, RelationType, Settings } from "./types";
 import { loadState, saveState } from "./storage";
 import { nowIso } from "./utils";
 
 const MAX_HISTORY = 50;
+
+function getReciprocalType(type: RelationType): RelationType {
+  switch (type) {
+    case "blocks":
+      return "blocked-by";
+    case "blocked-by":
+      return "blocks";
+    case "parent":
+      return "child";
+    case "child":
+      return "parent";
+    case "related":
+      return "related";
+  }
+}
 
 type Action =
   | { type: "ADD_CARD"; column: ColumnId; title: string }
@@ -20,6 +35,8 @@ type Action =
   | { type: "ADD_TEMPLATE"; template: Omit<CardTemplate, "id"> }
   | { type: "UPDATE_TEMPLATE"; template: CardTemplate }
   | { type: "DELETE_TEMPLATE"; id: string }
+  | { type: "ADD_RELATION"; cardId: string; targetCardId: string; relationType: RelationType }
+  | { type: "REMOVE_RELATION"; cardId: string; relationId: string }
   | { type: "UNDO" }
   | { type: "REDO" };
 
@@ -59,7 +76,24 @@ function appReducer(state: AppState, action: Action): AppState {
       };
     }
     case "DELETE_CARD": {
-      return { ...state, cards: state.cards.filter((c) => c.id !== action.id) };
+      const deletedId = action.id;
+      const now = nowIso();
+      return {
+        ...state,
+        cards: state.cards
+          .filter((c) => c.id !== deletedId)
+          .map((c) => {
+            // Remove any relations pointing to deleted card
+            if (c.relations?.some((r) => r.targetCardId === deletedId)) {
+              return {
+                ...c,
+                relations: c.relations.filter((r) => r.targetCardId !== deletedId),
+                updatedAt: now,
+              };
+            }
+            return c;
+          }),
+      };
     }
     case "MOVE_CARD": {
       const now = nowIso();
@@ -187,6 +221,99 @@ function appReducer(state: AppState, action: Action): AppState {
         columnHistory: [initialTransition],
       };
       return { ...state, cards: [card, ...state.cards] };
+    }
+
+    case "ADD_RELATION": {
+      const { cardId, targetCardId, relationType } = action;
+      if (cardId === targetCardId) return state; // Can't relate to self
+
+      // Check if target exists
+      if (!state.cards.some((c) => c.id === targetCardId)) return state;
+
+      const now = nowIso();
+      const relationId = nanoid();
+      const reciprocalId = nanoid();
+      const reciprocalType = getReciprocalType(relationType);
+
+      const newRelation: CardRelation = {
+        id: relationId,
+        type: relationType,
+        targetCardId,
+      };
+
+      const reciprocalRelation: CardRelation = {
+        id: reciprocalId,
+        type: reciprocalType,
+        targetCardId: cardId,
+      };
+
+      return {
+        ...state,
+        cards: state.cards.map((c) => {
+          if (c.id === cardId) {
+            // Check if relation already exists
+            const existing = c.relations?.some(
+              (r) => r.targetCardId === targetCardId && r.type === relationType
+            );
+            if (existing) return c;
+            return {
+              ...c,
+              relations: [...(c.relations ?? []), newRelation],
+              updatedAt: now,
+            };
+          }
+          if (c.id === targetCardId) {
+            // Check if reciprocal already exists
+            const existing = c.relations?.some(
+              (r) => r.targetCardId === cardId && r.type === reciprocalType
+            );
+            if (existing) return c;
+            return {
+              ...c,
+              relations: [...(c.relations ?? []), reciprocalRelation],
+              updatedAt: now,
+            };
+          }
+          return c;
+        }),
+      };
+    }
+
+    case "REMOVE_RELATION": {
+      const { cardId, relationId } = action;
+      const now = nowIso();
+
+      // Find the relation to remove
+      const sourceCard = state.cards.find((c) => c.id === cardId);
+      const relation = sourceCard?.relations?.find((r) => r.id === relationId);
+      if (!relation) return state;
+
+      const reciprocalType = getReciprocalType(relation.type);
+
+      return {
+        ...state,
+        cards: state.cards.map((c) => {
+          if (c.id === cardId) {
+            return {
+              ...c,
+              relations: c.relations?.filter((r) => r.id !== relationId) ?? [],
+              updatedAt: now,
+            };
+          }
+          if (c.id === relation.targetCardId) {
+            // Remove reciprocal relation
+            return {
+              ...c,
+              relations:
+                c.relations?.filter(
+                  (r) => !(r.targetCardId === cardId && r.type === reciprocalType)
+                ) ?? [],
+              updatedAt: now,
+            };
+          }
+          return c;
+        }),
+      };
     }
 
     default:

@@ -1021,4 +1021,274 @@ describe("state reducer", () => {
       expect(result.current.canRedo).toBe(false);
     });
   });
+
+  describe("ADD_RELATION action", () => {
+    it("adds a relation between two cards", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Card 1" });
+      });
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Card 2" });
+      });
+
+      const card1Id = result.current.state.cards[1].id;
+      const card2Id = result.current.state.cards[0].id;
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_RELATION",
+          cardId: card1Id,
+          targetCardId: card2Id,
+          relationType: "blocks",
+        });
+      });
+
+      const card1 = result.current.state.cards.find((c) => c.id === card1Id);
+      const card2 = result.current.state.cards.find((c) => c.id === card2Id);
+
+      expect(card1?.relations).toHaveLength(1);
+      expect(card1?.relations?.[0].type).toBe("blocks");
+      expect(card1?.relations?.[0].targetCardId).toBe(card2Id);
+
+      expect(card2?.relations).toHaveLength(1);
+      expect(card2?.relations?.[0].type).toBe("blocked-by");
+      expect(card2?.relations?.[0].targetCardId).toBe(card1Id);
+    });
+
+    it("creates reciprocal parent-child relations", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Parent" });
+      });
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Child" });
+      });
+
+      const parentId = result.current.state.cards[1].id;
+      const childId = result.current.state.cards[0].id;
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_RELATION",
+          cardId: parentId,
+          targetCardId: childId,
+          relationType: "parent",
+        });
+      });
+
+      const parent = result.current.state.cards.find((c) => c.id === parentId);
+      const child = result.current.state.cards.find((c) => c.id === childId);
+
+      expect(parent?.relations?.[0].type).toBe("parent");
+      expect(child?.relations?.[0].type).toBe("child");
+    });
+
+    it("creates symmetric related relations", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Card A" });
+      });
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Card B" });
+      });
+
+      const cardAId = result.current.state.cards[1].id;
+      const cardBId = result.current.state.cards[0].id;
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_RELATION",
+          cardId: cardAId,
+          targetCardId: cardBId,
+          relationType: "related",
+        });
+      });
+
+      const cardA = result.current.state.cards.find((c) => c.id === cardAId);
+      const cardB = result.current.state.cards.find((c) => c.id === cardBId);
+
+      expect(cardA?.relations?.[0].type).toBe("related");
+      expect(cardB?.relations?.[0].type).toBe("related");
+    });
+
+    it("does not allow relating a card to itself", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Lonely Card" });
+      });
+
+      const cardId = result.current.state.cards[0].id;
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_RELATION",
+          cardId: cardId,
+          targetCardId: cardId,
+          relationType: "blocks",
+        });
+      });
+
+      const card = result.current.state.cards[0];
+      expect(card.relations).toBeUndefined();
+    });
+
+    it("does not create duplicate relations", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Card 1" });
+      });
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Card 2" });
+      });
+
+      const card1Id = result.current.state.cards[1].id;
+      const card2Id = result.current.state.cards[0].id;
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_RELATION",
+          cardId: card1Id,
+          targetCardId: card2Id,
+          relationType: "blocks",
+        });
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_RELATION",
+          cardId: card1Id,
+          targetCardId: card2Id,
+          relationType: "blocks",
+        });
+      });
+
+      const card1 = result.current.state.cards.find((c) => c.id === card1Id);
+      expect(card1?.relations).toHaveLength(1);
+    });
+
+    it("ignores relations to non-existent cards", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Card 1" });
+      });
+
+      const card1Id = result.current.state.cards[0].id;
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_RELATION",
+          cardId: card1Id,
+          targetCardId: "non-existent-id",
+          relationType: "blocks",
+        });
+      });
+
+      const card1 = result.current.state.cards[0];
+      expect(card1.relations).toBeUndefined();
+    });
+  });
+
+  describe("REMOVE_RELATION action", () => {
+    it("removes a relation and its reciprocal", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Card 1" });
+      });
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Card 2" });
+      });
+
+      const card1Id = result.current.state.cards[1].id;
+      const card2Id = result.current.state.cards[0].id;
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_RELATION",
+          cardId: card1Id,
+          targetCardId: card2Id,
+          relationType: "blocks",
+        });
+      });
+
+      const relationId = result.current.state.cards.find((c) => c.id === card1Id)?.relations?.[0].id;
+
+      act(() => {
+        result.current.dispatch({
+          type: "REMOVE_RELATION",
+          cardId: card1Id,
+          relationId: relationId!,
+        });
+      });
+
+      const card1 = result.current.state.cards.find((c) => c.id === card1Id);
+      const card2 = result.current.state.cards.find((c) => c.id === card2Id);
+
+      expect(card1?.relations).toHaveLength(0);
+      expect(card2?.relations).toHaveLength(0);
+    });
+
+    it("handles removing non-existent relation gracefully", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Card 1" });
+      });
+
+      const card1Id = result.current.state.cards[0].id;
+
+      act(() => {
+        result.current.dispatch({
+          type: "REMOVE_RELATION",
+          cardId: card1Id,
+          relationId: "non-existent-relation",
+        });
+      });
+
+      // Should not throw, card should be unchanged
+      expect(result.current.state.cards).toHaveLength(1);
+    });
+  });
+
+  describe("DELETE_CARD cleans up relations", () => {
+    it("removes relations pointing to deleted card", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Card 1" });
+      });
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Card 2" });
+      });
+
+      const card1Id = result.current.state.cards[1].id;
+      const card2Id = result.current.state.cards[0].id;
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_RELATION",
+          cardId: card1Id,
+          targetCardId: card2Id,
+          relationType: "blocks",
+        });
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: "DELETE_CARD",
+          id: card2Id,
+        });
+      });
+
+      const card1 = result.current.state.cards[0];
+      expect(card1.relations).toHaveLength(0);
+    });
+  });
 });

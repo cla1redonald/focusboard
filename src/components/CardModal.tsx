@@ -1,27 +1,55 @@
 import React from "react";
-import type { Card } from "../app/types";
+import type { Card, RelationType } from "../app/types";
 import { nanoid } from "nanoid";
+import { RelationshipPicker, RelationshipBadge } from "./RelationshipPicker";
 
 const EMOJI_CHOICES = ["✨", "✅", "🧠", "🧩", "🛠️", "📌", "🔥", "🚧", "🎯", "🔍"];
 
 type Props = {
   open: boolean;
   card: Card | null;
+  allCards?: Card[];
   onClose: () => void;
   onSave: (card: Card) => void;
   onDelete: (id: string) => void;
+  onAddRelation?: (cardId: string, targetCardId: string, relationType: RelationType) => void;
+  onRemoveRelation?: (cardId: string, relationId: string) => void;
 };
 
-export function CardModal({ open, card, onClose, onSave, onDelete }: Props) {
+export function CardModal({
+  open,
+  card,
+  allCards,
+  onClose,
+  onSave,
+  onDelete,
+  onAddRelation,
+  onRemoveRelation,
+}: Props) {
   const [draft, setDraft] = React.useState<Card | null>(card);
+  const [showRelationPicker, setShowRelationPicker] = React.useState(false);
 
   React.useEffect(() => {
     setDraft(card);
+    setShowRelationPicker(false);
   }, [card]);
 
   if (!open || !draft) return null;
 
   const update = (patch: Partial<Card>) => setDraft({ ...draft, ...patch });
+
+  const handleAddRelation = (targetCardId: string, relationType: RelationType) => {
+    if (onAddRelation) {
+      onAddRelation(draft.id, targetCardId, relationType);
+    }
+    setShowRelationPicker(false);
+  };
+
+  const handleRemoveRelation = (relationId: string) => {
+    if (onRemoveRelation) {
+      onRemoveRelation(draft.id, relationId);
+    }
+  };
 
   return (
     <div className="fixed inset-0 z-[1100] flex items-center justify-center">
@@ -186,6 +214,50 @@ export function CardModal({ open, card, onClose, onSave, onDelete }: Props) {
               {draft.lastOverrideReason && (
                 <div className="mt-1">
                   Override: {draft.lastOverrideReason}
+                </div>
+              )}
+            </div>
+          )}
+
+          {allCards && onAddRelation && (
+            <div>
+              <div className="flex items-center justify-between">
+                <label className="text-xs text-emerald-900/60">Relationships</label>
+                <button
+                  onClick={() => setShowRelationPicker(!showRelationPicker)}
+                  className="text-xs text-emerald-600 hover:text-emerald-700"
+                >
+                  {showRelationPicker ? "Cancel" : "+ Add relationship"}
+                </button>
+              </div>
+
+              {showRelationPicker && (
+                <div className="mt-2">
+                  <RelationshipPicker
+                    cards={allCards}
+                    currentCardId={draft.id}
+                    onSelect={handleAddRelation}
+                    onCancel={() => setShowRelationPicker(false)}
+                  />
+                </div>
+              )}
+
+              {card?.relations && card.relations.length > 0 && (
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {card.relations.map((rel) => (
+                    <RelationshipBadge
+                      key={rel.id}
+                      relation={rel}
+                      targetCard={allCards.find((c) => c.id === rel.targetCardId)}
+                      onRemove={onRemoveRelation ? () => handleRemoveRelation(rel.id) : undefined}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {(!card?.relations || card.relations.length === 0) && !showRelationPicker && (
+                <div className="mt-2 text-xs text-emerald-900/50">
+                  No relationships yet
                 </div>
               )}
             </div>

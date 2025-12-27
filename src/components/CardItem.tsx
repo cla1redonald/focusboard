@@ -1,6 +1,7 @@
 import React from "react";
 import { useDraggable } from "@dnd-kit/core";
 import type { Card } from "../app/types";
+import { RelationshipIndicators } from "./RelationshipPicker";
 
 export function CardItem({
   card,
@@ -71,6 +72,12 @@ export function CardItem({
       {card.blockedReason && (
         <div className="mt-2 text-[11px] text-rose-700/80">
           Blocked: {card.blockedReason}
+        </div>
+      )}
+
+      {card.relations && card.relations.length > 0 && (
+        <div className="mt-2">
+          <RelationshipIndicators card={card} />
         </div>
       )}
     </div>

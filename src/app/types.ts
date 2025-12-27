@@ -22,6 +22,14 @@ export type ColumnTransition = {
   at: string; // ISO date
 };
 
+export type RelationType = "blocks" | "blocked-by" | "parent" | "child" | "related";
+
+export type CardRelation = {
+  id: string;
+  type: RelationType;
+  targetCardId: string;
+};
+
 export type Card = {
   id: string;
   column: ColumnId;
@@ -41,6 +49,7 @@ export type Card = {
   lastOverrideAt?: string;
 
   columnHistory?: ColumnTransition[]; // Track all column movements
+  relations?: CardRelation[]; // Links to other cards
 };
 
 // Metrics types
@@ -90,4 +99,15 @@ export type AppState = {
   columns: Column[];
   templates: CardTemplate[];
   settings: Settings;
+};
+
+// Filter types
+export type DueDateFilter = "all" | "overdue" | "today" | "this-week" | "no-date";
+
+export type FilterState = {
+  search: string;
+  columns: ColumnId[]; // empty = all columns
+  tags: string[]; // empty = all tags
+  dueDate: DueDateFilter;
+  hasBlocker: boolean | null; // null = any, true = only blocked, false = only unblocked
 };

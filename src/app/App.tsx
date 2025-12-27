@@ -1,6 +1,6 @@
 import React from "react";
 import { useAppState } from "./state";
-import type { Card, Column, MetricsState } from "./types";
+import type { Card, Column, MetricsState, RelationType } from "./types";
 import { loadMetrics, saveMetrics, recordCompletedCard, takeDailySnapshot } from "./metrics";
 import { Board } from "../components/Board";
 import { CardModal } from "../components/CardModal";
@@ -90,7 +90,8 @@ export default function App() {
 
       <CardModal
         open={!!openCard}
-        card={openCard}
+        card={openCard ? state.cards.find((c) => c.id === openCard.id) ?? openCard : null}
+        allCards={state.cards}
         onClose={() => setOpenCard(null)}
         onSave={(card) => {
           dispatch({ type: "UPDATE_CARD", card });
@@ -99,6 +100,12 @@ export default function App() {
         onDelete={(id) => {
           dispatch({ type: "DELETE_CARD", id });
           setOpenCard(null);
+        }}
+        onAddRelation={(cardId: string, targetCardId: string, relationType: RelationType) => {
+          dispatch({ type: "ADD_RELATION", cardId, targetCardId, relationType });
+        }}
+        onRemoveRelation={(cardId: string, relationId: string) => {
+          dispatch({ type: "REMOVE_RELATION", cardId, relationId });
         }}
       />
 
