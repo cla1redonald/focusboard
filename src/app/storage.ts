@@ -4,6 +4,7 @@ import { DEFAULT_SETTINGS, DEFAULT_COLUMNS, DEFAULT_TAG_CATEGORIES, DEFAULT_TAGS
 const KEY_V1 = "focusboard:v1";
 const KEY_V2 = "focusboard:v2";
 const KEY_V3 = "focusboard:v3";
+const KEY_V4 = "focusboard:v4";
 
 type V1Settings = {
   celebrations: boolean;
@@ -150,6 +151,35 @@ function migrateV2ToV3(v2State: V2State): AppState {
   };
 }
 
+type V3Card = Omit<Card, "order"> & { order?: number };
+type V3State = Omit<AppState, "cards"> & { cards: V3Card[] };
+
+function migrateV3ToV4(v3State: V3State): AppState {
+  // Group cards by column and assign order based on array position
+  const cardsByColumn: Record<string, V3Card[]> = {};
+  for (const card of v3State.cards) {
+    if (!cardsByColumn[card.column]) {
+      cardsByColumn[card.column] = [];
+    }
+    cardsByColumn[card.column].push(card);
+  }
+
+  // Assign order to cards within each column
+  const migratedCards: Card[] = v3State.cards.map((card) => {
+    const columnCards = cardsByColumn[card.column] ?? [];
+    const orderInColumn = columnCards.indexOf(card);
+    return {
+      ...card,
+      order: card.order ?? orderInColumn,
+    };
+  });
+
+  return {
+    ...v3State,
+    cards: migratedCards,
+  };
+}
+
 function getDefaultState(): AppState {
   return {
     cards: [],
@@ -163,10 +193,10 @@ function getDefaultState(): AppState {
 
 export function loadState(): AppState {
   try {
-    // Try v3 first
-    const rawV3 = localStorage.getItem(KEY_V3);
-    if (rawV3) {
-      const parsed = JSON.parse(rawV3) as AppState;
+    // Try v4 first
+    const rawV4 = localStorage.getItem(KEY_V4);
+    if (rawV4) {
+      const parsed = JSON.parse(rawV4) as AppState;
       return {
         cards: parsed.cards ?? [],
         columns: parsed.columns?.length ? parsed.columns : DEFAULT_COLUMNS,
@@ -180,7 +210,27 @@ export function loadState(): AppState {
       };
     }
 
-    // Try v2 and migrate to v3
+    // Try v3 and migrate to v4
+    const rawV3 = localStorage.getItem(KEY_V3);
+    if (rawV3) {
+      const parsed = JSON.parse(rawV3) as V3State;
+      const v3State: V3State = {
+        cards: parsed.cards ?? [],
+        columns: parsed.columns?.length ? parsed.columns : DEFAULT_COLUMNS,
+        templates: parsed.templates ?? [],
+        settings: {
+          ...DEFAULT_SETTINGS,
+          ...(parsed.settings ?? {}),
+        },
+        tagCategories: parsed.tagCategories?.length ? parsed.tagCategories : DEFAULT_TAG_CATEGORIES,
+        tags: parsed.tags?.length ? parsed.tags : DEFAULT_TAGS,
+      };
+      const migrated = migrateV3ToV4(v3State);
+      saveState(migrated);
+      return migrated;
+    }
+
+    // Try v2 and migrate through v3 to v4
     const rawV2 = localStorage.getItem(KEY_V2);
     if (rawV2) {
       const parsed = JSON.parse(rawV2) as V2State;
@@ -195,17 +245,19 @@ export function loadState(): AppState {
         tagCategories: parsed.tagCategories,
         tags: parsed.tags,
       };
-      const migrated = migrateV2ToV3(v2State);
+      const v3State = migrateV2ToV3(v2State);
+      const migrated = migrateV3ToV4(v3State);
       saveState(migrated);
       return migrated;
     }
 
-    // Try v1 and migrate through v2 to v3
+    // Try v1 and migrate through v2, v3 to v4
     const rawV1 = localStorage.getItem(KEY_V1);
     if (rawV1) {
       const parsed = JSON.parse(rawV1) as V1State;
       const v2State = migrateV1ToV2(parsed);
-      const migrated = migrateV2ToV3(v2State);
+      const v3State = migrateV2ToV3(v2State);
+      const migrated = migrateV3ToV4(v3State);
       saveState(migrated);
       return migrated;
     }
@@ -218,5 +270,5 @@ export function loadState(): AppState {
 }
 
 export function saveState(state: AppState) {
-  localStorage.setItem(KEY_V3, JSON.stringify(state));
+  localStorage.setItem(KEY_V4, JSON.stringify(state));
 }

@@ -3,6 +3,7 @@ import { useAppState } from "./state";
 import type { AppState, Card, Column, MetricsState, RelationType } from "./types";
 import { loadMetrics, saveMetrics, recordCompletedCard, takeDailySnapshot } from "./metrics";
 import { AuthProvider, useRequireAuth, useAuth } from "./AuthContext";
+import { ToastProvider } from "./ToastContext";
 import { isSupabaseConfigured } from "./supabase";
 import { debouncedSaveToSupabase, debouncedSaveMetricsToSupabase } from "./sync";
 import { Board } from "../components/Board";
@@ -10,6 +11,8 @@ import { CardModal } from "../components/CardModal";
 import { SettingsPanel } from "../components/SettingsPanel";
 import { MetricsDashboard } from "../components/MetricsDashboard";
 import { KeyboardShortcutsModal } from "../components/KeyboardShortcutsModal";
+import { CommandPalette } from "../components/CommandPalette";
+import { ToastContainer } from "../components/ToastContainer";
 import { LoginPage } from "../components/LoginPage";
 import { SetPasswordPage } from "../components/SetPasswordPage";
 
@@ -20,12 +23,20 @@ function AppContent() {
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [metricsDashboardOpen, setMetricsDashboardOpen] = React.useState(false);
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
+  const [commandPaletteOpen, setCommandPaletteOpen] = React.useState(false);
   const [metrics, setMetrics] = React.useState<MetricsState>(() => loadMetrics());
   const hasBgImage = !!state.settings.backgroundImage;
 
-  // Keyboard shortcut for ? to show help
+  // Keyboard shortcuts for ? to show help and Cmd+K for command palette
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      // Cmd+K for command palette (works even in inputs)
+      if ((e.metaKey || e.ctrlKey) && e.key === "k") {
+        e.preventDefault();
+        setCommandPaletteOpen(true);
+        return;
+      }
+
       const target = e.target as HTMLElement;
       if (
         target.tagName === "INPUT" ||
@@ -130,6 +141,7 @@ function AppContent() {
             canRedo={canRedo}
             onUndo={() => dispatch({ type: "UNDO" })}
             onRedo={() => dispatch({ type: "REDO" })}
+            onReorderCards={(columnId, cardIds) => dispatch({ type: "REORDER_CARDS", columnId, cardIds })}
           />
         </div>
       </div>
@@ -195,6 +207,33 @@ function AppContent() {
         open={shortcutsOpen}
         onClose={() => setShortcutsOpen(false)}
       />
+
+      <CommandPalette
+        open={commandPaletteOpen}
+        cards={state.cards}
+        columns={state.columns}
+        onClose={() => setCommandPaletteOpen(false)}
+        onOpenCard={(card) => {
+          setCommandPaletteOpen(false);
+          setOpenCard(card);
+        }}
+        onOpenSettings={() => {
+          setCommandPaletteOpen(false);
+          setSettingsOpen(true);
+        }}
+        onOpenMetrics={() => {
+          setCommandPaletteOpen(false);
+          setMetricsDashboardOpen(true);
+        }}
+        onJumpToColumn={(columnId) => {
+          const columnEl = document.querySelector(`[data-column-id="${columnId}"]`);
+          if (columnEl) {
+            columnEl.scrollIntoView({ behavior: "smooth", inline: "center" });
+          }
+        }}
+      />
+
+      <ToastContainer />
     </div>
   );
 }
@@ -228,7 +267,11 @@ function AuthenticatedApp() {
     return <LoginPage />;
   }
 
-  return <AppContent />;
+  return (
+    <ToastProvider>
+      <AppContent />
+    </ToastProvider>
+  );
 }
 
 export default function App() {

@@ -1,6 +1,7 @@
 import React from "react";
-import { DndContext } from "@dnd-kit/core";
+import { DndContext, PointerSensor, useSensors, useSensor } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
+import { arrayMove } from "@dnd-kit/sortable";
 import type { Card, Column as ColumnType, ColumnId, FilterState, MetricsState, Settings, Tag } from "../app/types";
 import { CONFETTI_COLORS } from "../app/constants";
 import { groupByColumn, isToday, nowIso } from "../app/utils";
@@ -40,6 +41,7 @@ export function Board({
   canRedo,
   onUndo,
   onRedo,
+  onReorderCards,
 }: {
   cards: Card[];
   columns: ColumnType[];
@@ -56,9 +58,19 @@ export function Board({
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
+  onReorderCards: (columnId: ColumnId, cardIds: string[]) => void;
 }) {
   const reducedMotion = usePrefersReducedMotion() || settings.reducedMotionOverride;
   const [filter, setFilter] = React.useState<FilterState>(DEFAULT_FILTER);
+
+  // Configure sensors with distance constraint to prevent accidental drags
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 5,
+      },
+    })
+  );
 
   // modal state (declared early for keyboard nav)
   const [modal, setModal] = React.useState<
@@ -199,13 +211,33 @@ export function Board({
 
   const onDragEnd = (e: DragEndEvent) => {
     const cardId = String(e.active.id);
-    const to = e.over?.id as ColumnId | undefined;
-    if (!to) return;
+    const overId = e.over?.id as string | undefined;
+    if (!overId) return;
 
     const card = cards.find((c) => c.id === cardId);
     if (!card) return;
     const from = card.column;
 
+    // Check if we're dropping on another card (reorder) or on a column (move)
+    const overCard = cards.find((c) => c.id === overId);
+    const overColumn = columns.find((c) => c.id === overId);
+
+    // If dropping on a card in the same column, it's a reorder
+    if (overCard && overCard.column === from) {
+      const columnCards = byCol[from] ?? [];
+      const oldIndex = columnCards.findIndex((c) => c.id === cardId);
+      const newIndex = columnCards.findIndex((c) => c.id === overId);
+      if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
+        const newOrder = arrayMove(columnCards, oldIndex, newIndex);
+        onReorderCards(from, newOrder.map((c) => c.id));
+      }
+      return;
+    }
+
+    // Determine target column
+    const to: ColumnId = overColumn ? overColumn.id : overCard ? overCard.column : overId as ColumnId;
+
+    // If it's a no-op (same column drop on empty area), return
     if (from === to) return;
 
     // guardrail: Design -> Doing disallowed
@@ -281,12 +313,12 @@ export function Board({
         totalCount={cards.length}
       />
 
-      <DndContext onDragEnd={onDragEnd}>
+      <DndContext sensors={sensors} onDragEnd={onDragEnd}>
         <div className="flex gap-5 overflow-x-auto pb-6">
           {sortedColumns.map((col, colIdx) => {
             const isColumnFocused = isNavigating && focusPosition?.columnIndex === colIdx;
             return (
-              <div key={col.id}>
+              <div key={col.id} data-column-id={col.id}>
                 <div
                   id={col.isTerminal ? `${col.id}-header` : undefined}
                   className="rounded-xl"

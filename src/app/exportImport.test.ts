@@ -12,6 +12,7 @@ const makeCard = (overrides: Partial<Card> = {}): Card => ({
   id: `card-${Math.random().toString(36).slice(2)}`,
   column: "todo",
   title: "Test Card",
+  order: 0,
   createdAt: "2024-01-01T00:00:00.000Z",
   updatedAt: "2024-01-01T00:00:00.000Z",
   ...overrides,

@@ -2,7 +2,7 @@ import React from "react";
 
 const SHORTCUTS = [
   { keys: ["?"], description: "Show keyboard shortcuts" },
-  { keys: ["Cmd/Ctrl", "K"], description: "Focus search" },
+  { keys: ["Cmd/Ctrl", "K"], description: "Open Command Palette" },
   { keys: ["Cmd/Ctrl", "Z"], description: "Undo" },
   { keys: ["Cmd/Ctrl", "Shift", "Z"], description: "Redo" },
   { keys: ["Escape"], description: "Close modal / Clear search" },

@@ -48,6 +48,7 @@ export type Card = {
   id: string;
   column: ColumnId;
   title: string;
+  order: number; // Position within column (lower = higher in list)
   icon?: string;
   notes?: string;
   link?: string;

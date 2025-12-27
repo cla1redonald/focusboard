@@ -31,5 +31,10 @@ export function groupByColumn(cards: Card[], columns?: Column[]): Record<ColumnI
     map[c.column].push(c);
   }
 
+  // Sort cards within each column by order
+  for (const colId of Object.keys(map)) {
+    map[colId].sort((a, b) => (a.order ?? 0) - (b.order ?? 0));
+  }
+
   return map;
 }

@@ -35,6 +35,7 @@ describe("Security Tests", () => {
         id: "xss-test",
         column: "todo",
         title: payload,
+        order: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         tags: [],
@@ -73,6 +74,7 @@ describe("Security Tests", () => {
           canRedo={false}
           onUndo={vi.fn()}
           onRedo={vi.fn()}
+          onReorderCards={vi.fn()}
         />
       );
 
@@ -85,6 +87,7 @@ describe("Security Tests", () => {
         id: "notes-xss",
         column: "todo",
         title: "Test Card",
+        order: 0,
         notes: '<script>alert("xss")</script>',
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -164,6 +167,7 @@ describe("Security Tests", () => {
             id: "large",
             column: "todo",
             title: largeTitle,
+            order: 0,
             createdAt: new Date().toISOString(),
             updatedAt: new Date().toISOString(),
             tags: [],
@@ -189,6 +193,7 @@ describe("Security Tests", () => {
         id: "special",
         column: "todo",
         title: specialTitle,
+        order: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         tags: [],
@@ -216,6 +221,7 @@ describe("Security Tests", () => {
         id: "unicode",
         column: "todo",
         title: unicodeTitle,
+        order: 0,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
         tags: [],
@@ -242,6 +248,7 @@ describe("Security Tests", () => {
         id: "emoji",
         column: "todo",
         title: "Title 🎯",
+        order: 0,
         icon: "🔥",
         notes: "Notes 📝",
         tags: ["tag1 🏷️"],
@@ -318,6 +325,7 @@ describe("Security Tests", () => {
         id: "long-tag",
         column: "todo",
         title: "Test",
+        order: 0,
         tags: [longTag, "normal"],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -350,6 +358,7 @@ describe("Security Tests", () => {
         id: "many-items",
         column: "todo",
         title: "Test",
+        order: 0,
         checklist: manyItems,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),
@@ -379,6 +388,7 @@ describe("Security Tests", () => {
         id: "url-test",
         column: "todo",
         title: "Test",
+        order: 0,
         link: dangerousUrl,
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString(),

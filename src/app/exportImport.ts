@@ -293,6 +293,7 @@ function validateCards(arr: unknown[]): { cards: Card[]; errors: string[]; warni
       id: card.id,
       title: card.title,
       column: card.column,
+      order: typeof card.order === "number" ? card.order : i,
       createdAt: card.createdAt,
       updatedAt: card.updatedAt,
     };

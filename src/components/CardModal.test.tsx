@@ -10,6 +10,7 @@ describe("CardModal", () => {
     id: "test-card-1",
     column: "todo",
     title: "Test Card Title",
+    order: 0,
     createdAt: "2024-01-01T00:00:00.000Z",
     updatedAt: "2024-01-01T00:00:00.000Z",
     tags: [],

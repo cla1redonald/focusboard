@@ -27,6 +27,7 @@ type Action =
   | { type: "UPDATE_CARD"; card: Card }
   | { type: "DELETE_CARD"; id: string }
   | { type: "MOVE_CARD"; id: string; to: ColumnId; patch?: Partial<Card> }
+  | { type: "REORDER_CARDS"; columnId: ColumnId; cardIds: string[] }
   | { type: "SET_SETTINGS"; settings: Settings }
   | { type: "ADD_COLUMN"; column: Omit<Column, "id" | "order"> }
   | { type: "UPDATE_COLUMN"; column: Column }
@@ -63,17 +64,22 @@ function appReducer(state: AppState, action: Action): AppState {
         to: action.column,
         at: now,
       };
+      // New cards go to top (order 0), shift existing cards in column
+      const shiftedCards = state.cards.map((c) =>
+        c.column === action.column ? { ...c, order: (c.order ?? 0) + 1 } : c
+      );
       const card: Card = {
         id: nanoid(),
         column: action.column,
         title: action.title.trim(),
+        order: 0,
         createdAt: now,
         updatedAt: now,
         tags: [],
         checklist: [],
         columnHistory: [initialTransition],
       };
-      return { ...state, cards: [card, ...state.cards] };
+      return { ...state, cards: [card, ...shiftedCards] };
     }
     case "UPDATE_CARD": {
       return {
@@ -107,14 +113,25 @@ function appReducer(state: AppState, action: Action): AppState {
       const now = nowIso();
       const toColumn = state.columns.find((col) => col.id === action.to);
       const isTerminal = toColumn?.isTerminal ?? false;
+      const movingCard = state.cards.find((c) => c.id === action.id);
+      const fromColumn = movingCard?.column;
+
+      // Shift cards in destination column to make room at top
+      const shiftedCards = state.cards.map((c) => {
+        if (c.id === action.id) return c; // Will be updated below
+        if (c.column === action.to) {
+          return { ...c, order: (c.order ?? 0) + 1 };
+        }
+        return c;
+      });
 
       return {
         ...state,
-        cards: state.cards.map((c) => {
+        cards: shiftedCards.map((c) => {
           if (c.id !== action.id) return c;
 
           const transition: ColumnTransition = {
-            from: c.column,
+            from: fromColumn ?? null,
             to: action.to,
             at: now,
           };
@@ -123,11 +140,25 @@ function appReducer(state: AppState, action: Action): AppState {
           return {
             ...c,
             column: action.to,
+            order: 0, // Move to top of new column
             ...action.patch,
             updatedAt: now,
             columnHistory,
             completedAt: isTerminal ? now : c.completedAt,
           };
+        }),
+      };
+    }
+    case "REORDER_CARDS": {
+      const { columnId, cardIds } = action;
+      const now = nowIso();
+      return {
+        ...state,
+        cards: state.cards.map((c) => {
+          if (c.column !== columnId) return c;
+          const newOrder = cardIds.indexOf(c.id);
+          if (newOrder === -1) return c;
+          return { ...c, order: newOrder, updatedAt: now };
         }),
       };
     }
@@ -210,10 +241,16 @@ function appReducer(state: AppState, action: Action): AppState {
         at: now,
       };
 
+      // Shift existing cards in column
+      const shiftedCards = state.cards.map((c) =>
+        c.column === template.defaultColumn ? { ...c, order: (c.order ?? 0) + 1 } : c
+      );
+
       const card: Card = {
         id: nanoid(),
         column: template.defaultColumn,
         title: template.title,
+        order: 0,
         icon: template.icon,
         notes: template.notes,
         tags: template.tags ? [...template.tags] : [],
@@ -228,7 +265,7 @@ function appReducer(state: AppState, action: Action): AppState {
         updatedAt: now,
         columnHistory: [initialTransition],
       };
-      return { ...state, cards: [card, ...state.cards] };
+      return { ...state, cards: [card, ...shiftedCards] };
     }
 
     case "ADD_RELATION": {

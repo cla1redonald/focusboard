@@ -729,7 +729,7 @@ describe("state reducer", () => {
 
       // Check that localStorage.setItem was called
       expect(localStorage.setItem).toHaveBeenCalledWith(
-        "focusboard:v3",
+        "focusboard:v4",
         expect.any(String)
       );
     });

@@ -177,7 +177,7 @@ describe("storage", () => {
       saveState(state);
 
       expect(localStorage.setItem).toHaveBeenCalledWith(
-        "focusboard:v3",
+        "focusboard:v4",
         JSON.stringify(state)
       );
     });
@@ -187,6 +187,7 @@ describe("storage", () => {
         id: "test-id",
         column: "doing",
         title: "Test Task",
+        order: 0,
         icon: "🎯",
         notes: "Some notes",
         link: "https://example.com",
@@ -274,6 +275,7 @@ describe("storage", () => {
             id: "card-1",
             column: "todo",
             title: "First Task",
+            order: 0,
             createdAt: "2024-01-01T00:00:00.000Z",
             updatedAt: "2024-01-01T00:00:00.000Z",
             tags: ["important"],
@@ -283,6 +285,7 @@ describe("storage", () => {
             id: "card-2",
             column: "doing",
             title: "Second Task",
+            order: 0,
             icon: "🔥",
             createdAt: "2024-01-02T00:00:00.000Z",
             updatedAt: "2024-01-02T00:00:00.000Z",

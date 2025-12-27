@@ -27,6 +27,7 @@ describe("Board", () => {
     canRedo: false,
     onUndo: vi.fn(),
     onRedo: vi.fn(),
+    onReorderCards: vi.fn(),
   };
 
   beforeEach(() => {
@@ -64,6 +65,7 @@ describe("Board", () => {
           id: "1",
           column: "todo",
           title: "Test Card",
+          order: 0,
           createdAt: "2024-01-01",
           updatedAt: "2024-01-01",
           tags: [],
@@ -97,6 +99,7 @@ describe("Board", () => {
           id: "1",
           column: "todo",
           title: "Clickable Card",
+          order: 0,
           createdAt: "2024-01-01",
           updatedAt: "2024-01-01",
           tags: [],
@@ -181,6 +184,7 @@ describe("Board", () => {
           id: "1",
           column: "doing",
           title: "Current Task",
+          order: 0,
           createdAt: "2024-01-01",
           updatedAt: "2024-01-01",
           tags: [],

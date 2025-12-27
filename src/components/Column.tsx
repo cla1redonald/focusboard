@@ -1,7 +1,9 @@
 import React from "react";
 import { useDroppable } from "@dnd-kit/core";
+import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import type { Card, ColumnId, Tag } from "../app/types";
 import { CardItem } from "./CardItem";
+import { EmptyColumnState } from "./EmptyColumnState";
 
 const hexToRgb = (hex: string) => {
   const cleaned = hex.replace("#", "").trim();
@@ -104,17 +106,26 @@ export function Column({
           isOver ? "ring-2 ring-emerald-300/40" : ""
         }`}
       >
-        {cards.map((c, idx) => (
-          <CardItem
-            key={c.id}
-            card={c}
-            onOpen={onOpenCard}
-            cardRefSetter={cardRefSetter}
-            focused={columnFocused && focusedCardIndex === idx}
-            allTags={allTags}
-            showAgingIndicator={showAgingIndicators}
-          />
-        ))}
+        <SortableContext
+          items={cards.map((c) => c.id)}
+          strategy={verticalListSortingStrategy}
+        >
+          {cards.length === 0 ? (
+            <EmptyColumnState columnId={id} />
+          ) : (
+            cards.map((c, idx) => (
+              <CardItem
+                key={c.id}
+                card={c}
+                onOpen={onOpenCard}
+                cardRefSetter={cardRefSetter}
+                focused={columnFocused && focusedCardIndex === idx}
+                allTags={allTags}
+                showAgingIndicator={showAgingIndicators}
+              />
+            ))
+          )}
+        </SortableContext>
 
         <form
           className="pt-2"

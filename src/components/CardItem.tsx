@@ -1,5 +1,6 @@
 import React from "react";
-import { useDraggable } from "@dnd-kit/core";
+import { useSortable } from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
 import type { Card, Tag } from "../app/types";
 import { RelationshipIndicators } from "./RelationshipPicker";
 import { getCardAgeLevel, getCardAgeDays } from "../app/metrics";
@@ -19,17 +20,17 @@ export function CardItem({
   allTags?: Tag[];
   showAgingIndicator?: boolean;
 }) {
-  const { attributes, listeners, setNodeRef, transform, isDragging } =
-    useDraggable({
+  const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
+    useSortable({
       id: card.id,
-      data: { cardId: card.id },
+      data: { cardId: card.id, column: card.column },
     });
 
   const style: React.CSSProperties = {
-    transform: transform
-      ? `translate3d(${transform.x}px, ${transform.y}px, 0)`
-      : undefined,
-    opacity: isDragging ? 0.7 : 1,
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1000 : undefined,
   };
 
   const refFn = (el: HTMLElement | null) => {
