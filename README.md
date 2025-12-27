@@ -1,5 +1,7 @@
 # Focusboard
 
+[![Vercel](https://vercelbadge.vercel.app/api/cla1redonald/focusboard)](https://focusboard-alpha.vercel.app/)
+
 A focused Kanban-style board with WIP limits, per-card emoji icons, and customizable column colors/backgrounds.
 
 ## Quick start
