@@ -6,7 +6,7 @@ import { CardModal } from "../components/CardModal";
 import { SettingsPanel } from "../components/SettingsPanel";
 
 export default function App() {
-  const { state, dispatch } = useAppState();
+  const { state, dispatch, canUndo, canRedo } = useAppState();
   const [openCard, setOpenCard] = React.useState<Card | null>(null);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const hasBgImage = !!state.settings.backgroundImage;
@@ -35,6 +35,10 @@ export default function App() {
             onMove={(id, to, patch) => dispatch({ type: "MOVE_CARD", id, to, patch })}
             onOpenCard={(c) => setOpenCard(c)}
             onSettings={() => setSettingsOpen(true)}
+            canUndo={canUndo}
+            canRedo={canRedo}
+            onUndo={() => dispatch({ type: "UNDO" })}
+            onRedo={() => dispatch({ type: "REDO" })}
           />
         </div>
       </div>

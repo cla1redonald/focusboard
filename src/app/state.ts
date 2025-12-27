@@ -4,6 +4,8 @@ import type { AppState, Card, Column, ColumnId, Settings } from "./types";
 import { loadState, saveState } from "./storage";
 import { nowIso } from "./utils";
 
+const MAX_HISTORY = 50;
+
 type Action =
   | { type: "ADD_CARD"; column: ColumnId; title: string }
   | { type: "UPDATE_CARD"; card: Card }
@@ -13,9 +15,17 @@ type Action =
   | { type: "ADD_COLUMN"; column: Omit<Column, "id" | "order"> }
   | { type: "UPDATE_COLUMN"; column: Column }
   | { type: "DELETE_COLUMN"; id: ColumnId; migrateCardsTo?: ColumnId }
-  | { type: "REORDER_COLUMNS"; columns: Column[] };
+  | { type: "REORDER_COLUMNS"; columns: Column[] }
+  | { type: "UNDO" }
+  | { type: "REDO" };
 
-function reducer(state: AppState, action: Action): AppState {
+type HistoryState = {
+  past: AppState[];
+  present: AppState;
+  future: AppState[];
+};
+
+function appReducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case "ADD_CARD": {
       const card: Card = {
@@ -71,7 +81,6 @@ function reducer(state: AppState, action: Action): AppState {
     }
 
     case "DELETE_COLUMN": {
-      // Optionally migrate cards to another column
       const updatedCards = action.migrateCardsTo
         ? state.cards.map((c) =>
             c.column === action.id
@@ -80,7 +89,6 @@ function reducer(state: AppState, action: Action): AppState {
           )
         : state.cards.filter((c) => c.column !== action.id);
 
-      // Remove the column and reorder
       const remainingColumns = state.columns
         .filter((c) => c.id !== action.id)
         .map((c, idx) => ({ ...c, order: idx }));
@@ -100,12 +108,88 @@ function reducer(state: AppState, action: Action): AppState {
   }
 }
 
+function historyReducer(historyState: HistoryState, action: Action): HistoryState {
+  const { past, present, future } = historyState;
+
+  if (action.type === "UNDO") {
+    if (past.length === 0) return historyState;
+    const previous = past[past.length - 1];
+    const newPast = past.slice(0, past.length - 1);
+    return {
+      past: newPast,
+      present: previous,
+      future: [present, ...future],
+    };
+  }
+
+  if (action.type === "REDO") {
+    if (future.length === 0) return historyState;
+    const next = future[0];
+    const newFuture = future.slice(1);
+    return {
+      past: [...past, present],
+      present: next,
+      future: newFuture,
+    };
+  }
+
+  // For all other actions, apply to present and add to history
+  const newPresent = appReducer(present, action);
+
+  // If state didn't change, don't add to history
+  if (newPresent === present) return historyState;
+
+  return {
+    past: [...past, present].slice(-MAX_HISTORY),
+    present: newPresent,
+    future: [], // Clear future on new action
+  };
+}
+
+function initHistory(initialState: AppState): HistoryState {
+  return {
+    past: [],
+    present: initialState,
+    future: [],
+  };
+}
+
 export function useAppState() {
-  const [state, dispatch] = React.useReducer(reducer, undefined, loadState);
+  const [historyState, dispatch] = React.useReducer(
+    historyReducer,
+    undefined,
+    () => initHistory(loadState())
+  );
+
+  const { present: state, past, future } = historyState;
 
   React.useEffect(() => {
     saveState(state);
   }, [state]);
 
-  return { state, dispatch };
+  // Keyboard shortcuts for undo/redo
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const isMod = e.metaKey || e.ctrlKey;
+      if (!isMod) return;
+
+      if (e.key === "z" && !e.shiftKey) {
+        e.preventDefault();
+        dispatch({ type: "UNDO" });
+      } else if ((e.key === "z" && e.shiftKey) || e.key === "y") {
+        e.preventDefault();
+        dispatch({ type: "REDO" });
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  return {
+    state,
+    dispatch,
+    canUndo: past.length > 0,
+    canRedo: future.length > 0,
+  };
 }

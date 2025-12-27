@@ -732,4 +732,293 @@ describe("state reducer", () => {
       );
     });
   });
+
+  describe("UNDO action", () => {
+    it("restores previous state after adding a card", () => {
+      const { result } = renderHook(() => useAppState());
+
+      expect(result.current.state.cards).toHaveLength(0);
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_CARD",
+          column: "todo",
+          title: "Card to Undo",
+        });
+      });
+
+      expect(result.current.state.cards).toHaveLength(1);
+
+      act(() => {
+        result.current.dispatch({ type: "UNDO" });
+      });
+
+      expect(result.current.state.cards).toHaveLength(0);
+    });
+
+    it("restores previous state after deleting a card", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_CARD",
+          column: "todo",
+          title: "Card to Delete",
+        });
+      });
+
+      const cardId = result.current.state.cards[0].id;
+
+      act(() => {
+        result.current.dispatch({
+          type: "DELETE_CARD",
+          id: cardId,
+        });
+      });
+
+      expect(result.current.state.cards).toHaveLength(0);
+
+      act(() => {
+        result.current.dispatch({ type: "UNDO" });
+      });
+
+      expect(result.current.state.cards).toHaveLength(1);
+      expect(result.current.state.cards[0].title).toBe("Card to Delete");
+    });
+
+    it("restores previous state after moving a card", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_CARD",
+          column: "todo",
+          title: "Moveable Card",
+        });
+      });
+
+      const cardId = result.current.state.cards[0].id;
+
+      act(() => {
+        result.current.dispatch({
+          type: "MOVE_CARD",
+          id: cardId,
+          to: "doing",
+        });
+      });
+
+      expect(result.current.state.cards[0].column).toBe("doing");
+
+      act(() => {
+        result.current.dispatch({ type: "UNDO" });
+      });
+
+      expect(result.current.state.cards[0].column).toBe("todo");
+    });
+
+    it("does nothing when there is no history", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "UNDO" });
+      });
+
+      expect(result.current.state.cards).toHaveLength(0);
+    });
+
+    it("can undo multiple actions in sequence", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Card 1" });
+      });
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Card 2" });
+      });
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Card 3" });
+      });
+
+      expect(result.current.state.cards).toHaveLength(3);
+
+      act(() => {
+        result.current.dispatch({ type: "UNDO" });
+      });
+      expect(result.current.state.cards).toHaveLength(2);
+
+      act(() => {
+        result.current.dispatch({ type: "UNDO" });
+      });
+      expect(result.current.state.cards).toHaveLength(1);
+
+      act(() => {
+        result.current.dispatch({ type: "UNDO" });
+      });
+      expect(result.current.state.cards).toHaveLength(0);
+    });
+  });
+
+  describe("REDO action", () => {
+    it("restores undone action", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_CARD",
+          column: "todo",
+          title: "Card to Redo",
+        });
+      });
+
+      act(() => {
+        result.current.dispatch({ type: "UNDO" });
+      });
+
+      expect(result.current.state.cards).toHaveLength(0);
+
+      act(() => {
+        result.current.dispatch({ type: "REDO" });
+      });
+
+      expect(result.current.state.cards).toHaveLength(1);
+      expect(result.current.state.cards[0].title).toBe("Card to Redo");
+    });
+
+    it("does nothing when there is no future", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "REDO" });
+      });
+
+      expect(result.current.state.cards).toHaveLength(0);
+    });
+
+    it("can redo multiple undone actions", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Card 1" });
+      });
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Card 2" });
+      });
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Card 3" });
+      });
+
+      act(() => {
+        result.current.dispatch({ type: "UNDO" });
+        result.current.dispatch({ type: "UNDO" });
+        result.current.dispatch({ type: "UNDO" });
+      });
+
+      expect(result.current.state.cards).toHaveLength(0);
+
+      act(() => {
+        result.current.dispatch({ type: "REDO" });
+      });
+      expect(result.current.state.cards).toHaveLength(1);
+
+      act(() => {
+        result.current.dispatch({ type: "REDO" });
+      });
+      expect(result.current.state.cards).toHaveLength(2);
+
+      act(() => {
+        result.current.dispatch({ type: "REDO" });
+      });
+      expect(result.current.state.cards).toHaveLength(3);
+    });
+
+    it("clears redo history when a new action is performed after undo", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Original Card" });
+      });
+
+      act(() => {
+        result.current.dispatch({ type: "UNDO" });
+      });
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "design", title: "New Card" });
+      });
+
+      // Redo should do nothing since we performed a new action
+      act(() => {
+        result.current.dispatch({ type: "REDO" });
+      });
+
+      expect(result.current.state.cards).toHaveLength(1);
+      expect(result.current.state.cards[0].title).toBe("New Card");
+    });
+  });
+
+  describe("canUndo and canRedo flags", () => {
+    it("canUndo is false when there is no history", () => {
+      const { result } = renderHook(() => useAppState());
+
+      expect(result.current.canUndo).toBe(false);
+    });
+
+    it("canUndo is true after an action", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_CARD",
+          column: "todo",
+          title: "New Card",
+        });
+      });
+
+      expect(result.current.canUndo).toBe(true);
+    });
+
+    it("canRedo is false when there is no future", () => {
+      const { result } = renderHook(() => useAppState());
+
+      expect(result.current.canRedo).toBe(false);
+    });
+
+    it("canRedo is true after undo", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_CARD",
+          column: "todo",
+          title: "New Card",
+        });
+      });
+
+      act(() => {
+        result.current.dispatch({ type: "UNDO" });
+      });
+
+      expect(result.current.canRedo).toBe(true);
+    });
+
+    it("canRedo becomes false after new action", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Card 1" });
+      });
+
+      act(() => {
+        result.current.dispatch({ type: "UNDO" });
+      });
+
+      expect(result.current.canRedo).toBe(true);
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Card 2" });
+      });
+
+      expect(result.current.canRedo).toBe(false);
+    });
+  });
 });

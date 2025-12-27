@@ -29,6 +29,10 @@ export function Board({
   onMove,
   onOpenCard,
   onSettings,
+  canUndo,
+  canRedo,
+  onUndo,
+  onRedo,
 }: {
   cards: Card[];
   columns: ColumnType[];
@@ -37,6 +41,10 @@ export function Board({
   onMove: (id: string, to: ColumnId, patch?: Partial<Card>) => void;
   onOpenCard: (card: Card) => void;
   onSettings: () => void;
+  canUndo: boolean;
+  canRedo: boolean;
+  onUndo: () => void;
+  onRedo: () => void;
 }) {
   const reducedMotion = usePrefersReducedMotion() || settings.reducedMotionOverride;
 
@@ -205,7 +213,15 @@ export function Board({
 
   return (
     <div className="h-full flex flex-col">
-      <TopStrip doingCard={doingCard} blockedCount={blockedCount} dueTodayCount={dueTodayCount} />
+      <TopStrip
+        doingCard={doingCard}
+        blockedCount={blockedCount}
+        dueTodayCount={dueTodayCount}
+        canUndo={canUndo}
+        canRedo={canRedo}
+        onUndo={onUndo}
+        onRedo={onRedo}
+      />
 
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>

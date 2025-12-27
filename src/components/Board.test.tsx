@@ -14,6 +14,10 @@ describe("Board", () => {
     onMove: vi.fn(),
     onOpenCard: vi.fn(),
     onSettings: vi.fn(),
+    canUndo: false,
+    canRedo: false,
+    onUndo: vi.fn(),
+    onRedo: vi.fn(),
   };
 
   beforeEach(() => {
