@@ -16,6 +16,12 @@ export type ChecklistItem = {
   done: boolean;
 };
 
+export type ColumnTransition = {
+  from: ColumnId | null; // null for initial creation
+  to: ColumnId;
+  at: string; // ISO date
+};
+
 export type Card = {
   id: string;
   column: ColumnId;
@@ -28,10 +34,38 @@ export type Card = {
   checklist?: ChecklistItem[];
   createdAt: string;
   updatedAt: string;
+  completedAt?: string; // ISO date when moved to terminal column
 
   blockedReason?: string;
   lastOverrideReason?: string;
   lastOverrideAt?: string;
+
+  columnHistory?: ColumnTransition[]; // Track all column movements
+};
+
+// Metrics types
+export type CompletedCardMetric = {
+  cardId: string;
+  title: string;
+  createdAt: string;
+  completedAt: string;
+  leadTimeMs: number; // creation to completion
+  cycleTimeMs: number; // first active work to completion
+  firstActiveAt?: string; // when card first entered a non-backlog column
+};
+
+export type DailySnapshot = {
+  date: string; // ISO date (YYYY-MM-DD)
+  columnCounts: Record<ColumnId, number>;
+  completedCount: number;
+  wipViolations: number;
+};
+
+export type MetricsState = {
+  completedCards: CompletedCardMetric[];
+  dailySnapshots: DailySnapshot[];
+  wipViolations: number;
+  lastSnapshotDate?: string;
 };
 
 export type Settings = {

@@ -6,14 +6,22 @@ import { DEFAULT_SETTINGS, DEFAULT_COLUMNS } from "../app/constants";
 import type { Card, Column } from "../app/types";
 
 describe("Board", () => {
+  const defaultMetrics = {
+    completedCards: [],
+    dailySnapshots: [],
+    wipViolations: 0,
+  };
+
   const defaultProps = {
     cards: [] as Card[],
     columns: DEFAULT_COLUMNS,
     settings: DEFAULT_SETTINGS,
+    metrics: defaultMetrics,
     onAdd: vi.fn(),
     onMove: vi.fn(),
     onOpenCard: vi.fn(),
     onSettings: vi.fn(),
+    onOpenMetrics: vi.fn(),
     canUndo: false,
     canRedo: false,
     onUndo: vi.fn(),

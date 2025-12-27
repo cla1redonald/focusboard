@@ -1,9 +1,12 @@
-import type { Card } from "../app/types";
+import type { Card, MetricsState } from "../app/types";
+import { MetricsWidget } from "./MetricsWidget";
 
 export function TopStrip({
   doingCard,
   blockedCount,
   dueTodayCount,
+  metrics,
+  onOpenMetrics,
   canUndo,
   canRedo,
   onUndo,
@@ -12,6 +15,8 @@ export function TopStrip({
   doingCard?: Card;
   blockedCount: number;
   dueTodayCount: number;
+  metrics: MetricsState;
+  onOpenMetrics: () => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -56,6 +61,8 @@ export function TopStrip({
       <div className="text-sm text-emerald-900">
         <span className="text-emerald-900/70">Due today:</span> {dueTodayCount}
       </div>
+      <div className="ml-auto h-4 w-px bg-emerald-700/20" />
+      <MetricsWidget metrics={metrics} onOpenDashboard={onOpenMetrics} />
     </div>
   );
 }

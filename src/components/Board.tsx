@@ -1,7 +1,7 @@
 import React from "react";
 import { DndContext } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
-import type { Card, Column as ColumnType, ColumnId, Settings } from "../app/types";
+import type { Card, Column as ColumnType, ColumnId, MetricsState, Settings } from "../app/types";
 import { CONFETTI_COLORS } from "../app/constants";
 import { groupByColumn, isToday, nowIso } from "../app/utils";
 import { Column } from "./Column";
@@ -25,10 +25,12 @@ export function Board({
   cards,
   columns,
   settings,
+  metrics,
   onAdd,
   onMove,
   onOpenCard,
   onSettings,
+  onOpenMetrics,
   canUndo,
   canRedo,
   onUndo,
@@ -37,10 +39,12 @@ export function Board({
   cards: Card[];
   columns: ColumnType[];
   settings: Settings;
+  metrics: MetricsState;
   onAdd: (column: ColumnId, title: string) => void;
   onMove: (id: string, to: ColumnId, patch?: Partial<Card>) => void;
   onOpenCard: (card: Card) => void;
   onSettings: () => void;
+  onOpenMetrics: () => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -217,6 +221,8 @@ export function Board({
         doingCard={doingCard}
         blockedCount={blockedCount}
         dueTodayCount={dueTodayCount}
+        metrics={metrics}
+        onOpenMetrics={onOpenMetrics}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={onUndo}

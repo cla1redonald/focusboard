@@ -1,6 +1,6 @@
 import React from "react";
 import { nanoid } from "nanoid";
-import type { AppState, Card, Column, ColumnId, Settings } from "./types";
+import type { AppState, Card, Column, ColumnId, ColumnTransition, Settings } from "./types";
 import { loadState, saveState } from "./storage";
 import { nowIso } from "./utils";
 
@@ -28,14 +28,21 @@ type HistoryState = {
 function appReducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case "ADD_CARD": {
+      const now = nowIso();
+      const initialTransition: ColumnTransition = {
+        from: null,
+        to: action.column,
+        at: now,
+      };
       const card: Card = {
         id: nanoid(),
         column: action.column,
         title: action.title.trim(),
-        createdAt: nowIso(),
-        updatedAt: nowIso(),
+        createdAt: now,
+        updatedAt: now,
         tags: [],
         checklist: [],
+        columnHistory: [initialTransition],
       };
       return { ...state, cards: [card, ...state.cards] };
     }
@@ -51,11 +58,30 @@ function appReducer(state: AppState, action: Action): AppState {
       return { ...state, cards: state.cards.filter((c) => c.id !== action.id) };
     }
     case "MOVE_CARD": {
+      const now = nowIso();
+      const toColumn = state.columns.find((col) => col.id === action.to);
+      const isTerminal = toColumn?.isTerminal ?? false;
+
       return {
         ...state,
         cards: state.cards.map((c) => {
           if (c.id !== action.id) return c;
-          return { ...c, column: action.to, ...action.patch, updatedAt: nowIso() };
+
+          const transition: ColumnTransition = {
+            from: c.column,
+            to: action.to,
+            at: now,
+          };
+          const columnHistory = [...(c.columnHistory ?? []), transition];
+
+          return {
+            ...c,
+            column: action.to,
+            ...action.patch,
+            updatedAt: now,
+            columnHistory,
+            completedAt: isTerminal ? now : c.completedAt,
+          };
         }),
       };
     }
