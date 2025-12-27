@@ -25,31 +25,31 @@ export function CardModal({ open, card, onClose, onSave, onDelete }: Props) {
 
   return (
     <div className="fixed inset-0 z-[1100] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-[720px] max-w-[94vw] rounded-2xl border border-white/10 bg-zinc-950/95 p-6 shadow-[0_30px_90px_rgba(0,0,0,0.6)]">
+      <div className="absolute inset-0 bg-emerald-950/30 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-[720px] max-w-[94vw] rounded-2xl border border-emerald-700/15 bg-white/95 p-6 shadow-[0_30px_90px_rgba(0,0,0,0.2)]">
         <div className="flex items-center justify-between">
-          <div className="display-font text-xl text-zinc-100">Edit card</div>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-200">✕</button>
+          <div className="display-font text-xl text-emerald-950">Edit card</div>
+          <button onClick={onClose} className="text-emerald-900/60 hover:text-emerald-900">✕</button>
         </div>
 
         <div className="mt-4 space-y-4">
           <div>
-            <label className="text-xs text-zinc-400">Title</label>
+            <label className="text-xs text-emerald-900/60">Title</label>
             <input
               value={draft.title}
               onChange={(e) => update({ title: e.target.value })}
-              className="mt-2 w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-white/30"
+              className="mt-2 w-full rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
             />
           </div>
 
           <div>
-            <label className="text-xs text-zinc-400">Icon (emoji)</label>
+            <label className="text-xs text-emerald-900/60">Icon (emoji)</label>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <input
                 value={draft.icon ?? ""}
                 onChange={(e) => update({ icon: e.target.value })}
                 placeholder="Pick or type"
-                className="w-28 rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-white/30"
+                className="w-28 rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
               />
               <div className="flex flex-wrap gap-1">
                 {EMOJI_CHOICES.map((emoji) => (
@@ -57,7 +57,7 @@ export function CardModal({ open, card, onClose, onSave, onDelete }: Props) {
                     key={emoji}
                     type="button"
                     onClick={() => update({ icon: emoji })}
-                    className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-base hover:border-white/30"
+                    className="rounded-lg border border-emerald-700/15 bg-emerald-50/70 px-2 py-1 text-base hover:border-emerald-700/30"
                   >
                     {emoji}
                   </button>
@@ -66,7 +66,7 @@ export function CardModal({ open, card, onClose, onSave, onDelete }: Props) {
                   <button
                     type="button"
                     onClick={() => update({ icon: undefined })}
-                    className="rounded-lg border border-white/10 bg-white/5 px-2 py-1 text-xs text-zinc-300 hover:border-white/30"
+                    className="rounded-lg border border-emerald-700/15 bg-emerald-50/70 px-2 py-1 text-xs text-emerald-900 hover:border-emerald-700/30"
                   >
                     Clear
                   </button>
@@ -76,38 +76,38 @@ export function CardModal({ open, card, onClose, onSave, onDelete }: Props) {
           </div>
 
           <div>
-            <label className="text-xs text-zinc-400">Notes</label>
+            <label className="text-xs text-emerald-900/60">Notes</label>
             <textarea
               value={draft.notes ?? ""}
               onChange={(e) => update({ notes: e.target.value })}
-              className="mt-2 w-full min-h-[90px] rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-white/30"
+              className="mt-2 w-full min-h-[90px] rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
             />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="text-xs text-zinc-400">Link</label>
+              <label className="text-xs text-emerald-900/60">Link</label>
               <input
                 value={draft.link ?? ""}
                 onChange={(e) => update({ link: e.target.value })}
-                className="mt-2 w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-white/30"
+                className="mt-2 w-full rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
               />
             </div>
             <div>
-              <label className="text-xs text-zinc-400">Due date</label>
+              <label className="text-xs text-emerald-900/60">Due date</label>
               <input
                 type="date"
                 value={draft.dueDate ? draft.dueDate.slice(0, 10) : ""}
                 onChange={(e) =>
                   update({ dueDate: e.target.value ? new Date(e.target.value).toISOString() : undefined })
                 }
-                className="mt-2 w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-white/30"
+                className="mt-2 w-full rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-xs text-zinc-400">Tags (comma separated)</label>
+            <label className="text-xs text-emerald-900/60">Tags (comma separated)</label>
             <input
               value={(draft.tags ?? []).join(", ")}
               onChange={(e) =>
@@ -118,13 +118,13 @@ export function CardModal({ open, card, onClose, onSave, onDelete }: Props) {
                     .filter(Boolean),
                 })
               }
-              className="mt-2 w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-white/30"
+              className="mt-2 w-full rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
             />
           </div>
 
           <div>
             <div className="flex items-center justify-between">
-              <label className="text-xs text-zinc-400">Checklist</label>
+            <label className="text-xs text-emerald-900/60">Checklist</label>
               <button
                 onClick={() =>
                   update({
@@ -134,7 +134,7 @@ export function CardModal({ open, card, onClose, onSave, onDelete }: Props) {
                     ],
                   })
                 }
-                className="text-xs text-zinc-300 hover:text-zinc-100"
+                className="text-xs text-emerald-900/60 hover:text-emerald-900"
               >
                 + Add item
               </button>
@@ -152,6 +152,7 @@ export function CardModal({ open, card, onClose, onSave, onDelete }: Props) {
                         ),
                       })
                     }
+                    className="h-4 w-4 accent-emerald-600"
                   />
                   <input
                     value={it.text}
@@ -162,7 +163,7 @@ export function CardModal({ open, card, onClose, onSave, onDelete }: Props) {
                         ),
                       })
                     }
-                    className="flex-1 rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-white/30"
+                    className="flex-1 rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
                   />
                   <button
                     onClick={() =>
@@ -170,7 +171,7 @@ export function CardModal({ open, card, onClose, onSave, onDelete }: Props) {
                         checklist: (draft.checklist ?? []).filter((x) => x.id !== it.id),
                       })
                     }
-                    className="text-zinc-400 hover:text-zinc-200"
+                    className="text-emerald-900/50 hover:text-emerald-900"
                   >
                     ✕
                   </button>
@@ -180,7 +181,7 @@ export function CardModal({ open, card, onClose, onSave, onDelete }: Props) {
           </div>
 
           {(draft.blockedReason || draft.lastOverrideReason) && (
-            <div className="rounded-xl border border-white/10 bg-black/50 p-3 text-xs text-zinc-300">
+            <div className="rounded-xl border border-emerald-700/15 bg-emerald-50/70 p-3 text-xs text-emerald-900">
               {draft.blockedReason && <div>Blocked: {draft.blockedReason}</div>}
               {draft.lastOverrideReason && (
                 <div className="mt-1">
@@ -194,7 +195,7 @@ export function CardModal({ open, card, onClose, onSave, onDelete }: Props) {
         <div className="mt-6 flex justify-between">
           <button
             onClick={() => onDelete(draft.id)}
-            className="rounded-full border border-rose-400/30 bg-rose-500/10 px-4 py-2 text-sm text-rose-100 hover:border-rose-400/60"
+            className="rounded-full border border-rose-400/30 bg-rose-100 px-4 py-2 text-sm text-rose-700 hover:border-rose-400/50"
           >
             Delete
           </button>
@@ -202,13 +203,13 @@ export function CardModal({ open, card, onClose, onSave, onDelete }: Props) {
           <div className="flex gap-2">
             <button
               onClick={onClose}
-              className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-zinc-200 hover:border-white/30 hover:bg-white/10"
+              className="rounded-full border border-emerald-700/15 bg-emerald-50/70 px-4 py-2 text-sm text-emerald-900 hover:border-emerald-700/30 hover:bg-emerald-100/70"
             >
               Cancel
             </button>
             <button
               onClick={() => onSave(draft)}
-              className="rounded-full bg-gradient-to-r from-indigo-400/80 via-sky-400/90 to-cyan-300/90 px-4 py-2 text-sm font-semibold text-zinc-950 shadow-[0_10px_30px_rgba(59,130,246,0.35)] transition hover:-translate-y-0.5"
+              className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(16,185,129,0.2)] transition hover:-translate-y-0.5 hover:bg-emerald-700"
             >
               Save
             </button>

@@ -1,11 +1,11 @@
 @import "tailwindcss";
-@import url("https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Space+Grotesk:wght@400;500;600&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Sofia+Sans:wght@400;500;600;700&display=swap");
 
 :root {
-  color-scheme: dark;
-  font-family: "Space Grotesk", ui-sans-serif, system-ui, sans-serif;
-  background-color: #0b0d12;
-  color: #e7e7ee;
+  color-scheme: light;
+  font-family: "Sofia Sans", ui-sans-serif, system-ui, sans-serif;
+  background-color: #f2f6f4;
+  color: #0f2b2b;
 }
 
 html,
@@ -17,10 +17,10 @@ body,
 body {
   margin: 0;
   background:
-    radial-gradient(1200px 600px at 10% -20%, rgba(47, 78, 140, 0.35), transparent 60%),
-    radial-gradient(900px 500px at 90% 0%, rgba(220, 119, 76, 0.35), transparent 55%),
-    radial-gradient(700px 400px at 20% 90%, rgba(62, 179, 175, 0.35), transparent 60%),
-    #0b0d12;
+    radial-gradient(1100px 520px at 8% -10%, rgba(112, 188, 170, 0.28), transparent 60%),
+    radial-gradient(900px 480px at 92% 0%, rgba(180, 220, 200, 0.22), transparent 58%),
+    radial-gradient(700px 380px at 10% 90%, rgba(120, 175, 190, 0.2), transparent 60%),
+    #f2f6f4;
 }
 
 .app-bg {
@@ -34,14 +34,14 @@ body {
   inset: 0;
   background-size: cover;
   background-position: center;
-  filter: saturate(0.9) contrast(0.95);
-  opacity: 0.75;
+  filter: saturate(0.95) contrast(0.95);
+  opacity: 0.85;
 }
 
 .bg-scrim {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(7, 9, 14, 0.65), rgba(7, 9, 14, 0.9));
+  background: linear-gradient(180deg, rgba(243, 247, 244, 0.7), rgba(243, 247, 244, 0.9));
   z-index: 1;
 }
 
@@ -63,7 +63,7 @@ body {
   height: 520px;
   left: -160px;
   top: 120px;
-  background: radial-gradient(circle at 30% 30%, rgba(88, 162, 255, 0.7), transparent 65%);
+  background: radial-gradient(circle at 30% 30%, rgba(118, 196, 178, 0.5), transparent 65%);
 }
 
 .orb-2 {
@@ -71,7 +71,7 @@ body {
   height: 420px;
   right: -120px;
   top: 40px;
-  background: radial-gradient(circle at 30% 30%, rgba(255, 171, 84, 0.7), transparent 65%);
+  background: radial-gradient(circle at 30% 30%, rgba(170, 214, 195, 0.55), transparent 65%);
 }
 
 .orb-3 {
@@ -79,7 +79,7 @@ body {
   height: 360px;
   right: 20%;
   bottom: -120px;
-  background: radial-gradient(circle at 30% 30%, rgba(91, 230, 197, 0.65), transparent 65%);
+  background: radial-gradient(circle at 30% 30%, rgba(120, 175, 190, 0.45), transparent 65%);
 }
 
 .noise {
@@ -92,11 +92,12 @@ body {
     transparent 1px,
     transparent 2px
   );
-  opacity: 0.25;
+  opacity: 0.18;
   pointer-events: none;
   z-index: 2;
 }
 
 .display-font {
-  font-family: "Fraunces", ui-serif, Georgia, serif;
+  font-family: "Sofia Sans", ui-sans-serif, system-ui, sans-serif;
+  letter-spacing: 0.01em;
 }

@@ -190,14 +190,14 @@ export function Board({
 
       <div className="mb-5 flex flex-wrap items-end justify-between gap-3">
         <div>
-          <div className="display-font text-3xl text-zinc-100">Focusboard</div>
-          <div className="text-sm text-zinc-400">
+          <div className="display-font text-3xl text-emerald-950">Focusboard</div>
+          <div className="text-sm text-emerald-900/70">
             Plan with intent. Keep flow sacred.
           </div>
         </div>
         <button
           onClick={onSettings}
-          className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-zinc-100 shadow-[0_8px_24px_rgba(0,0,0,0.35)] transition hover:-translate-y-0.5 hover:border-white/30 hover:bg-white/10"
+          className="rounded-full border border-emerald-700/20 bg-emerald-600/10 px-4 py-2 text-sm text-emerald-900 shadow-[0_8px_24px_rgba(0,0,0,0.12)] transition hover:-translate-y-0.5 hover:border-emerald-700/40 hover:bg-emerald-600/15"
         >
           Settings
         </button>

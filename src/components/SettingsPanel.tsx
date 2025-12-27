@@ -20,24 +20,24 @@ export function SettingsPanel({
 
   return (
     <div className="fixed inset-0 z-[1200] flex items-center justify-center">
-      <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-[520px] max-w-[92vw] rounded-2xl border border-white/10 bg-zinc-950/95 p-6 shadow-[0_30px_80px_rgba(0,0,0,0.6)]">
+      <div className="absolute inset-0 bg-emerald-950/30 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative w-[520px] max-w-[92vw] rounded-2xl border border-emerald-700/15 bg-white/95 p-6 shadow-[0_30px_80px_rgba(0,0,0,0.2)]">
         <div className="flex items-center justify-between">
-          <div className="display-font text-xl text-zinc-100">Settings</div>
-          <button onClick={onClose} className="text-zinc-400 hover:text-zinc-200">✕</button>
+          <div className="display-font text-xl text-emerald-950">Settings</div>
+          <button onClick={onClose} className="text-emerald-900/60 hover:text-emerald-900">✕</button>
         </div>
 
         <div className="mt-5 space-y-5">
-          <div className="rounded-xl border border-white/10 bg-black/40 p-4">
-            <div className="text-sm font-semibold text-zinc-100">Background</div>
-            <div className="mt-2 text-xs text-zinc-400">
+          <div className="rounded-xl border border-emerald-700/15 bg-white/80 p-4">
+            <div className="text-sm font-semibold text-emerald-950">Background</div>
+            <div className="mt-2 text-xs text-emerald-900/60">
               Upload a background image. It&apos;s saved locally in your browser.
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <label
                 htmlFor={fileInputId}
-                className="cursor-pointer rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-zinc-200 hover:border-white/30 hover:bg-white/10"
+                className="cursor-pointer rounded-full border border-emerald-700/15 bg-emerald-50/80 px-4 py-2 text-xs text-emerald-900 hover:border-emerald-700/30 hover:bg-emerald-100/80"
               >
                 Upload image
               </label>
@@ -60,7 +60,7 @@ export function SettingsPanel({
               {settings.backgroundImage && (
                 <button
                   onClick={() => set({ backgroundImage: null })}
-                  className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-xs text-zinc-200 hover:border-white/30 hover:bg-white/10"
+                  className="rounded-full border border-emerald-700/15 bg-emerald-50/80 px-4 py-2 text-xs text-emerald-900 hover:border-emerald-700/30 hover:bg-emerald-100/80"
                 >
                   Remove
                 </button>
@@ -68,7 +68,7 @@ export function SettingsPanel({
             </div>
 
             {settings.backgroundImage && (
-              <div className="mt-4 h-[140px] w-full overflow-hidden rounded-2xl border border-white/10">
+              <div className="mt-4 h-[140px] w-full overflow-hidden rounded-2xl border border-emerald-700/15">
                 <div
                   className="h-full w-full bg-cover bg-center"
                   style={{ backgroundImage: `url(${settings.backgroundImage})` }}
@@ -77,12 +77,12 @@ export function SettingsPanel({
             )}
           </div>
 
-          <div className="rounded-xl border border-white/10 bg-black/40 p-4">
-            <div className="text-sm font-semibold text-zinc-100">Column colors</div>
+          <div className="rounded-xl border border-emerald-700/15 bg-white/80 p-4">
+            <div className="text-sm font-semibold text-emerald-950">Column colors</div>
             <div className="mt-3 grid grid-cols-2 gap-3">
               {columnKeys.map((key) => (
                 <div key={key} className="flex items-center justify-between gap-3">
-                  <label className="text-xs text-zinc-400 capitalize">{key}</label>
+                  <label className="text-xs text-emerald-900/60 capitalize">{key}</label>
                   <div className="flex items-center gap-2">
                     <input
                       type="color"
@@ -96,7 +96,7 @@ export function SettingsPanel({
                           },
                         })
                       }
-                      className="h-8 w-8 cursor-pointer rounded border border-white/10 bg-transparent"
+                      className="h-8 w-8 cursor-pointer rounded border border-emerald-700/20 bg-transparent"
                     />
                     <input
                       value={settings.columnColors[key]}
@@ -109,7 +109,7 @@ export function SettingsPanel({
                           },
                         })
                       }
-                      className="w-24 rounded-lg border border-white/10 bg-black/50 px-2 py-1 text-xs text-zinc-200 outline-none focus:border-white/30"
+                      className="w-24 rounded-lg border border-emerald-700/15 bg-white px-2 py-1 text-xs text-emerald-900 outline-none focus:border-emerald-700/30"
                     />
                   </div>
                 </div>
@@ -117,12 +117,12 @@ export function SettingsPanel({
             </div>
           </div>
 
-          <div className="rounded-xl border border-white/10 bg-black/40 p-4">
-            <div className="text-sm font-semibold text-zinc-100">Column icons</div>
+          <div className="rounded-xl border border-emerald-700/15 bg-white/80 p-4">
+            <div className="text-sm font-semibold text-emerald-950">Column icons</div>
             <div className="mt-3 grid grid-cols-2 gap-3">
               {columnKeys.map((key) => (
                 <div key={key} className="flex items-center justify-between gap-3">
-                  <label className="text-xs text-zinc-400 capitalize">{key}</label>
+                  <label className="text-xs text-emerald-900/60 capitalize">{key}</label>
                   <div className="flex items-center gap-2">
                     <input
                       value={settings.columnIcons[key]}
@@ -135,7 +135,7 @@ export function SettingsPanel({
                           },
                         })
                       }
-                      className="w-16 rounded-lg border border-white/10 bg-black/50 px-2 py-1 text-xs text-zinc-200 outline-none focus:border-white/30"
+                      className="w-16 rounded-lg border border-emerald-700/15 bg-white px-2 py-1 text-xs text-emerald-900 outline-none focus:border-emerald-700/30"
                     />
                     <div className="flex flex-wrap gap-1">
                       {emojiChoices.map((emoji) => (
@@ -151,7 +151,7 @@ export function SettingsPanel({
                               },
                             })
                           }
-                          className="rounded-md border border-white/10 bg-white/5 px-1.5 py-0.5 text-sm hover:border-white/30"
+                          className="rounded-md border border-emerald-700/15 bg-emerald-50/80 px-1.5 py-0.5 text-sm hover:border-emerald-700/30"
                         >
                           {emoji}
                         </button>
@@ -165,34 +165,36 @@ export function SettingsPanel({
 
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-sm text-zinc-100">Celebrations</div>
-              <div className="text-xs text-zinc-400">Subtle confetti on Doing → Done</div>
+              <div className="text-sm text-emerald-950">Celebrations</div>
+              <div className="text-xs text-emerald-900/60">Subtle confetti on Doing → Done</div>
             </div>
             <input
               type="checkbox"
               checked={settings.celebrations}
               onChange={(e) => set({ celebrations: e.target.checked })}
+              className="h-4 w-4 accent-emerald-600"
             />
           </div>
 
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-sm text-zinc-100">Reduced motion override</div>
-              <div className="text-xs text-zinc-400">Disables confetti and uses header pulse</div>
+              <div className="text-sm text-emerald-950">Reduced motion override</div>
+              <div className="text-xs text-emerald-900/60">Disables confetti and uses header pulse</div>
             </div>
             <input
               type="checkbox"
               checked={settings.reducedMotionOverride}
               onChange={(e) => set({ reducedMotionOverride: e.target.checked })}
+              className="h-4 w-4 accent-emerald-600"
             />
           </div>
 
-          <div className="rounded-xl border border-white/10 bg-black/40 p-4">
-            <div className="text-sm font-semibold text-zinc-100">WIP limits</div>
+          <div className="rounded-xl border border-emerald-700/15 bg-white/80 p-4">
+            <div className="text-sm font-semibold text-emerald-950">WIP limits</div>
             <div className="mt-3 grid grid-cols-2 gap-3">
               {(["design", "todo", "blocked"] as const).map((k) => (
                 <div key={k}>
-                  <label className="text-xs text-zinc-400 capitalize">{k}</label>
+                  <label className="text-xs text-emerald-900/60 capitalize">{k}</label>
                   <input
                     type="number"
                     min={1}
@@ -203,21 +205,21 @@ export function SettingsPanel({
                         wip: { ...settings.wip, [k]: Math.max(1, Number(e.target.value)) },
                       })
                     }
-                    className="mt-2 w-full rounded-xl border border-white/10 bg-black/50 px-3 py-2 text-sm text-zinc-100 outline-none focus:border-white/30"
+                    className="mt-2 w-full rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
                   />
                 </div>
               ))}
               <div>
-                <label className="text-xs text-zinc-400">doing (hard)</label>
+                <label className="text-xs text-emerald-900/60">doing (hard)</label>
                 <input
                   type="number"
                   value={1}
                   disabled
-                  className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 text-sm text-zinc-500"
+                  className="mt-2 w-full rounded-xl border border-emerald-700/15 bg-emerald-50/60 px-3 py-2 text-sm text-emerald-900/60"
                 />
               </div>
             </div>
-            <div className="mt-3 text-xs text-zinc-500">
+            <div className="mt-3 text-xs text-emerald-900/60">
               Doing is hard-limited to 1.
             </div>
           </div>
@@ -226,7 +228,7 @@ export function SettingsPanel({
         <div className="mt-6 flex justify-end">
           <button
             onClick={onClose}
-            className="rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-zinc-200 hover:border-white/30 hover:bg-white/10"
+            className="rounded-full border border-emerald-700/15 bg-emerald-50/80 px-4 py-2 text-sm text-emerald-900 hover:border-emerald-700/30 hover:bg-emerald-100/80"
           >
             Close
           </button>

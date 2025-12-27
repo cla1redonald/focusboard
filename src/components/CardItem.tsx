@@ -33,12 +33,12 @@ export function CardItem({
     <div
       ref={refFn}
       style={style}
-      className="group rounded-xl border border-white/10 bg-black/60 px-3 py-2 text-sm text-zinc-100 shadow-[0_10px_30px_rgba(0,0,0,0.35)] transition hover:-translate-y-0.5 hover:border-white/20 hover:bg-black/70"
+      className="group rounded-xl border border-emerald-700/10 bg-white px-3 py-2 text-sm text-emerald-950 shadow-[0_10px_30px_rgba(0,0,0,0.08)] transition hover:-translate-y-0.5 hover:border-emerald-700/20 hover:bg-emerald-50/50"
     >
       <div className="flex items-start justify-between gap-2">
         <button
           onClick={() => onOpen(card)}
-          className="text-left font-medium leading-snug text-zinc-100 hover:text-white"
+          className="text-left font-medium leading-snug text-emerald-950 hover:text-emerald-900"
         >
           <span className="inline-flex items-center gap-2">
             {card.icon && <span className="text-base">{card.icon}</span>}
@@ -46,7 +46,7 @@ export function CardItem({
           </span>
         </button>
         <div
-          className="cursor-grab select-none text-zinc-500 group-hover:text-zinc-300"
+          className="cursor-grab select-none text-emerald-900/40 group-hover:text-emerald-900/70"
           title="Drag"
           {...listeners}
           {...attributes}
@@ -60,7 +60,7 @@ export function CardItem({
           {card.tags!.slice(0, 3).map((t) => (
             <span
               key={t}
-              className="rounded-full border border-white/10 bg-white/5 px-2 py-0.5 text-[11px] text-zinc-200"
+              className="rounded-full border border-emerald-700/10 bg-emerald-50/60 px-2 py-0.5 text-[11px] text-emerald-900"
             >
               {t}
             </span>
@@ -69,7 +69,7 @@ export function CardItem({
       )}
 
       {card.blockedReason && (
-        <div className="mt-2 text-[11px] text-red-200/80">
+        <div className="mt-2 text-[11px] text-rose-700/80">
           Blocked: {card.blockedReason}
         </div>
       )}
