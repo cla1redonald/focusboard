@@ -2,14 +2,19 @@ import React from "react";
 import { useAppState } from "./state";
 import type { AppState, Card, Column, MetricsState, RelationType } from "./types";
 import { loadMetrics, saveMetrics, recordCompletedCard, takeDailySnapshot } from "./metrics";
+import { AuthProvider, useRequireAuth, useAuth } from "./AuthContext";
+import { isSupabaseConfigured } from "./supabase";
+import { debouncedSaveToSupabase, debouncedSaveMetricsToSupabase } from "./sync";
 import { Board } from "../components/Board";
 import { CardModal } from "../components/CardModal";
 import { SettingsPanel } from "../components/SettingsPanel";
 import { MetricsDashboard } from "../components/MetricsDashboard";
 import { KeyboardShortcutsModal } from "../components/KeyboardShortcutsModal";
+import { LoginPage } from "../components/LoginPage";
 
-export default function App() {
+function AppContent() {
   const { state, dispatch, canUndo, canRedo } = useAppState();
+  const { signOut } = useAuth();
   const [openCard, setOpenCard] = React.useState<Card | null>(null);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [metricsDashboardOpen, setMetricsDashboardOpen] = React.useState(false);
@@ -77,6 +82,20 @@ export default function App() {
 
     prevCardsRef.current = state.cards;
   }, [state.cards, state.columns]); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Sync state to Supabase when it changes
+  React.useEffect(() => {
+    if (isSupabaseConfigured()) {
+      debouncedSaveToSupabase(state);
+    }
+  }, [state]);
+
+  // Sync metrics to Supabase when they change
+  React.useEffect(() => {
+    if (isSupabaseConfigured()) {
+      debouncedSaveMetricsToSupabase(metrics);
+    }
+  }, [metrics]);
 
   return (
     <div className="app-bg">
@@ -146,6 +165,7 @@ export default function App() {
         onDeleteColumn={(id: string, migrateCardsTo?: string) => dispatch({ type: "DELETE_COLUMN", id, migrateCardsTo })}
         onReorderColumns={(columns: Column[]) => dispatch({ type: "REORDER_COLUMNS", columns })}
         onImport={(newState: AppState) => dispatch({ type: "IMPORT_STATE", state: newState })}
+        onSignOut={signOut}
       />
 
       <MetricsDashboard
@@ -159,5 +179,31 @@ export default function App() {
         onClose={() => setShortcutsOpen(false)}
       />
     </div>
+  );
+}
+
+function AuthenticatedApp() {
+  const { isAuthenticated, loading } = useRequireAuth();
+
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-emerald-100">
+        <div className="text-emerald-900/70">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return <LoginPage />;
+  }
+
+  return <AppContent />;
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <AuthenticatedApp />
+    </AuthProvider>
   );
 }

@@ -3,6 +3,7 @@ import type { AppState, Column, Settings } from "../app/types";
 import { MOO_COLUMN_COLORS, DEFAULT_COLUMN_ICONS } from "../app/constants";
 import { ExportImportPanel } from "./ExportImportPanel";
 import type { ImportMode } from "../app/exportImport";
+import { isSupabaseConfigured } from "../app/supabase";
 
 export function SettingsPanel({
   open,
@@ -16,6 +17,7 @@ export function SettingsPanel({
   onDeleteColumn,
   onReorderColumns,
   onImport,
+  onSignOut,
 }: {
   open: boolean;
   settings: Settings;
@@ -28,6 +30,7 @@ export function SettingsPanel({
   onDeleteColumn: (id: string, migrateCardsTo?: string) => void;
   onReorderColumns: (columns: Column[]) => void;
   onImport: (newState: AppState, mode: ImportMode) => void;
+  onSignOut?: () => void;
 }) {
   const [editingColumn, setEditingColumn] = React.useState<Column | null>(null);
   const [deleteConfirm, setDeleteConfirm] = React.useState<{ column: Column; migrateToId: string } | null>(null);
@@ -245,6 +248,24 @@ export function SettingsPanel({
             <div className="mb-3 text-sm font-semibold text-emerald-950">Data Management</div>
             <ExportImportPanel state={state} onImport={onImport} />
           </div>
+
+          {/* Account Section - only show when Supabase is configured */}
+          {isSupabaseConfigured() && onSignOut && (
+            <div className="rounded-xl border border-emerald-700/15 bg-white/80 p-4">
+              <div className="mb-3 text-sm font-semibold text-emerald-950">Account</div>
+              <div className="flex items-center justify-between">
+                <div className="text-sm text-emerald-900/70">
+                  Your data is synced to the cloud
+                </div>
+                <button
+                  onClick={onSignOut}
+                  className="rounded-lg border border-rose-200 bg-rose-50 px-3 py-1.5 text-sm text-rose-700 hover:bg-rose-100"
+                >
+                  Sign out
+                </button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="mt-6 flex justify-end">
