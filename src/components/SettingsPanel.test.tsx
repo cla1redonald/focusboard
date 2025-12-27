@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SettingsPanel } from "./SettingsPanel";
-import { DEFAULT_SETTINGS, DEFAULT_COLUMNS } from "../app/constants";
+import { DEFAULT_SETTINGS, DEFAULT_COLUMNS, DEFAULT_TAG_CATEGORIES, DEFAULT_TAGS } from "../app/constants";
 import type { AppState, Settings } from "../app/types";
 
 describe("SettingsPanel", () => {
@@ -11,6 +11,8 @@ describe("SettingsPanel", () => {
     columns: DEFAULT_COLUMNS,
     templates: [],
     settings: DEFAULT_SETTINGS,
+    tagCategories: DEFAULT_TAG_CATEGORIES,
+    tags: DEFAULT_TAGS,
   };
 
   const defaultProps = {

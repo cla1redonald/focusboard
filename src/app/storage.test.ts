@@ -1,6 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { loadState, saveState } from "./storage";
-import { DEFAULT_SETTINGS, DEFAULT_COLUMNS } from "./constants";
+import { DEFAULT_SETTINGS, DEFAULT_COLUMNS, DEFAULT_TAG_CATEGORIES, DEFAULT_TAGS } from "./constants";
 import type { AppState, Card } from "./types";
 
 describe("storage", () => {
@@ -17,6 +17,8 @@ describe("storage", () => {
         columns: DEFAULT_COLUMNS,
         templates: [],
         settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: DEFAULT_TAGS,
       });
     });
 
@@ -27,11 +29,14 @@ describe("storage", () => {
         columns: DEFAULT_COLUMNS,
         templates: [],
         settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: DEFAULT_TAGS,
       });
     });
 
     it("loads and parses stored v2 state correctly", () => {
-      const storedState: AppState = {
+      // v2 state doesn't have tagCategories/tags - migration will add them
+      const storedState = {
         cards: [
           {
             id: "card-1",
@@ -108,7 +113,7 @@ describe("storage", () => {
     });
 
     it("returns default state for invalid JSON", () => {
-      localStorage.setItem("focusboard:v2", "invalid json {{{");
+      localStorage.setItem("focusboard:v3", "invalid json {{{");
 
       const state = loadState();
       expect(state).toEqual({
@@ -116,6 +121,8 @@ describe("storage", () => {
         columns: DEFAULT_COLUMNS,
         templates: [],
         settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: DEFAULT_TAGS,
       });
     });
 
@@ -163,12 +170,14 @@ describe("storage", () => {
         columns: DEFAULT_COLUMNS,
         templates: [],
         settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: DEFAULT_TAGS,
       };
 
       saveState(state);
 
       expect(localStorage.setItem).toHaveBeenCalledWith(
-        "focusboard:v2",
+        "focusboard:v3",
         JSON.stringify(state)
       );
     });
@@ -196,6 +205,8 @@ describe("storage", () => {
         columns: DEFAULT_COLUMNS,
         templates: [],
         settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: DEFAULT_TAGS,
       };
 
       saveState(state);
@@ -217,6 +228,8 @@ describe("storage", () => {
           reducedMotionOverride: true,
           backgroundImage: "data:image/png;base64,abc123",
         },
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: DEFAULT_TAGS,
       };
 
       saveState(state);
@@ -239,6 +252,8 @@ describe("storage", () => {
         columns: customColumns,
         templates: [],
         settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: DEFAULT_TAGS,
       };
 
       saveState(state);
@@ -284,6 +299,8 @@ describe("storage", () => {
           reducedMotionOverride: true,
           backgroundImage: null,
         },
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: DEFAULT_TAGS,
       };
 
       // Save

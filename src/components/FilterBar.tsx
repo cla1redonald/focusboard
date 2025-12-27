@@ -1,5 +1,5 @@
 import React from "react";
-import type { Column, DueDateFilter, FilterState } from "../app/types";
+import type { Column, DueDateFilter, FilterState, Tag } from "../app/types";
 import { isFilterActive } from "../app/filters";
 
 export function FilterBar({
@@ -7,6 +7,7 @@ export function FilterBar({
   onChange,
   columns,
   allTags,
+  tagDefinitions = [],
   resultCount,
   totalCount,
 }: {
@@ -14,6 +15,7 @@ export function FilterBar({
   onChange: (filter: FilterState) => void;
   columns: Column[];
   allTags: string[];
+  tagDefinitions?: Tag[];
   resultCount: number;
   totalCount: number;
 }) {
@@ -195,19 +197,46 @@ export function FilterBar({
               <div className="mb-2 text-xs font-medium text-emerald-900/70">Tags</div>
               {allTags.length > 0 ? (
                 <div className="flex flex-wrap gap-1">
-                  {allTags.map((tag) => (
-                    <button
-                      key={tag}
-                      onClick={() => toggleTag(tag)}
-                      className={`rounded-lg px-2 py-1 text-xs transition ${
-                        filter.tags.includes(tag)
-                          ? "bg-emerald-600 text-white"
-                          : "bg-emerald-100/50 text-emerald-800 hover:bg-emerald-100"
-                      }`}
-                    >
-                      {tag}
-                    </button>
-                  ))}
+                  {allTags.map((tagId) => {
+                    const tagDef = tagDefinitions.find((t) => t.id === tagId);
+                    const isSelected = filter.tags.includes(tagId);
+                    if (tagDef) {
+                      return (
+                        <button
+                          key={tagId}
+                          onClick={() => toggleTag(tagId)}
+                          className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium transition ${
+                            isSelected ? "ring-2 ring-offset-1" : "opacity-70 hover:opacity-100"
+                          }`}
+                          style={{
+                            backgroundColor: `${tagDef.color}20`,
+                            color: tagDef.color,
+                            ...(isSelected ? { ringColor: tagDef.color } : {}),
+                          }}
+                        >
+                          <span
+                            className="h-2 w-2 rounded-full"
+                            style={{ backgroundColor: tagDef.color }}
+                          />
+                          {tagDef.name}
+                        </button>
+                      );
+                    }
+                    // Fallback for unknown tag IDs
+                    return (
+                      <button
+                        key={tagId}
+                        onClick={() => toggleTag(tagId)}
+                        className={`rounded-lg px-2 py-1 text-xs transition ${
+                          isSelected
+                            ? "bg-emerald-600 text-white"
+                            : "bg-emerald-100/50 text-emerald-800 hover:bg-emerald-100"
+                        }`}
+                      >
+                        {tagId}
+                      </button>
+                    );
+                  })}
                 </div>
               ) : (
                 <div className="text-xs text-emerald-900/50">No tags found</div>

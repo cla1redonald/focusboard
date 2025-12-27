@@ -1,5 +1,5 @@
-import type { AppState, Card, Column, CardTemplate, Settings } from "./types";
-import { DEFAULT_SETTINGS, DEFAULT_COLUMNS } from "./constants";
+import type { AppState, Card, Column, CardTemplate, Settings, Tag, TagCategory } from "./types";
+import { DEFAULT_SETTINGS, DEFAULT_COLUMNS, DEFAULT_TAG_CATEGORIES, DEFAULT_TAGS } from "./constants";
 
 export type ExportFormat = "json" | "csv";
 
@@ -208,11 +208,31 @@ function validateAppState(obj: Record<string, unknown>): ImportValidationResult 
     );
   }
 
+  // Validate tagCategories
+  let tagCategories: TagCategory[] = DEFAULT_TAG_CATEGORIES;
+  if (obj.tagCategories !== undefined) {
+    if (!Array.isArray(obj.tagCategories)) {
+      warnings.push("'tagCategories' must be an array. Using defaults.");
+    } else {
+      tagCategories = validateTagCategories(obj.tagCategories);
+    }
+  }
+
+  // Validate tags
+  let tags: Tag[] = DEFAULT_TAGS;
+  if (obj.tags !== undefined) {
+    if (!Array.isArray(obj.tags)) {
+      warnings.push("'tags' must be an array. Using defaults.");
+    } else {
+      tags = validateTags(obj.tags);
+    }
+  }
+
   return {
     valid: true,
     errors: [],
     warnings,
-    data: { cards, columns, templates, settings },
+    data: { cards, columns, templates, settings, tagCategories, tags },
     stats: {
       cardCount: cards.length,
       columnCount: columns.length,
@@ -457,27 +477,82 @@ function validateSettings(obj: Record<string, unknown>): Settings {
   };
 }
 
+function validateTagCategories(arr: unknown[]): TagCategory[] {
+  const categories: TagCategory[] = [];
+
+  for (const item of arr) {
+    if (typeof item !== "object" || item === null) continue;
+    const cat = item as Record<string, unknown>;
+
+    if (typeof cat.id !== "string" || !cat.id) continue;
+    if (typeof cat.name !== "string" || !cat.name) continue;
+
+    categories.push({
+      id: cat.id,
+      name: cat.name,
+      order: typeof cat.order === "number" ? cat.order : categories.length,
+    });
+  }
+
+  return categories.length > 0 ? categories : DEFAULT_TAG_CATEGORIES;
+}
+
+function validateTags(arr: unknown[]): Tag[] {
+  const tags: Tag[] = [];
+
+  for (const item of arr) {
+    if (typeof item !== "object" || item === null) continue;
+    const tag = item as Record<string, unknown>;
+
+    if (typeof tag.id !== "string" || !tag.id) continue;
+    if (typeof tag.name !== "string" || !tag.name) continue;
+    if (typeof tag.color !== "string" || !tag.color) continue;
+    if (typeof tag.categoryId !== "string" || !tag.categoryId) continue;
+
+    tags.push({
+      id: tag.id,
+      name: tag.name,
+      color: tag.color,
+      categoryId: tag.categoryId,
+    });
+  }
+
+  return tags.length > 0 ? tags : DEFAULT_TAGS;
+}
+
 // Merge import with existing state
 export function mergeImportData(existing: AppState, imported: AppState): AppState {
   const existingCardIds = new Set(existing.cards.map((c) => c.id));
   const existingColumnIds = new Set(existing.columns.map((c) => c.id));
   const existingTemplateIds = new Set(existing.templates.map((t) => t.id));
+  const existingTagCategoryIds = new Set(existing.tagCategories.map((c) => c.id));
+  const existingTagIds = new Set(existing.tags.map((t) => t.id));
 
   // Add new cards (skip duplicates)
   const newCards = imported.cards.filter((c) => !existingCardIds.has(c.id));
 
   // Add new columns (skip duplicates)
   const newColumns = imported.columns.filter((c) => !existingColumnIds.has(c.id));
-  const maxOrder = Math.max(...existing.columns.map((c) => c.order), -1);
-  const reorderedNewColumns = newColumns.map((c, i) => ({ ...c, order: maxOrder + 1 + i }));
+  const maxColumnOrder = Math.max(...existing.columns.map((c) => c.order), -1);
+  const reorderedNewColumns = newColumns.map((c, i) => ({ ...c, order: maxColumnOrder + 1 + i }));
 
   // Add new templates (skip duplicates)
   const newTemplates = imported.templates.filter((t) => !existingTemplateIds.has(t.id));
+
+  // Add new tag categories (skip duplicates)
+  const newCategories = imported.tagCategories.filter((c) => !existingTagCategoryIds.has(c.id));
+  const maxCategoryOrder = Math.max(...existing.tagCategories.map((c) => c.order), -1);
+  const reorderedNewCategories = newCategories.map((c, i) => ({ ...c, order: maxCategoryOrder + 1 + i }));
+
+  // Add new tags (skip duplicates)
+  const newTags = imported.tags.filter((t) => !existingTagIds.has(t.id));
 
   return {
     cards: [...existing.cards, ...newCards],
     columns: [...existing.columns, ...reorderedNewColumns],
     templates: [...existing.templates, ...newTemplates],
     settings: existing.settings, // Keep existing settings in merge mode
+    tagCategories: [...existing.tagCategories, ...reorderedNewCategories],
+    tags: [...existing.tags, ...newTags],
   };
 }

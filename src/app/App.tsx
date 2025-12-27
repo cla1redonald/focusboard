@@ -119,6 +119,7 @@ function AppContent() {
             columns={state.columns}
             settings={state.settings}
             metrics={metrics}
+            tagDefinitions={state.tags}
             onAdd={(column, title) => dispatch({ type: "ADD_CARD", column, title })}
             onMove={(id, to, patch) => dispatch({ type: "MOVE_CARD", id, to, patch })}
             onDelete={(id) => dispatch({ type: "DELETE_CARD", id })}
@@ -137,6 +138,8 @@ function AppContent() {
         open={!!openCard}
         card={openCard ? state.cards.find((c) => c.id === openCard.id) ?? openCard : null}
         allCards={state.cards}
+        tags={state.tags}
+        tagCategories={state.tagCategories}
         onClose={() => setOpenCard(null)}
         onSave={(card) => {
           dispatch({ type: "UPDATE_CARD", card });
@@ -167,6 +170,12 @@ function AppContent() {
         onReorderColumns={(columns: Column[]) => dispatch({ type: "REORDER_COLUMNS", columns })}
         onImport={(newState: AppState) => dispatch({ type: "IMPORT_STATE", state: newState })}
         onSignOut={signOut}
+        onAddTag={(tag) => dispatch({ type: "ADD_TAG", tag })}
+        onUpdateTag={(tag) => dispatch({ type: "UPDATE_TAG", tag })}
+        onDeleteTag={(id) => dispatch({ type: "DELETE_TAG", id })}
+        onAddTagCategory={(category) => dispatch({ type: "ADD_TAG_CATEGORY", category })}
+        onUpdateTagCategory={(category) => dispatch({ type: "UPDATE_TAG_CATEGORY", category })}
+        onDeleteTagCategory={(id) => dispatch({ type: "DELETE_TAG_CATEGORY", id })}
       />
 
       <MetricsDashboard

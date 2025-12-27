@@ -1,6 +1,6 @@
 import React from "react";
-import type { AppState, Column, Settings } from "../app/types";
-import { MOO_COLUMN_COLORS, DEFAULT_COLUMN_ICONS } from "../app/constants";
+import type { AppState, Column, Settings, Tag, TagCategory } from "../app/types";
+import { MOO_COLUMN_COLORS, DEFAULT_COLUMN_ICONS, TAG_COLOR_PALETTE } from "../app/constants";
 import { ExportImportPanel } from "./ExportImportPanel";
 import type { ImportMode } from "../app/exportImport";
 import { isSupabaseConfigured } from "../app/supabase";
@@ -18,6 +18,12 @@ export function SettingsPanel({
   onReorderColumns,
   onImport,
   onSignOut,
+  onAddTag,
+  onUpdateTag,
+  onDeleteTag,
+  onAddTagCategory,
+  onUpdateTagCategory,
+  onDeleteTagCategory,
 }: {
   open: boolean;
   settings: Settings;
@@ -31,9 +37,17 @@ export function SettingsPanel({
   onReorderColumns: (columns: Column[]) => void;
   onImport: (newState: AppState, mode: ImportMode) => void;
   onSignOut?: () => void;
+  onAddTag?: (tag: Omit<Tag, "id">) => void;
+  onUpdateTag?: (tag: Tag) => void;
+  onDeleteTag?: (id: string) => void;
+  onAddTagCategory?: (category: Omit<TagCategory, "id" | "order">) => void;
+  onUpdateTagCategory?: (category: TagCategory) => void;
+  onDeleteTagCategory?: (id: string) => void;
 }) {
   const [editingColumn, setEditingColumn] = React.useState<Column | null>(null);
   const [deleteConfirm, setDeleteConfirm] = React.useState<{ column: Column; migrateToId: string } | null>(null);
+  const [editingTag, setEditingTag] = React.useState<Tag | null>(null);
+  const [editingCategory, setEditingCategory] = React.useState<TagCategory | null>(null);
 
   if (!open) return null;
 
@@ -214,6 +228,116 @@ export function SettingsPanel({
               ))}
             </div>
           </div>
+
+          {/* Tags Section */}
+          {onAddTag && onUpdateTag && onDeleteTag && (
+            <div className="rounded-xl border border-emerald-700/15 bg-white/80 p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="text-sm font-semibold text-emerald-950">Tags</div>
+                <div className="flex gap-2">
+                  {onAddTagCategory && (
+                    <button
+                      type="button"
+                      onClick={() => setEditingCategory({
+                        id: "",
+                        name: "New Category",
+                        order: (state.tagCategories?.length ?? 0),
+                      })}
+                      className="rounded-full border border-emerald-700/15 bg-emerald-50/80 px-3 py-1 text-[11px] text-emerald-900 hover:border-emerald-700/30 hover:bg-emerald-100/80"
+                    >
+                      + Category
+                    </button>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setEditingTag({
+                      id: "",
+                      name: "New Tag",
+                      color: TAG_COLOR_PALETTE[0],
+                      categoryId: state.tagCategories?.[0]?.id ?? "",
+                    })}
+                    className="rounded-full border border-emerald-700/15 bg-emerald-50/80 px-3 py-1 text-[11px] text-emerald-900 hover:border-emerald-700/30 hover:bg-emerald-100/80"
+                  >
+                    + Tag
+                  </button>
+                </div>
+              </div>
+
+              <div className="mt-3 space-y-3">
+                {(state.tagCategories ?? [])
+                  .slice()
+                  .sort((a, b) => a.order - b.order)
+                  .map((category) => {
+                    const categoryTags = (state.tags ?? []).filter((t) => t.categoryId === category.id);
+                    return (
+                      <div key={category.id} className="rounded-lg border border-emerald-700/10 bg-white/60 p-2">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium uppercase tracking-wide text-emerald-900/60">
+                            {category.name}
+                          </span>
+                          <div className="flex gap-1">
+                            {onUpdateTagCategory && (
+                              <button
+                                type="button"
+                                onClick={() => setEditingCategory(category)}
+                                className="rounded px-1.5 py-0.5 text-[10px] text-emerald-900/60 hover:bg-emerald-100/80 hover:text-emerald-900"
+                              >
+                                Edit
+                              </button>
+                            )}
+                            {onDeleteTagCategory && (state.tagCategories?.length ?? 0) > 1 && (
+                              <button
+                                type="button"
+                                onClick={() => onDeleteTagCategory(category.id)}
+                                className="rounded px-1.5 py-0.5 text-[10px] text-red-600/60 hover:bg-red-100/80 hover:text-red-600"
+                              >
+                                Delete
+                              </button>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {categoryTags.map((tag) => (
+                            <div
+                              key={tag.id}
+                              className="group inline-flex items-center gap-1 rounded-full px-2 py-0.5"
+                              style={{
+                                backgroundColor: `${tag.color}20`,
+                              }}
+                            >
+                              <span
+                                className="h-2 w-2 rounded-full"
+                                style={{ backgroundColor: tag.color }}
+                              />
+                              <span className="text-xs font-medium" style={{ color: tag.color }}>
+                                {tag.name}
+                              </span>
+                              <button
+                                type="button"
+                                onClick={() => setEditingTag(tag)}
+                                className="ml-1 opacity-0 group-hover:opacity-100 text-[10px] text-emerald-900/60 hover:text-emerald-900"
+                              >
+                                ✎
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => onDeleteTag(tag.id)}
+                                className="opacity-0 group-hover:opacity-100 text-[10px] text-red-600/60 hover:text-red-600"
+                              >
+                                ×
+                              </button>
+                            </div>
+                          ))}
+                          {categoryTags.length === 0 && (
+                            <span className="text-xs text-emerald-900/40 italic">No tags</span>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            </div>
+          )}
 
           {/* Celebrations Toggle */}
           <div className="flex items-center justify-between gap-3">
@@ -441,6 +565,169 @@ export function SettingsPanel({
                 className="rounded-full border border-red-600 bg-red-600 px-4 py-2 text-sm text-white hover:bg-red-700"
               >
                 Delete
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Tag Edit Modal */}
+      {editingTag && onAddTag && onUpdateTag && (
+        <div className="fixed inset-0 z-[1300] flex items-center justify-center">
+          <div className="absolute inset-0 bg-emerald-950/30 backdrop-blur-sm" onClick={() => setEditingTag(null)} />
+          <div className="relative w-[400px] max-w-[90vw] rounded-2xl border border-emerald-700/15 bg-white/95 p-6 shadow-[0_30px_80px_rgba(0,0,0,0.2)]">
+            <div className="display-font text-lg text-emerald-950">
+              {editingTag.id ? "Edit Tag" : "Add Tag"}
+            </div>
+
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="text-xs text-emerald-900/60">Name</label>
+                <input
+                  type="text"
+                  value={editingTag.name}
+                  onChange={(e) => setEditingTag({ ...editingTag, name: e.target.value })}
+                  className="mt-1 w-full rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-emerald-900/60">Category</label>
+                <select
+                  value={editingTag.categoryId}
+                  onChange={(e) => setEditingTag({ ...editingTag, categoryId: e.target.value })}
+                  className="mt-1 w-full rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
+                >
+                  {(state.tagCategories ?? []).map((cat) => (
+                    <option key={cat.id} value={cat.id}>
+                      {cat.name}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs text-emerald-900/60">Color</label>
+                <div className="mt-2 flex flex-wrap gap-2">
+                  {TAG_COLOR_PALETTE.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => setEditingTag({ ...editingTag, color })}
+                      className={`h-8 w-8 rounded-full border-2 transition ${
+                        editingTag.color === color
+                          ? "border-emerald-950 ring-2 ring-emerald-400"
+                          : "border-transparent hover:scale-110"
+                      }`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+                <div className="mt-2 flex gap-2">
+                  <input
+                    type="color"
+                    value={editingTag.color}
+                    onChange={(e) => setEditingTag({ ...editingTag, color: e.target.value })}
+                    className="h-8 w-8 cursor-pointer rounded border border-emerald-700/20 bg-transparent"
+                  />
+                  <input
+                    value={editingTag.color}
+                    onChange={(e) => setEditingTag({ ...editingTag, color: e.target.value })}
+                    className="w-24 rounded-lg border border-emerald-700/15 bg-white px-2 py-1 text-xs text-emerald-900 outline-none focus:border-emerald-700/30"
+                  />
+                </div>
+              </div>
+
+              {/* Preview */}
+              <div>
+                <label className="text-xs text-emerald-900/60">Preview</label>
+                <div className="mt-2">
+                  <span
+                    className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
+                    style={{
+                      backgroundColor: `${editingTag.color}20`,
+                      color: editingTag.color,
+                    }}
+                  >
+                    <span
+                      className="h-2 w-2 rounded-full"
+                      style={{ backgroundColor: editingTag.color }}
+                    />
+                    {editingTag.name || "Tag name"}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={() => setEditingTag(null)}
+                className="rounded-full border border-emerald-700/15 bg-emerald-50/80 px-4 py-2 text-sm text-emerald-900 hover:border-emerald-700/30 hover:bg-emerald-100/80"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (editingTag.id) {
+                    onUpdateTag(editingTag);
+                  } else {
+                    const { id, ...rest } = editingTag;
+                    onAddTag(rest);
+                  }
+                  setEditingTag(null);
+                }}
+                disabled={!editingTag.name.trim() || !editingTag.categoryId}
+                className="rounded-full border border-emerald-600 bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {editingTag.id ? "Save" : "Add"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Category Edit Modal */}
+      {editingCategory && onAddTagCategory && onUpdateTagCategory && (
+        <div className="fixed inset-0 z-[1300] flex items-center justify-center">
+          <div className="absolute inset-0 bg-emerald-950/30 backdrop-blur-sm" onClick={() => setEditingCategory(null)} />
+          <div className="relative w-[400px] max-w-[90vw] rounded-2xl border border-emerald-700/15 bg-white/95 p-6 shadow-[0_30px_80px_rgba(0,0,0,0.2)]">
+            <div className="display-font text-lg text-emerald-950">
+              {editingCategory.id ? "Edit Category" : "Add Category"}
+            </div>
+
+            <div className="mt-4 space-y-4">
+              <div>
+                <label className="text-xs text-emerald-900/60">Name</label>
+                <input
+                  type="text"
+                  value={editingCategory.name}
+                  onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
+                  className="mt-1 w-full rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
+                />
+              </div>
+            </div>
+
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                onClick={() => setEditingCategory(null)}
+                className="rounded-full border border-emerald-700/15 bg-emerald-50/80 px-4 py-2 text-sm text-emerald-900 hover:border-emerald-700/30 hover:bg-emerald-100/80"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (editingCategory.id) {
+                    onUpdateTagCategory(editingCategory);
+                  } else {
+                    const { id, order, ...rest } = editingCategory;
+                    onAddTagCategory(rest);
+                  }
+                  setEditingCategory(null);
+                }}
+                disabled={!editingCategory.name.trim()}
+                className="rounded-full border border-emerald-600 bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-700 disabled:opacity-50"
+              >
+                {editingCategory.id ? "Save" : "Add"}
               </button>
             </div>
           </div>

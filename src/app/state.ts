@@ -1,6 +1,6 @@
 import React from "react";
 import { nanoid } from "nanoid";
-import type { AppState, Card, CardRelation, CardTemplate, Column, ColumnId, ColumnTransition, RelationType, Settings } from "./types";
+import type { AppState, Card, CardRelation, CardTemplate, Column, ColumnId, ColumnTransition, RelationType, Settings, Tag, TagCategory } from "./types";
 import { loadState, saveState } from "./storage";
 import { nowIso } from "./utils";
 
@@ -37,6 +37,13 @@ type Action =
   | { type: "DELETE_TEMPLATE"; id: string }
   | { type: "ADD_RELATION"; cardId: string; targetCardId: string; relationType: RelationType }
   | { type: "REMOVE_RELATION"; cardId: string; relationId: string }
+  | { type: "ADD_TAG"; tag: Omit<Tag, "id"> }
+  | { type: "UPDATE_TAG"; tag: Tag }
+  | { type: "DELETE_TAG"; id: string }
+  | { type: "ADD_TAG_CATEGORY"; category: Omit<TagCategory, "id" | "order"> }
+  | { type: "UPDATE_TAG_CATEGORY"; category: TagCategory }
+  | { type: "DELETE_TAG_CATEGORY"; id: string }
+  | { type: "REORDER_TAG_CATEGORIES"; categories: TagCategory[] }
   | { type: "IMPORT_STATE"; state: AppState }
   | { type: "UNDO" }
   | { type: "REDO" };
@@ -314,6 +321,91 @@ function appReducer(state: AppState, action: Action): AppState {
           }
           return c;
         }),
+      };
+    }
+
+    case "ADD_TAG": {
+      const newTag: Tag = {
+        ...action.tag,
+        id: nanoid(),
+      };
+      return { ...state, tags: [...state.tags, newTag] };
+    }
+
+    case "UPDATE_TAG": {
+      return {
+        ...state,
+        tags: state.tags.map((t) =>
+          t.id === action.tag.id ? action.tag : t
+        ),
+      };
+    }
+
+    case "DELETE_TAG": {
+      // Remove tag from all cards that have it
+      const updatedCards = state.cards.map((c) => {
+        if (c.tags?.includes(action.id)) {
+          return {
+            ...c,
+            tags: c.tags.filter((t) => t !== action.id),
+            updatedAt: nowIso(),
+          };
+        }
+        return c;
+      });
+      return {
+        ...state,
+        tags: state.tags.filter((t) => t.id !== action.id),
+        cards: updatedCards,
+      };
+    }
+
+    case "ADD_TAG_CATEGORY": {
+      const newCategory: TagCategory = {
+        ...action.category,
+        id: nanoid(),
+        order: state.tagCategories.length,
+      };
+      return { ...state, tagCategories: [...state.tagCategories, newCategory] };
+    }
+
+    case "UPDATE_TAG_CATEGORY": {
+      return {
+        ...state,
+        tagCategories: state.tagCategories.map((c) =>
+          c.id === action.category.id ? action.category : c
+        ),
+      };
+    }
+
+    case "DELETE_TAG_CATEGORY": {
+      // Delete all tags in this category and remove from cards
+      const tagsToDelete = state.tags.filter((t) => t.categoryId === action.id).map((t) => t.id);
+      const updatedCards = state.cards.map((c) => {
+        if (c.tags?.some((t) => tagsToDelete.includes(t))) {
+          return {
+            ...c,
+            tags: c.tags.filter((t) => !tagsToDelete.includes(t)),
+            updatedAt: nowIso(),
+          };
+        }
+        return c;
+      });
+      const remainingCategories = state.tagCategories
+        .filter((c) => c.id !== action.id)
+        .map((c, idx) => ({ ...c, order: idx }));
+      return {
+        ...state,
+        tagCategories: remainingCategories,
+        tags: state.tags.filter((t) => t.categoryId !== action.id),
+        cards: updatedCards,
+      };
+    }
+
+    case "REORDER_TAG_CATEGORIES": {
+      return {
+        ...state,
+        tagCategories: action.categories.map((c, idx) => ({ ...c, order: idx })),
       };
     }
 

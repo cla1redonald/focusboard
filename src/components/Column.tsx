@@ -1,6 +1,6 @@
 import React from "react";
 import { useDroppable } from "@dnd-kit/core";
-import type { Card, ColumnId } from "../app/types";
+import type { Card, ColumnId, Tag } from "../app/types";
 import { CardItem } from "./CardItem";
 
 const hexToRgb = (hex: string) => {
@@ -33,6 +33,7 @@ export function Column({
   cardRefSetter,
   columnFocused = false,
   focusedCardIndex = null,
+  allTags = [],
 }: {
   id: ColumnId;
   title: string;
@@ -46,6 +47,7 @@ export function Column({
   cardRefSetter?: (id: string, el: HTMLElement | null) => void;
   columnFocused?: boolean;
   focusedCardIndex?: number | null;
+  allTags?: Tag[];
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   const accentRgb = hexToRgb(accentColor);
@@ -107,6 +109,7 @@ export function Column({
             onOpen={onOpenCard}
             cardRefSetter={cardRefSetter}
             focused={columnFocused && focusedCardIndex === idx}
+            allTags={allTags}
           />
         ))}
 

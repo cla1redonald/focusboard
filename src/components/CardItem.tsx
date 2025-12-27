@@ -1,6 +1,6 @@
 import React from "react";
 import { useDraggable } from "@dnd-kit/core";
-import type { Card } from "../app/types";
+import type { Card, Tag } from "../app/types";
 import { RelationshipIndicators } from "./RelationshipPicker";
 
 export function CardItem({
@@ -8,11 +8,13 @@ export function CardItem({
   onOpen,
   cardRefSetter,
   focused = false,
+  allTags = [],
 }: {
   card: Card;
   onOpen: (card: Card) => void;
   cardRefSetter?: (id: string, el: HTMLElement | null) => void;
   focused?: boolean;
+  allTags?: Tag[];
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
@@ -64,14 +66,41 @@ export function CardItem({
 
       {(card.tags?.length ?? 0) > 0 && (
         <div className="mt-2 flex flex-wrap gap-1">
-          {card.tags!.slice(0, 3).map((t) => (
-            <span
-              key={t}
-              className="rounded-full border border-emerald-700/10 bg-emerald-50/60 px-2 py-0.5 text-[11px] text-emerald-900"
-            >
-              {t}
+          {card.tags!.slice(0, 3).map((tagId) => {
+            const tag = allTags.find((t) => t.id === tagId);
+            if (tag) {
+              return (
+                <span
+                  key={tagId}
+                  className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
+                  style={{
+                    backgroundColor: `${tag.color}20`,
+                    color: tag.color,
+                  }}
+                >
+                  <span
+                    className="h-1.5 w-1.5 rounded-full"
+                    style={{ backgroundColor: tag.color }}
+                  />
+                  {tag.name}
+                </span>
+              );
+            }
+            // Fallback for tags not in the system (e.g., old string tags)
+            return (
+              <span
+                key={tagId}
+                className="rounded-full border border-emerald-700/10 bg-emerald-50/60 px-2 py-0.5 text-[11px] text-emerald-900"
+              >
+                {tagId}
+              </span>
+            );
+          })}
+          {(card.tags?.length ?? 0) > 3 && (
+            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] text-emerald-700">
+              +{card.tags!.length - 3}
             </span>
-          ))}
+          )}
         </div>
       )}
 

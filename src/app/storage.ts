@@ -1,8 +1,9 @@
-import type { AppState, Column } from "./types";
-import { DEFAULT_SETTINGS, DEFAULT_COLUMNS } from "./constants";
+import type { AppState, Card, Column, Tag, TagCategory } from "./types";
+import { DEFAULT_SETTINGS, DEFAULT_COLUMNS, DEFAULT_TAG_CATEGORIES, DEFAULT_TAGS } from "./constants";
 
 const KEY_V1 = "focusboard:v1";
 const KEY_V2 = "focusboard:v2";
+const KEY_V3 = "focusboard:v3";
 
 type V1Settings = {
   celebrations: boolean;
@@ -23,7 +24,7 @@ type V1State = {
   settings: Partial<V1Settings>;
 };
 
-function migrateV1ToV2(v1State: V1State): AppState {
+function migrateV1ToV2(v1State: V1State): Omit<AppState, "tagCategories" | "tags"> {
   const v1Settings = v1State.settings || {};
 
   // Build columns from v1 settings
@@ -43,7 +44,7 @@ function migrateV1ToV2(v1State: V1State): AppState {
     updatedAt: c.updatedAt ?? new Date().toISOString(),
     tags: c.tags ?? [],
     checklist: c.checklist ?? [],
-  })) as AppState["cards"];
+  })) as Card[];
 
   return {
     cards,
@@ -57,12 +58,113 @@ function migrateV1ToV2(v1State: V1State): AppState {
   };
 }
 
+type V2State = Omit<AppState, "tagCategories" | "tags"> & {
+  tagCategories?: TagCategory[];
+  tags?: Tag[];
+};
+
+function migrateV2ToV3(v2State: V2State): AppState {
+  // If already has tags system, just ensure defaults exist
+  if (v2State.tagCategories?.length && v2State.tags?.length) {
+    return {
+      ...v2State,
+      tagCategories: v2State.tagCategories,
+      tags: v2State.tags,
+    };
+  }
+
+  // Start with default categories and tags
+  const tagCategories = [...DEFAULT_TAG_CATEGORIES];
+  const tags = [...DEFAULT_TAGS];
+
+  // Create a "Custom" category for unmatched tags
+  const customCategoryId = "custom";
+  let hasCustomTags = false;
+
+  // Build a map of tag names (lowercase) to tag IDs
+  const tagNameToId = new Map<string, string>();
+  for (const tag of DEFAULT_TAGS) {
+    tagNameToId.set(tag.name.toLowerCase(), tag.id);
+  }
+
+  // Random colors for custom tags
+  const customColors = ["#EC4899", "#14B8A6", "#F97316", "#84CC16", "#A855F7"];
+  let colorIndex = 0;
+
+  // Migrate cards: convert string tags to tag IDs
+  const migratedCards = v2State.cards.map((card) => {
+    if (!card.tags || card.tags.length === 0) return card;
+
+    const newTags: string[] = [];
+
+    for (const tagStr of card.tags) {
+      // Check if it's already a valid tag ID
+      if (tags.some((t) => t.id === tagStr)) {
+        newTags.push(tagStr);
+        continue;
+      }
+
+      // Try to match by name
+      const matchedId = tagNameToId.get(tagStr.toLowerCase());
+      if (matchedId) {
+        newTags.push(matchedId);
+        continue;
+      }
+
+      // Create a custom tag for unmatched strings
+      const customTagId = `custom-${tagStr.toLowerCase().replace(/\s+/g, "-")}`;
+      if (!tags.some((t) => t.id === customTagId)) {
+        tags.push({
+          id: customTagId,
+          name: tagStr,
+          color: customColors[colorIndex % customColors.length],
+          categoryId: customCategoryId,
+        });
+        colorIndex++;
+        hasCustomTags = true;
+      }
+      newTags.push(customTagId);
+    }
+
+    return { ...card, tags: newTags };
+  });
+
+  // Add custom category if needed
+  if (hasCustomTags) {
+    tagCategories.push({
+      id: customCategoryId,
+      name: "Custom",
+      order: tagCategories.length,
+    });
+  }
+
+  return {
+    cards: migratedCards,
+    columns: v2State.columns,
+    templates: v2State.templates,
+    settings: v2State.settings,
+    tagCategories,
+    tags,
+  };
+}
+
+function getDefaultState(): AppState {
+  return {
+    cards: [],
+    columns: DEFAULT_COLUMNS,
+    templates: [],
+    settings: DEFAULT_SETTINGS,
+    tagCategories: DEFAULT_TAG_CATEGORIES,
+    tags: DEFAULT_TAGS,
+  };
+}
+
 export function loadState(): AppState {
   try {
-    // Try v2 first
-    const rawV2 = localStorage.getItem(KEY_V2);
-    if (rawV2) {
-      const parsed = JSON.parse(rawV2) as AppState;
+    // Try v3 first
+    const rawV3 = localStorage.getItem(KEY_V3);
+    if (rawV3) {
+      const parsed = JSON.parse(rawV3) as AppState;
       return {
         cards: parsed.cards ?? [],
         columns: parsed.columns?.length ? parsed.columns : DEFAULT_COLUMNS,
@@ -71,28 +173,48 @@ export function loadState(): AppState {
           ...DEFAULT_SETTINGS,
           ...(parsed.settings ?? {}),
         },
+        tagCategories: parsed.tagCategories?.length ? parsed.tagCategories : DEFAULT_TAG_CATEGORIES,
+        tags: parsed.tags?.length ? parsed.tags : DEFAULT_TAGS,
       };
     }
 
-    // Try v1 and migrate
+    // Try v2 and migrate to v3
+    const rawV2 = localStorage.getItem(KEY_V2);
+    if (rawV2) {
+      const parsed = JSON.parse(rawV2) as V2State;
+      const v2State: V2State = {
+        cards: parsed.cards ?? [],
+        columns: parsed.columns?.length ? parsed.columns : DEFAULT_COLUMNS,
+        templates: parsed.templates ?? [],
+        settings: {
+          ...DEFAULT_SETTINGS,
+          ...(parsed.settings ?? {}),
+        },
+        tagCategories: parsed.tagCategories,
+        tags: parsed.tags,
+      };
+      const migrated = migrateV2ToV3(v2State);
+      saveState(migrated);
+      return migrated;
+    }
+
+    // Try v1 and migrate through v2 to v3
     const rawV1 = localStorage.getItem(KEY_V1);
     if (rawV1) {
       const parsed = JSON.parse(rawV1) as V1State;
-      const migrated = migrateV1ToV2(parsed);
-
-      // Save as v2 and optionally clean up v1
+      const v2State = migrateV1ToV2(parsed);
+      const migrated = migrateV2ToV3(v2State);
       saveState(migrated);
-
       return migrated;
     }
 
     // Fresh start
-    return { cards: [], columns: DEFAULT_COLUMNS, templates: [], settings: DEFAULT_SETTINGS };
+    return getDefaultState();
   } catch {
-    return { cards: [], columns: DEFAULT_COLUMNS, templates: [], settings: DEFAULT_SETTINGS };
+    return getDefaultState();
   }
 }
 
 export function saveState(state: AppState) {
-  localStorage.setItem(KEY_V2, JSON.stringify(state));
+  localStorage.setItem(KEY_V3, JSON.stringify(state));
 }

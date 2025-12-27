@@ -1,7 +1,7 @@
 import React from "react";
 import { DndContext } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
-import type { Card, Column as ColumnType, ColumnId, FilterState, MetricsState, Settings } from "../app/types";
+import type { Card, Column as ColumnType, ColumnId, FilterState, MetricsState, Settings, Tag } from "../app/types";
 import { CONFETTI_COLORS } from "../app/constants";
 import { groupByColumn, isToday, nowIso } from "../app/utils";
 import { DEFAULT_FILTER, filterCards, getAllTags } from "../app/filters";
@@ -29,6 +29,7 @@ export function Board({
   columns,
   settings,
   metrics,
+  tagDefinitions = [],
   onAdd,
   onMove,
   onDelete,
@@ -44,6 +45,7 @@ export function Board({
   columns: ColumnType[];
   settings: Settings;
   metrics: MetricsState;
+  tagDefinitions?: Tag[];
   onAdd: (column: ColumnId, title: string) => void;
   onMove: (id: string, to: ColumnId, patch?: Partial<Card>) => void;
   onDelete: (id: string) => void;
@@ -274,6 +276,7 @@ export function Board({
         onChange={setFilter}
         columns={sortedColumns}
         allTags={allTags}
+        tagDefinitions={tagDefinitions}
         resultCount={filteredCards.length}
         totalCount={cards.length}
       />
@@ -301,6 +304,7 @@ export function Board({
                     cardRefSetter={setCardEl}
                     columnFocused={isColumnFocused}
                     focusedCardIndex={isColumnFocused ? focusPosition?.cardIndex ?? null : null}
+                    allTags={tagDefinitions}
                   />
                 </div>
               </div>

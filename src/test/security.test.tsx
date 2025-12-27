@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen } from "@testing-library/react";
 import { loadState, saveState } from "../app/storage";
-import { DEFAULT_SETTINGS, DEFAULT_COLUMNS } from "../app/constants";
+import { DEFAULT_SETTINGS, DEFAULT_COLUMNS, DEFAULT_TAG_CATEGORIES, DEFAULT_TAGS } from "../app/constants";
 import type { AppState, Card, Column } from "../app/types";
 import { SettingsPanel } from "../components/SettingsPanel";
 import { Board } from "../components/Board";
@@ -46,6 +46,8 @@ describe("Security Tests", () => {
         columns: DEFAULT_COLUMNS,
         templates: [],
         settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: DEFAULT_TAGS,
       };
 
       saveState(state);
@@ -95,6 +97,8 @@ describe("Security Tests", () => {
         columns: DEFAULT_COLUMNS,
         templates: [],
         settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: DEFAULT_TAGS,
       };
 
       saveState(state);
@@ -169,6 +173,8 @@ describe("Security Tests", () => {
         columns: DEFAULT_COLUMNS,
         templates: [],
         settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: DEFAULT_TAGS,
       };
 
       saveState(state);
@@ -194,6 +200,8 @@ describe("Security Tests", () => {
         columns: DEFAULT_COLUMNS,
         templates: [],
         settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: DEFAULT_TAGS,
       };
 
       saveState(state);
@@ -219,6 +227,8 @@ describe("Security Tests", () => {
         columns: DEFAULT_COLUMNS,
         templates: [],
         settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: DEFAULT_TAGS,
       };
 
       saveState(state);
@@ -245,6 +255,8 @@ describe("Security Tests", () => {
         columns: DEFAULT_COLUMNS,
         templates: [],
         settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: DEFAULT_TAGS,
       };
 
       saveState(state);
@@ -317,6 +329,8 @@ describe("Security Tests", () => {
         columns: DEFAULT_COLUMNS,
         templates: [],
         settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: DEFAULT_TAGS,
       };
 
       saveState(state);
@@ -347,6 +361,8 @@ describe("Security Tests", () => {
         columns: DEFAULT_COLUMNS,
         templates: [],
         settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: DEFAULT_TAGS,
       };
 
       saveState(state);
@@ -375,6 +391,8 @@ describe("Security Tests", () => {
         columns: DEFAULT_COLUMNS,
         templates: [],
         settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: DEFAULT_TAGS,
       };
 
       saveState(state);
@@ -395,7 +413,9 @@ describe("Security Tests", () => {
         columns: DEFAULT_COLUMNS,
         templates: [],
         settings: DEFAULT_SETTINGS,
-      },
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: DEFAULT_TAGS,
+      } as AppState,
       onClose: vi.fn(),
       onChange: vi.fn(),
       onUpdateColumn: vi.fn(),

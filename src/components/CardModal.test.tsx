@@ -2,6 +2,7 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { CardModal } from "./CardModal";
+import { DEFAULT_TAGS, DEFAULT_TAG_CATEGORIES } from "../app/constants";
 import type { Card } from "../app/types";
 
 describe("CardModal", () => {
@@ -19,6 +20,8 @@ describe("CardModal", () => {
   const defaultProps = {
     open: true,
     card: createCard(),
+    tags: DEFAULT_TAGS,
+    tagCategories: DEFAULT_TAG_CATEGORIES,
     onClose: vi.fn(),
     onSave: vi.fn(),
     onDelete: vi.fn(),
@@ -101,12 +104,22 @@ describe("CardModal", () => {
       expect(screen.getByDisplayValue("https://example.com")).toBeInTheDocument();
     });
 
-    it("displays card tags as comma-separated string", () => {
-      const card = createCard({ tags: ["urgent", "feature", "bug"] });
+    it("displays selected tags with visual indication", () => {
+      // Use tag IDs that exist in DEFAULT_TAGS
+      const card = createCard({ tags: ["high", "bug"] });
 
       render(<CardModal {...defaultProps} card={card} />);
 
-      expect(screen.getByDisplayValue("urgent, feature, bug")).toBeInTheDocument();
+      // The tag buttons for "High" and "Bug" should be rendered
+      // They should have the ring class indicating selection
+      const highTagButton = screen.getByRole("button", { name: /high/i });
+      const bugTagButton = screen.getByRole("button", { name: /bug/i });
+
+      expect(highTagButton).toBeInTheDocument();
+      expect(bugTagButton).toBeInTheDocument();
+      // Selected tags have ring-2 class
+      expect(highTagButton).toHaveClass("ring-2");
+      expect(bugTagButton).toHaveClass("ring-2");
     });
 
     it("displays blocked reason when present", () => {
@@ -265,27 +278,26 @@ describe("CardModal", () => {
       expect(screen.queryByDisplayValue("Task to delete")).not.toBeInTheDocument();
     });
 
-    it("parses tags from comma-separated input", async () => {
+    it("toggles tags when clicking tag buttons", async () => {
+      const user = userEvent.setup();
       const onSave = vi.fn();
       const card = createCard({ tags: [] });
 
       render(<CardModal {...defaultProps} card={card} onSave={onSave} />);
 
-      // Find the tags input - it's the text input for comma-separated values
-      // Use a more specific approach - find by the label text nearby
-      const tagLabel = screen.getByText(/tags/i);
-      const tagSection = tagLabel.closest("div");
-      const tagsInput = tagSection?.querySelector("input") as HTMLInputElement;
+      // Click on some tag buttons to select them
+      const highTagButton = screen.getByRole("button", { name: /high/i });
+      const bugTagButton = screen.getByRole("button", { name: /bug/i });
 
-      if (tagsInput) {
-        fireEvent.change(tagsInput, { target: { value: "tag1, tag2, tag3" } });
-      }
+      await user.click(highTagButton);
+      await user.click(bugTagButton);
 
-      fireEvent.click(screen.getByRole("button", { name: /save/i }));
+      // Save the card
+      await user.click(screen.getByRole("button", { name: /save/i }));
 
       expect(onSave).toHaveBeenCalledWith(
         expect.objectContaining({
-          tags: ["tag1", "tag2", "tag3"],
+          tags: ["high", "bug"],
         })
       );
     });

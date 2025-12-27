@@ -5,7 +5,7 @@ import {
   validateImportData,
   mergeImportData,
 } from "./exportImport";
-import { DEFAULT_SETTINGS, DEFAULT_COLUMNS } from "./constants";
+import { DEFAULT_SETTINGS, DEFAULT_COLUMNS, DEFAULT_TAG_CATEGORIES, DEFAULT_TAGS } from "./constants";
 import type { AppState, Card } from "./types";
 
 const makeCard = (overrides: Partial<Card> = {}): Card => ({
@@ -22,6 +22,8 @@ const makeState = (overrides: Partial<AppState> = {}): AppState => ({
   columns: DEFAULT_COLUMNS,
   templates: [],
   settings: DEFAULT_SETTINGS,
+  tagCategories: DEFAULT_TAG_CATEGORIES,
+  tags: DEFAULT_TAGS,
   ...overrides,
 });
 

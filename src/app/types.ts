@@ -30,6 +30,20 @@ export type CardRelation = {
   targetCardId: string;
 };
 
+// Tag types
+export type Tag = {
+  id: string;
+  name: string;
+  color: string; // Hex color (e.g., "#EF4444")
+  categoryId: string;
+};
+
+export type TagCategory = {
+  id: string;
+  name: string;
+  order: number;
+};
+
 export type Card = {
   id: string;
   column: ColumnId;
@@ -99,6 +113,8 @@ export type AppState = {
   columns: Column[];
   templates: CardTemplate[];
   settings: Settings;
+  tagCategories: TagCategory[];
+  tags: Tag[];
 };
 
 // Filter types

@@ -1,5 +1,5 @@
 import React from "react";
-import type { Card, RelationType } from "../app/types";
+import type { Card, RelationType, Tag, TagCategory } from "../app/types";
 import { nanoid } from "nanoid";
 import { RelationshipPicker, RelationshipBadge } from "./RelationshipPicker";
 
@@ -9,6 +9,8 @@ type Props = {
   open: boolean;
   card: Card | null;
   allCards?: Card[];
+  tags?: Tag[];
+  tagCategories?: TagCategory[];
   onClose: () => void;
   onSave: (card: Card) => void;
   onDelete: (id: string) => void;
@@ -20,6 +22,8 @@ export function CardModal({
   open,
   card,
   allCards,
+  tags = [],
+  tagCategories = [],
   onClose,
   onSave,
   onDelete,
@@ -135,19 +139,67 @@ export function CardModal({
           </div>
 
           <div>
-            <label className="text-xs text-emerald-900/60">Tags (comma separated)</label>
-            <input
-              value={(draft.tags ?? []).join(", ")}
-              onChange={(e) =>
-                update({
-                  tags: e.target.value
-                    .split(",")
-                    .map((s) => s.trim())
-                    .filter(Boolean),
-                })
-              }
-              className="mt-2 w-full rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
-            />
+            <label className="text-xs text-emerald-900/60">Tags</label>
+            {tags.length > 0 && tagCategories.length > 0 ? (
+              <div className="mt-2 space-y-3">
+                {tagCategories
+                  .slice()
+                  .sort((a, b) => a.order - b.order)
+                  .map((category) => {
+                    const categoryTags = tags.filter((t) => t.categoryId === category.id);
+                    if (categoryTags.length === 0) return null;
+                    return (
+                      <div key={category.id}>
+                        <div className="text-[10px] font-medium uppercase tracking-wide text-emerald-900/40 mb-1.5">
+                          {category.name}
+                        </div>
+                        <div className="flex flex-wrap gap-1.5">
+                          {categoryTags.map((tag) => {
+                            const isSelected = (draft.tags ?? []).includes(tag.id);
+                            return (
+                              <button
+                                key={tag.id}
+                                type="button"
+                                onClick={() => {
+                                  const currentTags = draft.tags ?? [];
+                                  update({
+                                    tags: isSelected
+                                      ? currentTags.filter((t) => t !== tag.id)
+                                      : [...currentTags, tag.id],
+                                  });
+                                }}
+                                className={`
+                                  inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium
+                                  transition-all duration-150
+                                  ${isSelected
+                                    ? "ring-2 ring-offset-1"
+                                    : "opacity-60 hover:opacity-100"
+                                  }
+                                `}
+                                style={{
+                                  backgroundColor: `${tag.color}20`,
+                                  color: tag.color,
+                                  ...(isSelected ? { ringColor: tag.color } : {}),
+                                }}
+                              >
+                                <span
+                                  className="h-2 w-2 rounded-full"
+                                  style={{ backgroundColor: tag.color }}
+                                />
+                                {tag.name}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+              </div>
+            ) : (
+              <div className="mt-2 text-xs text-emerald-900/50">
+                No tags configured. Add tags in Settings.
+              </div>
+            )}
           </div>
 
           <div>
