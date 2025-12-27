@@ -11,6 +11,7 @@ import { SettingsPanel } from "../components/SettingsPanel";
 import { MetricsDashboard } from "../components/MetricsDashboard";
 import { KeyboardShortcutsModal } from "../components/KeyboardShortcutsModal";
 import { LoginPage } from "../components/LoginPage";
+import { SetPasswordPage } from "../components/SetPasswordPage";
 
 function AppContent() {
   const { state, dispatch, canUndo, canRedo } = useAppState();
@@ -184,6 +185,15 @@ function AppContent() {
 
 function AuthenticatedApp() {
   const { isAuthenticated, loading } = useRequireAuth();
+  const [isRecoveryFlow, setIsRecoveryFlow] = React.useState(false);
+
+  // Check for password recovery flow (Supabase adds #type=recovery to URL)
+  React.useEffect(() => {
+    const hash = window.location.hash;
+    if (hash.includes("type=recovery")) {
+      setIsRecoveryFlow(true);
+    }
+  }, []);
 
   if (loading) {
     return (
@@ -191,6 +201,11 @@ function AuthenticatedApp() {
         <div className="text-emerald-900/70">Loading...</div>
       </div>
     );
+  }
+
+  // Show password set page during recovery flow
+  if (isRecoveryFlow && isAuthenticated) {
+    return <SetPasswordPage onComplete={() => setIsRecoveryFlow(false)} />;
   }
 
   if (!isAuthenticated) {

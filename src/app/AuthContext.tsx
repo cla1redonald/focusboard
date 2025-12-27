@@ -9,6 +9,7 @@ type AuthState = {
   signInWithEmail: (email: string) => Promise<{ error: Error | null }>;
   signInWithPassword: (email: string, password: string) => Promise<{ error: Error | null }>;
   signUp: (email: string, password: string) => Promise<{ error: Error | null }>;
+  resetPassword: (email: string) => Promise<{ error: Error | null }>;
   signOut: () => Promise<void>;
 };
 
@@ -85,6 +86,18 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return { error: error ? new Error(error.message) : null };
   };
 
+  const resetPassword = async (email: string) => {
+    if (!supabase) {
+      return { error: new Error("Supabase not configured") };
+    }
+
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: window.location.origin,
+    });
+
+    return { error: error ? new Error(error.message) : null };
+  };
+
   const signOut = async () => {
     if (!supabase) return;
     await supabase.auth.signOut();
@@ -97,6 +110,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signInWithEmail,
     signInWithPassword,
     signUp,
+    resetPassword,
     signOut,
   };
 

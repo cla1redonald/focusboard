@@ -1,10 +1,10 @@
 import React from "react";
 import { useAuth } from "../app/AuthContext";
 
-type AuthMode = "login" | "signup" | "magic-link";
+type AuthMode = "login" | "signup" | "magic-link" | "reset-password";
 
 export function LoginPage() {
-  const { signInWithEmail, signInWithPassword, signUp } = useAuth();
+  const { signInWithEmail, signInWithPassword, signUp, resetPassword } = useAuth();
   const [email, setEmail] = React.useState("");
   const [password, setPassword] = React.useState("");
   const [mode, setMode] = React.useState<AuthMode>("login");
@@ -53,6 +53,23 @@ export function LoginPage() {
     }
   };
 
+  const handleResetPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!email.trim()) return;
+
+    setStatus("loading");
+    setErrorMessage("");
+
+    const { error } = await resetPassword(email.trim());
+
+    if (error) {
+      setStatus("error");
+      setErrorMessage(error.message);
+    } else {
+      setStatus("sent");
+    }
+  };
+
   const resetForm = () => {
     setStatus("idle");
     setEmail("");
@@ -75,13 +92,17 @@ export function LoginPage() {
 
           {status === "sent" ? (
             <div className="text-center">
-              <div className="mb-4 text-5xl">{mode === "signup" ? "✅" : "📧"}</div>
+              <div className="mb-4 text-5xl">
+                {mode === "signup" ? "✅" : "📧"}
+              </div>
               <div className="text-lg font-medium text-emerald-900 mb-2">
                 {mode === "signup" ? "Account created!" : "Check your email"}
               </div>
               <div className="text-sm text-emerald-900/70 mb-6">
                 {mode === "signup"
                   ? "You can now sign in with your password."
+                  : mode === "reset-password"
+                  ? <>We sent a password reset link to <strong>{email}</strong></>
                   : <>We sent a magic link to <strong>{email}</strong></>
                 }
               </div>
@@ -92,7 +113,7 @@ export function LoginPage() {
                 }}
                 className="text-sm text-emerald-700 hover:text-emerald-900 underline"
               >
-                {mode === "signup" ? "Sign in now" : "Use a different email"}
+                {mode === "signup" || mode === "reset-password" ? "Sign in now" : "Use a different email"}
               </button>
             </div>
           ) : mode === "magic-link" ? (
@@ -132,6 +153,46 @@ export function LoginPage() {
                 Back to password login
               </button>
             </form>
+          ) : mode === "reset-password" ? (
+            <form onSubmit={handleResetPassword}>
+              <div className="mb-4 text-sm text-emerald-900/70">
+                Enter your email and we'll send you a link to set your password.
+              </div>
+              <label className="block mb-2 text-sm font-medium text-emerald-900">
+                Email address
+              </label>
+              <input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                disabled={status === "loading"}
+                className="w-full rounded-xl border border-emerald-700/20 bg-white px-4 py-3 text-emerald-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-400/30 disabled:opacity-50"
+                autoFocus
+              />
+
+              {status === "error" && (
+                <div className="mt-3 text-sm text-rose-600">
+                  {errorMessage || "Something went wrong. Please try again."}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={status === "loading" || !email.trim()}
+                className="mt-4 w-full rounded-xl bg-emerald-600 px-4 py-3 font-medium text-white shadow-lg transition hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {status === "loading" ? "Sending..." : "Send password reset link"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => { resetForm(); setMode("login"); }}
+                className="mt-4 w-full text-sm text-emerald-700 hover:text-emerald-900"
+              >
+                Back to login
+              </button>
+            </form>
           ) : (
             <form onSubmit={handlePasswordSubmit}>
               <label className="block mb-2 text-sm font-medium text-emerald-900">
@@ -158,6 +219,16 @@ export function LoginPage() {
                 disabled={status === "loading"}
                 className="w-full rounded-xl border border-emerald-700/20 bg-white px-4 py-3 text-emerald-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-400/30 disabled:opacity-50"
               />
+
+              {mode === "login" && (
+                <button
+                  type="button"
+                  onClick={() => { setStatus("idle"); setErrorMessage(""); setMode("reset-password"); }}
+                  className="mt-2 text-xs text-emerald-600 hover:text-emerald-800"
+                >
+                  Forgot password? Set a new one
+                </button>
+              )}
 
               {status === "error" && (
                 <div className="mt-3 text-sm text-rose-600">
