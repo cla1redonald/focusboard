@@ -1,6 +1,6 @@
 import React from "react";
 import { useAppState } from "./state";
-import type { Card } from "./types";
+import type { Card, Column } from "./types";
 import { Board } from "../components/Board";
 import { CardModal } from "../components/CardModal";
 import { SettingsPanel } from "../components/SettingsPanel";
@@ -29,6 +29,7 @@ export default function App() {
         <div className="mx-auto flex h-full w-full max-w-[1500px] flex-col">
           <Board
             cards={state.cards}
+            columns={state.columns}
             settings={state.settings}
             onAdd={(column, title) => dispatch({ type: "ADD_CARD", column, title })}
             onMove={(id, to, patch) => dispatch({ type: "MOVE_CARD", id, to, patch })}
@@ -55,8 +56,13 @@ export default function App() {
       <SettingsPanel
         open={settingsOpen}
         settings={state.settings}
+        columns={state.columns}
         onClose={() => setSettingsOpen(false)}
         onChange={(settings) => dispatch({ type: "SET_SETTINGS", settings })}
+        onUpdateColumn={(column: Column) => dispatch({ type: "UPDATE_COLUMN", column })}
+        onAddColumn={(column: Omit<Column, "id" | "order">) => dispatch({ type: "ADD_COLUMN", column })}
+        onDeleteColumn={(id: string, migrateCardsTo?: string) => dispatch({ type: "DELETE_COLUMN", id, migrateCardsTo })}
+        onReorderColumns={(columns: Column[]) => dispatch({ type: "REORDER_COLUMNS", columns })}
       />
     </div>
   );

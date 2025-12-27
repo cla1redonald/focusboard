@@ -1,10 +1,14 @@
-export type ColumnId =
-  | "backlog"
-  | "design"
-  | "todo"
-  | "doing"
-  | "blocked"
-  | "done";
+export type ColumnId = string;
+
+export type Column = {
+  id: ColumnId;
+  title: string;
+  icon: string;
+  color: string;
+  wipLimit: number | null; // null means unlimited
+  isTerminal: boolean; // marks completion columns (like Done)
+  order: number;
+};
 
 export type ChecklistItem = {
   id: string;
@@ -30,23 +34,14 @@ export type Card = {
   lastOverrideAt?: string;
 };
 
-export type WipLimits = Partial<Record<ColumnId, number | null>>;
-
 export type Settings = {
   celebrations: boolean;
   reducedMotionOverride: boolean; // if true, treat as reduced motion
   backgroundImage: string | null;
-  columnColors: Record<ColumnId, string>;
-  columnIcons: Record<ColumnId, string>;
-  wip: {
-    design: number;
-    todo: number;
-    doing: number;   // keep at 1 by default
-    blocked: number;
-  };
 };
 
 export type AppState = {
   cards: Card[];
+  columns: Column[];
   settings: Settings;
 };

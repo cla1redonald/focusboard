@@ -1,8 +1,8 @@
 import React from "react";
 import { DndContext } from "@dnd-kit/core";
 import type { DragEndEvent } from "@dnd-kit/core";
-import type { Card, ColumnId, Settings } from "../app/types";
-import { COLUMNS, CONFETTI_COLORS } from "../app/constants";
+import type { Card, Column as ColumnType, ColumnId, Settings } from "../app/types";
+import { CONFETTI_COLORS } from "../app/constants";
 import { groupByColumn, isToday, nowIso } from "../app/utils";
 import { Column } from "./Column";
 import { TopStrip } from "./TopStrip";
@@ -23,6 +23,7 @@ function usePrefersReducedMotion() {
 
 export function Board({
   cards,
+  columns,
   settings,
   onAdd,
   onMove,
@@ -30,6 +31,7 @@ export function Board({
   onSettings,
 }: {
   cards: Card[];
+  columns: ColumnType[];
   settings: Settings;
   onAdd: (column: ColumnId, title: string) => void;
   onMove: (id: string, to: ColumnId, patch?: Partial<Card>) => void;
@@ -38,30 +40,35 @@ export function Board({
 }) {
   const reducedMotion = usePrefersReducedMotion() || settings.reducedMotionOverride;
 
-  const byCol = groupByColumn(cards);
-  const doingCard = byCol.doing[0];
-  const blockedCount = byCol.blocked.length;
+  // Sort columns by order
+  const sortedColumns = [...columns].sort((a, b) => a.order - b.order);
+
+  const byCol = groupByColumn(cards, columns);
+  const doingCol = sortedColumns.find((c) => c.id === "doing");
+  const doingCard = doingCol ? byCol[doingCol.id]?.[0] : undefined;
+  const blockedCol = sortedColumns.find((c) => c.id === "blocked");
+  const blockedCount = blockedCol ? byCol[blockedCol.id]?.length ?? 0 : 0;
   const dueTodayCount = cards.filter((c) => isToday(c.dueDate)).length;
 
-  const wipLimit = (col: ColumnId): number | null => {
-    if (col === "design") return settings.wip.design;
-    if (col === "todo") return settings.wip.todo;
-    if (col === "doing") return 1;
-    if (col === "blocked") return settings.wip.blocked;
-    return null;
+  const getColumn = (id: ColumnId): ColumnType | undefined =>
+    columns.find((c) => c.id === id);
+
+  const wipLimit = (colId: ColumnId): number | null => {
+    const col = getColumn(colId);
+    return col?.wipLimit ?? null;
   };
 
-  const countLabel = (col: ColumnId) => {
-    const limit = wipLimit(col);
-    const count = byCol[col].length;
+  const countLabel = (colId: ColumnId) => {
+    const limit = wipLimit(colId);
+    const count = byCol[colId]?.length ?? 0;
     if (!limit) return String(count);
     return `${count}/${limit}`;
   };
 
-  const headerState = (col: ColumnId): "normal" | "near" | "full" => {
-    const limit = wipLimit(col);
+  const headerState = (colId: ColumnId): "normal" | "near" | "full" => {
+    const limit = wipLimit(colId);
     if (!limit) return "normal";
-    const count = byCol[col].length;
+    const count = byCol[colId]?.length ?? 0;
     if (count >= limit) return "full";
     if (count / limit >= 0.8) return "near";
     return "normal";
@@ -104,10 +111,16 @@ export function Board({
     setModal({ kind: "blocked", cardId, from, to, allowOverride: false });
   };
 
-  const fireCelebrationIfNeeded = (cardId: string, from: ColumnId, to: ColumnId) => {
+  const isTerminalColumn = (colId: ColumnId): boolean => {
+    const col = getColumn(colId);
+    return col?.isTerminal ?? false;
+  };
+
+  const fireCelebrationIfNeeded = (cardId: string, _from: ColumnId, to: ColumnId) => {
     if (reducedMotion) return;
     if (!settings.celebrations) return;
-    if (!(from === "doing" && to === "done")) return;
+    // Fire celebration when moving to a terminal column (like "done")
+    if (!isTerminalColumn(to)) return;
 
     const now = Date.now();
     if (now - lastCelebrateRef.current < 2000) return;
@@ -123,7 +136,10 @@ export function Board({
   };
 
   const pulseDoneHeader = () => {
-    const el = document.getElementById("done-header");
+    // Find terminal column to pulse
+    const terminalCol = sortedColumns.find((c) => c.isTerminal);
+    if (!terminalCol) return;
+    const el = document.getElementById(`${terminalCol.id}-header`);
     if (!el) return;
     el.classList.remove("animate-pulse");
     void el.offsetWidth;
@@ -132,6 +148,7 @@ export function Board({
   };
 
   const canMoveDirect = (from: ColumnId, to: ColumnId) => {
+    // Block Design -> Doing direct moves (must go through Todo)
     if (from === "design" && to === "doing") return false;
     return true;
   };
@@ -139,7 +156,7 @@ export function Board({
   const wouldExceedWip = (to: ColumnId) => {
     const limit = wipLimit(to);
     if (!limit) return false;
-    return byCol[to].length + 1 > limit;
+    return (byCol[to]?.length ?? 0) + 1 > limit;
   };
 
   const onDragEnd = (e: DragEndEvent) => {
@@ -169,7 +186,9 @@ export function Board({
 
     // WIP checks
     if (wouldExceedWip(to)) {
-      const allowOverride = to !== "doing"; // Doing hard
+      const toCol = getColumn(to);
+      // Hard limit for "doing" column (WIP limit of 1)
+      const allowOverride = !(toCol?.wipLimit === 1);
       pendingRef.current = { id: cardId, from, to };
       openWipModal(cardId, from, to, allowOverride);
       return;
@@ -178,7 +197,7 @@ export function Board({
     // apply move
     onMove(cardId, to);
     if (reducedMotion) {
-      if (from === "doing" && to === "done") pulseDoneHeader();
+      if (isTerminalColumn(to)) pulseDoneHeader();
     } else {
       fireCelebrationIfNeeded(cardId, from, to);
     }
@@ -205,18 +224,18 @@ export function Board({
 
       <DndContext onDragEnd={onDragEnd}>
         <div className="flex gap-5 overflow-x-auto pb-6">
-          {COLUMNS.map((col) => (
+          {sortedColumns.map((col) => (
             <div key={col.id}>
               <div
-                id={col.id === "done" ? "done-header" : undefined}
+                id={col.isTerminal ? `${col.id}-header` : undefined}
                 className="rounded-xl"
               >
                 <Column
                   id={col.id}
                   title={col.title}
-                  cards={byCol[col.id]}
-                  accentColor={settings.columnColors[col.id]}
-                  icon={settings.columnIcons[col.id]}
+                  cards={byCol[col.id] ?? []}
+                  accentColor={col.color}
+                  icon={col.icon}
                   countLabel={countLabel(col.id)}
                   headerState={headerState(col.id)}
                   onAdd={onAdd}
@@ -241,7 +260,7 @@ export function Board({
         message={
           modal?.from === "design" && modal?.to === "doing"
             ? "Cards must pass through To Do before moving into Doing."
-            : modal?.to === "doing"
+            : getColumn(modal?.to ?? "")?.wipLimit === 1
             ? "Doing is hard-limited to 1. Move the current Doing item out first."
             : "This column is at its WIP limit. Move something out first, or override with a reason."
         }
@@ -258,7 +277,7 @@ export function Board({
             return;
           }
 
-          if (modal.to === "doing") {
+          if (getColumn(modal.to)?.wipLimit === 1) {
             setModal(null);
             pendingRef.current = null;
             return;
@@ -271,7 +290,7 @@ export function Board({
           });
 
           if (reducedMotion) {
-            if (pending.from === "doing" && pending.to === "done") pulseDoneHeader();
+            if (isTerminalColumn(pending.to)) pulseDoneHeader();
           } else {
             fireCelebrationIfNeeded(pending.id, pending.from, pending.to);
           }
