@@ -22,6 +22,8 @@ export const DEFAULT_SETTINGS: Settings = {
   celebrations: true,
   reducedMotionOverride: false,
   backgroundImage: null,
+  showAgingIndicators: true,
+  staleCardThreshold: 7,
 };
 
 export const CONFETTI_COLORS = ["#7C5CFF", "#A89BFF", "#5E6170"];

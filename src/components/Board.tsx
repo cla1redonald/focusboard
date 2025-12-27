@@ -305,6 +305,7 @@ export function Board({
                     columnFocused={isColumnFocused}
                     focusedCardIndex={isColumnFocused ? focusPosition?.cardIndex ?? null : null}
                     allTags={tagDefinitions}
+                    showAgingIndicators={settings.showAgingIndicators}
                   />
                 </div>
               </div>

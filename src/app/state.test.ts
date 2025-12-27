@@ -519,6 +519,8 @@ describe("state reducer", () => {
         celebrations: false,
         reducedMotionOverride: true,
         backgroundImage: "data:image/png;base64,test",
+        showAgingIndicators: false,
+        staleCardThreshold: 14,
       };
 
       act(() => {

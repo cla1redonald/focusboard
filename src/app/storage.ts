@@ -54,6 +54,8 @@ function migrateV1ToV2(v1State: V1State): Omit<AppState, "tagCategories" | "tags
       celebrations: v1Settings.celebrations ?? DEFAULT_SETTINGS.celebrations,
       reducedMotionOverride: v1Settings.reducedMotionOverride ?? DEFAULT_SETTINGS.reducedMotionOverride,
       backgroundImage: v1Settings.backgroundImage ?? DEFAULT_SETTINGS.backgroundImage,
+      showAgingIndicators: DEFAULT_SETTINGS.showAgingIndicators,
+      staleCardThreshold: DEFAULT_SETTINGS.staleCardThreshold,
     },
   };
 }

@@ -34,6 +34,7 @@ export function Column({
   columnFocused = false,
   focusedCardIndex = null,
   allTags = [],
+  showAgingIndicators = false,
 }: {
   id: ColumnId;
   title: string;
@@ -48,6 +49,7 @@ export function Column({
   columnFocused?: boolean;
   focusedCardIndex?: number | null;
   allTags?: Tag[];
+  showAgingIndicators?: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   const accentRgb = hexToRgb(accentColor);
@@ -110,6 +112,7 @@ export function Column({
             cardRefSetter={cardRefSetter}
             focused={columnFocused && focusedCardIndex === idx}
             allTags={allTags}
+            showAgingIndicator={showAgingIndicators}
           />
         ))}
 

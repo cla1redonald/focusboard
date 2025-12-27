@@ -2,6 +2,7 @@ import React from "react";
 import { useDraggable } from "@dnd-kit/core";
 import type { Card, Tag } from "../app/types";
 import { RelationshipIndicators } from "./RelationshipPicker";
+import { getCardAgeLevel, getCardAgeDays } from "../app/metrics";
 
 export function CardItem({
   card,
@@ -9,12 +10,14 @@ export function CardItem({
   cardRefSetter,
   focused = false,
   allTags = [],
+  showAgingIndicator = false,
 }: {
   card: Card;
   onOpen: (card: Card) => void;
   cardRefSetter?: (id: string, el: HTMLElement | null) => void;
   focused?: boolean;
   allTags?: Tag[];
+  showAgingIndicator?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
@@ -52,6 +55,22 @@ export function CardItem({
           <span className="inline-flex items-center gap-2">
             {card.icon && <span className="text-base">{card.icon}</span>}
             <span>{card.title}</span>
+            {showAgingIndicator && (() => {
+              const ageLevel = getCardAgeLevel(card);
+              if (ageLevel === "none") return null;
+              const ageDays = getCardAgeDays(card);
+              const colors = {
+                yellow: "bg-amber-400",
+                orange: "bg-orange-500",
+                red: "bg-rose-500",
+              };
+              return (
+                <span
+                  className={`inline-block h-2 w-2 rounded-full ${colors[ageLevel]}`}
+                  title={`${ageDays} days since last update`}
+                />
+              );
+            })()}
           </span>
         </button>
         <div

@@ -298,6 +298,8 @@ describe("storage", () => {
           celebrations: false,
           reducedMotionOverride: true,
           backgroundImage: null,
+          showAgingIndicators: true,
+          staleCardThreshold: 7,
         },
         tagCategories: DEFAULT_TAG_CATEGORIES,
         tags: DEFAULT_TAGS,

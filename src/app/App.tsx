@@ -181,7 +181,14 @@ function AppContent() {
       <MetricsDashboard
         open={metricsDashboardOpen}
         metrics={metrics}
+        cards={state.cards}
+        columns={state.columns}
+        settings={state.settings}
         onClose={() => setMetricsDashboardOpen(false)}
+        onOpenCard={(card) => {
+          setMetricsDashboardOpen(false);
+          setOpenCard(card);
+        }}
       />
 
       <KeyboardShortcutsModal

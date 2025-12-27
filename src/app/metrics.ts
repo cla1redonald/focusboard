@@ -1,4 +1,16 @@
-import type { Card, Column, CompletedCardMetric, MetricsState, DailySnapshot } from "./types";
+import type {
+  Card,
+  Column,
+  CompletedCardMetric,
+  MetricsState,
+  DailySnapshot,
+  StaleCard,
+  ColumnAgeStats,
+  CycleTimeBucket,
+  BlockedTimeStats,
+  CFDDataPoint,
+  CardAgeLevel,
+} from "./types";
 
 const METRICS_KEY = "focusboard:metrics";
 const MAX_COMPLETED_CARDS = 500;
@@ -166,4 +178,272 @@ export function formatDuration(ms: number): string {
   }
   const weeks = days / 7;
   return `${weeks.toFixed(1)}w`;
+}
+
+// ============================================
+// Analytics Utility Functions
+// ============================================
+
+/**
+ * Get cards that haven't been updated in X days
+ * Only considers cards in active columns (not backlog or terminal)
+ */
+export function getStaleCards(
+  cards: Card[],
+  columns: Column[],
+  thresholdDays: number
+): StaleCard[] {
+  const now = Date.now();
+  const thresholdMs = thresholdDays * 24 * 60 * 60 * 1000;
+
+  // Get active column IDs (not backlog, not terminal)
+  const activeColumnIds = new Set(
+    columns
+      .filter((c) => c.id !== "backlog" && !c.isTerminal)
+      .map((c) => c.id)
+  );
+
+  const columnMap = new Map(columns.map((c) => [c.id, c.title]));
+
+  return cards
+    .filter((card) => {
+      if (!activeColumnIds.has(card.column)) return false;
+      const lastUpdate = new Date(card.updatedAt).getTime();
+      return now - lastUpdate >= thresholdMs;
+    })
+    .map((card) => ({
+      card,
+      columnTitle: columnMap.get(card.column) ?? card.column,
+      daysSinceUpdate: Math.floor(
+        (now - new Date(card.updatedAt).getTime()) / (24 * 60 * 60 * 1000)
+      ),
+    }))
+    .sort((a, b) => b.daysSinceUpdate - a.daysSinceUpdate);
+}
+
+/**
+ * Get age statistics for each active column
+ * Age = time since card entered that column
+ */
+export function getColumnAgeStats(cards: Card[], columns: Column[]): ColumnAgeStats[] {
+  const now = Date.now();
+  const activeColumns = columns.filter((c) => c.id !== "backlog" && !c.isTerminal);
+
+  return activeColumns.map((column) => {
+    const columnCards = cards.filter((c) => c.column === column.id);
+
+    if (columnCards.length === 0) {
+      return {
+        columnId: column.id,
+        columnTitle: column.title,
+        columnColor: column.color,
+        cardCount: 0,
+        avgAgeMs: 0,
+        maxAgeMs: 0,
+      };
+    }
+
+    // Calculate age = time since card entered this column (from columnHistory)
+    const ages = columnCards.map((card) => {
+      const lastTransition = card.columnHistory
+        ?.filter((t) => t.to === column.id)
+        .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())[0];
+
+      if (lastTransition) {
+        return now - new Date(lastTransition.at).getTime();
+      }
+      // Fallback to createdAt if no history
+      return now - new Date(card.createdAt).getTime();
+    });
+
+    const maxAgeMs = Math.max(...ages);
+    const avgAgeMs = ages.reduce((a, b) => a + b, 0) / ages.length;
+    const oldestIdx = ages.indexOf(maxAgeMs);
+
+    return {
+      columnId: column.id,
+      columnTitle: column.title,
+      columnColor: column.color,
+      cardCount: columnCards.length,
+      avgAgeMs,
+      maxAgeMs,
+      oldestCardTitle: columnCards[oldestIdx]?.title,
+    };
+  });
+}
+
+/**
+ * Get cycle time distribution in buckets
+ */
+export function getCycleTimeDistribution(metrics: MetricsState): CycleTimeBucket[] {
+  const buckets = [
+    { label: "<1d", maxMs: 1 * 24 * 60 * 60 * 1000, count: 0 },
+    { label: "1-3d", maxMs: 3 * 24 * 60 * 60 * 1000, count: 0 },
+    { label: "3-7d", maxMs: 7 * 24 * 60 * 60 * 1000, count: 0 },
+    { label: "7-14d", maxMs: 14 * 24 * 60 * 60 * 1000, count: 0 },
+    { label: ">14d", maxMs: Infinity, count: 0 },
+  ];
+
+  const total = metrics.completedCards.length;
+  if (total === 0) return [];
+
+  for (const card of metrics.completedCards) {
+    const cycleTime = card.cycleTimeMs;
+    for (const bucket of buckets) {
+      if (cycleTime <= bucket.maxMs) {
+        bucket.count++;
+        break;
+      }
+    }
+  }
+
+  return buckets.map((b, idx) => ({
+    label: b.label,
+    rangeLabel:
+      idx === 0
+        ? "Under 1 day"
+        : idx === 4
+          ? "Over 14 days"
+          : b.label.replace("-", " to ").replace(/d$/, " days"),
+    count: b.count,
+    percentage: (b.count / total) * 100,
+  }));
+}
+
+/**
+ * Get blocked time analysis
+ */
+export function getBlockedTimeAnalysis(
+  cards: Card[],
+  _metrics: MetricsState
+): BlockedTimeStats {
+  const now = Date.now();
+  const blockedColumnId = "blocked";
+
+  // Currently blocked cards
+  const currentlyBlocked = cards
+    .filter((c) => c.column === blockedColumnId)
+    .map((card) => {
+      const lastBlockedTransition = card.columnHistory
+        ?.filter((t) => t.to === blockedColumnId)
+        .sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime())[0];
+
+      const blockedCount =
+        card.columnHistory?.filter((t) => t.to === blockedColumnId).length ?? 0;
+
+      return {
+        card,
+        blockedSinceMs: lastBlockedTransition
+          ? now - new Date(lastBlockedTransition.at).getTime()
+          : 0,
+        blockedCount,
+      };
+    })
+    .sort((a, b) => b.blockedSinceMs - a.blockedSinceMs);
+
+  // Calculate average blocked time from cards with history
+  let totalBlockedTime = 0;
+  let blockedPeriodCount = 0;
+
+  // Find cards that were blocked multiple times
+  const blockCounts = new Map<string, { title: string; count: number }>();
+
+  for (const card of cards) {
+    if (card.columnHistory) {
+      const blockTransitions = card.columnHistory.filter(
+        (t) => t.to === blockedColumnId
+      );
+      if (blockTransitions.length > 1) {
+        blockCounts.set(card.id, {
+          title: card.title,
+          count: blockTransitions.length,
+        });
+      }
+
+      // Calculate time spent blocked
+      for (let i = 0; i < card.columnHistory.length; i++) {
+        const t = card.columnHistory[i];
+        if (t.to === blockedColumnId) {
+          const nextTransition = card.columnHistory.find(
+            (nt, j) => j > i && nt.from === blockedColumnId
+          );
+          if (nextTransition) {
+            totalBlockedTime +=
+              new Date(nextTransition.at).getTime() - new Date(t.at).getTime();
+            blockedPeriodCount++;
+          }
+        }
+      }
+    }
+  }
+
+  const frequentlyBlocked = Array.from(blockCounts.entries())
+    .map(([cardId, { title, count }]) => ({ cardId, title, blockCount: count }))
+    .sort((a, b) => b.blockCount - a.blockCount)
+    .slice(0, 5);
+
+  return {
+    avgBlockedTimeMs:
+      blockedPeriodCount > 0 ? totalBlockedTime / blockedPeriodCount : 0,
+    currentlyBlocked,
+    frequentlyBlocked,
+  };
+}
+
+/**
+ * Get cumulative flow diagram data from daily snapshots
+ */
+export function getCumulativeFlowData(
+  snapshots: DailySnapshot[],
+  columns: Column[],
+  days: 30 | 60 | 90
+): CFDDataPoint[] {
+  const sortedColumns = [...columns].sort((a, b) => a.order - b.order);
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - days);
+
+  const relevantSnapshots = snapshots
+    .filter((s) => new Date(s.date) >= cutoffDate)
+    .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  return relevantSnapshots.map((snapshot) => {
+    const cumulativeCounts: Record<string, number> = {};
+    let cumulative = 0;
+
+    // Build cumulative counts from bottom to top
+    for (const col of sortedColumns) {
+      const count = snapshot.columnCounts[col.id] ?? 0;
+      cumulative += count;
+      cumulativeCounts[col.id] = cumulative;
+    }
+
+    return {
+      date: snapshot.date,
+      columns: snapshot.columnCounts,
+      cumulativeCounts,
+    };
+  });
+}
+
+/**
+ * Get card age level for WIP indicators
+ */
+export function getCardAgeLevel(card: Card): CardAgeLevel {
+  const now = Date.now();
+  const lastUpdate = new Date(card.updatedAt).getTime();
+  const daysSinceUpdate = (now - lastUpdate) / (24 * 60 * 60 * 1000);
+
+  if (daysSinceUpdate >= 14) return "red";
+  if (daysSinceUpdate >= 7) return "orange";
+  if (daysSinceUpdate >= 3) return "yellow";
+  return "none";
+}
+
+/**
+ * Get number of days since card was last updated
+ */
+export function getCardAgeDays(card: Card): number {
+  const now = Date.now();
+  const lastUpdate = new Date(card.updatedAt).getTime();
+  return Math.floor((now - lastUpdate) / (24 * 60 * 60 * 1000));
 }

@@ -367,6 +367,48 @@ export function SettingsPanel({
             />
           </div>
 
+          {/* Analytics Section */}
+          <div className="rounded-xl border border-emerald-700/15 bg-white/80 p-4">
+            <div className="text-sm font-semibold text-emerald-950">Analytics</div>
+
+            <div className="mt-3 space-y-4">
+              {/* Aging WIP Indicators Toggle */}
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm text-emerald-950">Aging WIP indicators</div>
+                  <div className="text-xs text-emerald-900/60">
+                    Show colored dots on cards based on age (yellow: 3d, orange: 7d, red: 14d)
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.showAgingIndicators}
+                  onChange={(e) => set({ showAgingIndicators: e.target.checked })}
+                  className="h-4 w-4 accent-emerald-600"
+                />
+              </div>
+
+              {/* Stale Card Threshold */}
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm text-emerald-950">Stale card threshold</div>
+                  <div className="text-xs text-emerald-900/60">
+                    Days of inactivity before a card is considered stale
+                  </div>
+                </div>
+                <select
+                  value={settings.staleCardThreshold}
+                  onChange={(e) => set({ staleCardThreshold: Number(e.target.value) as 3 | 7 | 14 })}
+                  className="rounded-lg border border-emerald-700/15 bg-white px-3 py-1.5 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
+                >
+                  <option value={3}>3 days</option>
+                  <option value={7}>7 days</option>
+                  <option value={14}>14 days</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
           {/* Export/Import Section */}
           <div className="rounded-xl border border-emerald-700/15 bg-white/80 p-4">
             <div className="mb-3 text-sm font-semibold text-emerald-950">Data Management</div>

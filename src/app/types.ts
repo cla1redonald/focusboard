@@ -106,7 +106,57 @@ export type Settings = {
   celebrations: boolean;
   reducedMotionOverride: boolean; // if true, treat as reduced motion
   backgroundImage: string | null;
+  showAgingIndicators: boolean;
+  staleCardThreshold: 3 | 7 | 14;
 };
+
+// Analytics types
+export type StaleCard = {
+  card: Card;
+  columnTitle: string;
+  daysSinceUpdate: number;
+};
+
+export type ColumnAgeStats = {
+  columnId: string;
+  columnTitle: string;
+  columnColor: string;
+  cardCount: number;
+  avgAgeMs: number;
+  maxAgeMs: number;
+  oldestCardTitle?: string;
+};
+
+export type CycleTimeBucket = {
+  label: string;
+  rangeLabel: string;
+  count: number;
+  percentage: number;
+};
+
+export type BlockedCardInfo = {
+  card: Card;
+  blockedSinceMs: number;
+  blockedCount: number;
+};
+
+export type BlockedTimeStats = {
+  avgBlockedTimeMs: number;
+  currentlyBlocked: BlockedCardInfo[];
+  frequentlyBlocked: Array<{
+    cardId: string;
+    title: string;
+    blockCount: number;
+  }>;
+};
+
+export type CFDDataPoint = {
+  date: string;
+  columns: Record<string, number>;
+  cumulativeCounts: Record<string, number>;
+};
+
+export type CardAgeLevel = "none" | "yellow" | "orange" | "red";
 
 export type AppState = {
   cards: Card[];

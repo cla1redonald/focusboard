@@ -474,6 +474,14 @@ function validateSettings(obj: Record<string, unknown>): Settings {
         : DEFAULT_SETTINGS.reducedMotionOverride,
     backgroundImage:
       typeof obj.backgroundImage === "string" ? obj.backgroundImage : DEFAULT_SETTINGS.backgroundImage,
+    showAgingIndicators:
+      typeof obj.showAgingIndicators === "boolean"
+        ? obj.showAgingIndicators
+        : DEFAULT_SETTINGS.showAgingIndicators,
+    staleCardThreshold:
+      obj.staleCardThreshold === 3 || obj.staleCardThreshold === 7 || obj.staleCardThreshold === 14
+        ? obj.staleCardThreshold
+        : DEFAULT_SETTINGS.staleCardThreshold,
   };
 }
 
