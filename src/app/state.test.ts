@@ -1291,4 +1291,396 @@ describe("state reducer", () => {
       expect(card1.relations).toHaveLength(0);
     });
   });
+
+  describe("ADD_TAG action", () => {
+    it("adds a new tag", () => {
+      const { result } = renderHook(() => useAppState());
+
+      const initialTagCount = result.current.state.tags.length;
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_TAG",
+          tag: {
+            name: "Custom Tag",
+            color: "#FF5733",
+            categoryId: "priority",
+          },
+        });
+      });
+
+      expect(result.current.state.tags).toHaveLength(initialTagCount + 1);
+      const newTag = result.current.state.tags[result.current.state.tags.length - 1];
+      expect(newTag.name).toBe("Custom Tag");
+      expect(newTag.color).toBe("#FF5733");
+      expect(newTag.categoryId).toBe("priority");
+      expect(newTag.id).toBeDefined();
+    });
+
+    it("generates unique id for new tag", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_TAG",
+          tag: { name: "Tag 1", color: "#111111", categoryId: "type" },
+        });
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_TAG",
+          tag: { name: "Tag 2", color: "#222222", categoryId: "type" },
+        });
+      });
+
+      const tags = result.current.state.tags.slice(-2);
+      expect(tags[0].id).not.toBe(tags[1].id);
+    });
+  });
+
+  describe("UPDATE_TAG action", () => {
+    it("updates an existing tag", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_TAG",
+          tag: { name: "Original", color: "#000000", categoryId: "type" },
+        });
+      });
+
+      const addedTag = result.current.state.tags[result.current.state.tags.length - 1];
+
+      act(() => {
+        result.current.dispatch({
+          type: "UPDATE_TAG",
+          tag: {
+            ...addedTag,
+            name: "Updated Name",
+            color: "#FFFFFF",
+          },
+        });
+      });
+
+      const updatedTag = result.current.state.tags.find((t) => t.id === addedTag.id);
+      expect(updatedTag?.name).toBe("Updated Name");
+      expect(updatedTag?.color).toBe("#FFFFFF");
+    });
+
+    it("does not affect other tags", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_TAG",
+          tag: { name: "Tag A", color: "#AAAAAA", categoryId: "type" },
+        });
+      });
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_TAG",
+          tag: { name: "Tag B", color: "#BBBBBB", categoryId: "type" },
+        });
+      });
+
+      const tagA = result.current.state.tags[result.current.state.tags.length - 2];
+      const tagB = result.current.state.tags[result.current.state.tags.length - 1];
+
+      act(() => {
+        result.current.dispatch({
+          type: "UPDATE_TAG",
+          tag: { ...tagA, name: "Updated A" },
+        });
+      });
+
+      const unchangedB = result.current.state.tags.find((t) => t.id === tagB.id);
+      expect(unchangedB?.name).toBe("Tag B");
+    });
+  });
+
+  describe("DELETE_TAG action", () => {
+    it("removes a tag", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_TAG",
+          tag: { name: "To Delete", color: "#FF0000", categoryId: "effort" },
+        });
+      });
+
+      const tagId = result.current.state.tags[result.current.state.tags.length - 1].id;
+      const countBefore = result.current.state.tags.length;
+
+      act(() => {
+        result.current.dispatch({
+          type: "DELETE_TAG",
+          id: tagId,
+        });
+      });
+
+      expect(result.current.state.tags).toHaveLength(countBefore - 1);
+      expect(result.current.state.tags.find((t) => t.id === tagId)).toBeUndefined();
+    });
+
+    it("removes tag from all cards that have it", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_TAG",
+          tag: { name: "Shared Tag", color: "#123456", categoryId: "type" },
+        });
+      });
+
+      const tagId = result.current.state.tags[result.current.state.tags.length - 1].id;
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Card 1" });
+      });
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Card 2" });
+      });
+
+      // Add tag to both cards
+      act(() => {
+        result.current.dispatch({
+          type: "UPDATE_CARD",
+          card: { ...result.current.state.cards[0], tags: [tagId] },
+        });
+      });
+      act(() => {
+        result.current.dispatch({
+          type: "UPDATE_CARD",
+          card: { ...result.current.state.cards[1], tags: [tagId] },
+        });
+      });
+
+      expect(result.current.state.cards[0].tags).toContain(tagId);
+      expect(result.current.state.cards[1].tags).toContain(tagId);
+
+      act(() => {
+        result.current.dispatch({
+          type: "DELETE_TAG",
+          id: tagId,
+        });
+      });
+
+      expect(result.current.state.cards[0].tags).not.toContain(tagId);
+      expect(result.current.state.cards[1].tags).not.toContain(tagId);
+    });
+
+    it("handles deleting non-existent tag gracefully", () => {
+      const { result } = renderHook(() => useAppState());
+
+      const countBefore = result.current.state.tags.length;
+
+      act(() => {
+        result.current.dispatch({
+          type: "DELETE_TAG",
+          id: "non-existent-tag-id",
+        });
+      });
+
+      expect(result.current.state.tags).toHaveLength(countBefore);
+    });
+  });
+
+  describe("ADD_TAG_CATEGORY action", () => {
+    it("adds a new tag category", () => {
+      const { result } = renderHook(() => useAppState());
+
+      const initialCount = result.current.state.tagCategories.length;
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_TAG_CATEGORY",
+          category: { name: "Custom Category" },
+        });
+      });
+
+      expect(result.current.state.tagCategories).toHaveLength(initialCount + 1);
+      const newCategory = result.current.state.tagCategories[result.current.state.tagCategories.length - 1];
+      expect(newCategory.name).toBe("Custom Category");
+      expect(newCategory.id).toBeDefined();
+      expect(newCategory.order).toBe(initialCount);
+    });
+
+    it("assigns correct order to new category", () => {
+      const { result } = renderHook(() => useAppState());
+
+      const initialOrder = result.current.state.tagCategories.length;
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_TAG_CATEGORY",
+          category: { name: "New Category" },
+        });
+      });
+
+      const newCategory = result.current.state.tagCategories[result.current.state.tagCategories.length - 1];
+      expect(newCategory.order).toBe(initialOrder);
+    });
+  });
+
+  describe("UPDATE_TAG_CATEGORY action", () => {
+    it("updates an existing category", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_TAG_CATEGORY",
+          category: { name: "Original Name" },
+        });
+      });
+
+      const category = result.current.state.tagCategories[result.current.state.tagCategories.length - 1];
+
+      act(() => {
+        result.current.dispatch({
+          type: "UPDATE_TAG_CATEGORY",
+          category: { ...category, name: "Updated Name" },
+        });
+      });
+
+      const updated = result.current.state.tagCategories.find((c) => c.id === category.id);
+      expect(updated?.name).toBe("Updated Name");
+    });
+  });
+
+  describe("DELETE_TAG_CATEGORY action", () => {
+    it("removes a category and all its tags", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_TAG_CATEGORY",
+          category: { name: "To Delete" },
+        });
+      });
+
+      const categoryId = result.current.state.tagCategories[result.current.state.tagCategories.length - 1].id;
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_TAG",
+          tag: { name: "Tag in category", color: "#FF0000", categoryId },
+        });
+      });
+
+      const tagId = result.current.state.tags.find((t) => t.categoryId === categoryId)?.id;
+      expect(tagId).toBeDefined();
+
+      const categoryCountBefore = result.current.state.tagCategories.length;
+
+      act(() => {
+        result.current.dispatch({
+          type: "DELETE_TAG_CATEGORY",
+          id: categoryId,
+        });
+      });
+
+      expect(result.current.state.tagCategories).toHaveLength(categoryCountBefore - 1);
+      expect(result.current.state.tagCategories.find((c) => c.id === categoryId)).toBeUndefined();
+      expect(result.current.state.tags.find((t) => t.categoryId === categoryId)).toBeUndefined();
+    });
+
+    it("removes category tags from cards", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_TAG_CATEGORY",
+          category: { name: "Temp Category" },
+        });
+      });
+
+      const categoryId = result.current.state.tagCategories[result.current.state.tagCategories.length - 1].id;
+
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_TAG",
+          tag: { name: "Temp Tag", color: "#999999", categoryId },
+        });
+      });
+
+      const tagId = result.current.state.tags.find((t) => t.categoryId === categoryId)!.id;
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Test Card" });
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: "UPDATE_CARD",
+          card: { ...result.current.state.cards[0], tags: [tagId] },
+        });
+      });
+
+      expect(result.current.state.cards[0].tags).toContain(tagId);
+
+      act(() => {
+        result.current.dispatch({
+          type: "DELETE_TAG_CATEGORY",
+          id: categoryId,
+        });
+      });
+
+      expect(result.current.state.cards[0].tags).not.toContain(tagId);
+    });
+
+    it("reorders remaining categories after deletion", () => {
+      const { result } = renderHook(() => useAppState());
+
+      // Add two new categories
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_TAG_CATEGORY",
+          category: { name: "First" },
+        });
+      });
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_TAG_CATEGORY",
+          category: { name: "Second" },
+        });
+      });
+
+      const firstCategoryId = result.current.state.tagCategories[result.current.state.tagCategories.length - 2].id;
+
+      act(() => {
+        result.current.dispatch({
+          type: "DELETE_TAG_CATEGORY",
+          id: firstCategoryId,
+        });
+      });
+
+      // Verify order is consecutive
+      const orders = result.current.state.tagCategories.map((c) => c.order);
+      const sortedOrders = [...orders].sort((a, b) => a - b);
+      expect(orders).toEqual(sortedOrders);
+      expect(orders[0]).toBe(0);
+    });
+  });
+
+  describe("REORDER_TAG_CATEGORIES action", () => {
+    it("reorders categories", () => {
+      const { result } = renderHook(() => useAppState());
+
+      const reordered = [...result.current.state.tagCategories].reverse();
+
+      act(() => {
+        result.current.dispatch({
+          type: "REORDER_TAG_CATEGORIES",
+          categories: reordered,
+        });
+      });
+
+      const lastIndex = result.current.state.tagCategories.length - 1;
+      expect(result.current.state.tagCategories[0].name).toBe(reordered[0].name);
+      expect(result.current.state.tagCategories[0].order).toBe(0);
+      expect(result.current.state.tagCategories[lastIndex].order).toBe(lastIndex);
+    });
+  });
 });

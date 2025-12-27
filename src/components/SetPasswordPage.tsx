@@ -11,12 +11,29 @@ export function SetPasswordPage({ onComplete }: Props) {
   const [status, setStatus] = React.useState<"idle" | "loading" | "success" | "error">("idle");
   const [errorMessage, setErrorMessage] = React.useState("");
 
+  const validatePassword = (pwd: string): string | null => {
+    if (pwd.length < 8) {
+      return "Password must be at least 8 characters";
+    }
+    if (!/[a-z]/.test(pwd)) {
+      return "Password must contain a lowercase letter";
+    }
+    if (!/[A-Z]/.test(pwd)) {
+      return "Password must contain an uppercase letter";
+    }
+    if (!/[0-9]/.test(pwd)) {
+      return "Password must contain a number";
+    }
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (password.length < 6) {
+    const validationError = validatePassword(password);
+    if (validationError) {
       setStatus("error");
-      setErrorMessage("Password must be at least 6 characters");
+      setErrorMessage(validationError);
       return;
     }
 
@@ -81,11 +98,15 @@ export function SetPasswordPage({ onComplete }: Props) {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="At least 6 characters"
+                placeholder="Min 8 chars, uppercase, lowercase, number"
                 disabled={status === "loading"}
+                autoComplete="new-password"
                 className="w-full rounded-xl border border-emerald-700/20 bg-white px-4 py-3 text-emerald-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-400/30 disabled:opacity-50"
                 autoFocus
               />
+              <div className="mt-1 text-xs text-emerald-700/60">
+                At least 8 characters with uppercase, lowercase, and a number
+              </div>
 
               <label className="block mt-4 mb-2 text-sm font-medium text-emerald-900">
                 Confirm password
@@ -96,6 +117,7 @@ export function SetPasswordPage({ onComplete }: Props) {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 placeholder="Enter password again"
                 disabled={status === "loading"}
+                autoComplete="new-password"
                 className="w-full rounded-xl border border-emerald-700/20 bg-white px-4 py-3 text-emerald-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-400/30 disabled:opacity-50"
               />
 

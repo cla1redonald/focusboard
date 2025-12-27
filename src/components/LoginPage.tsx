@@ -11,9 +11,35 @@ export function LoginPage() {
   const [status, setStatus] = React.useState<"idle" | "loading" | "sent" | "error">("idle");
   const [errorMessage, setErrorMessage] = React.useState("");
 
+  const validatePassword = (pwd: string): string | null => {
+    if (pwd.length < 8) {
+      return "Password must be at least 8 characters";
+    }
+    if (!/[a-z]/.test(pwd)) {
+      return "Password must contain a lowercase letter";
+    }
+    if (!/[A-Z]/.test(pwd)) {
+      return "Password must contain an uppercase letter";
+    }
+    if (!/[0-9]/.test(pwd)) {
+      return "Password must contain a number";
+    }
+    return null;
+  };
+
   const handlePasswordSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email.trim() || !password) return;
+
+    // Only validate password strength on signup
+    if (mode === "signup") {
+      const validationError = validatePassword(password);
+      if (validationError) {
+        setStatus("error");
+        setErrorMessage(validationError);
+        return;
+      }
+    }
 
     setStatus("loading");
     setErrorMessage("");
@@ -204,6 +230,7 @@ export function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 disabled={status === "loading"}
+                autoComplete="email"
                 className="w-full rounded-xl border border-emerald-700/20 bg-white px-4 py-3 text-emerald-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-400/30 disabled:opacity-50"
                 autoFocus
               />
@@ -215,10 +242,16 @@ export function LoginPage() {
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder={mode === "signup" ? "Create a password (min 6 chars)" : "Enter your password"}
+                placeholder={mode === "signup" ? "Min 8 chars, upper/lower/number" : "Enter your password"}
                 disabled={status === "loading"}
+                autoComplete={mode === "signup" ? "new-password" : "current-password"}
                 className="w-full rounded-xl border border-emerald-700/20 bg-white px-4 py-3 text-emerald-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-400/30 disabled:opacity-50"
               />
+              {mode === "signup" && (
+                <div className="mt-1 text-xs text-emerald-700/60">
+                  At least 8 characters with uppercase, lowercase, and a number
+                </div>
+              )}
 
               {mode === "login" && (
                 <button

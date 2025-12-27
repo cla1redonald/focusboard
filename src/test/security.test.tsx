@@ -497,4 +497,169 @@ describe("Security Tests", () => {
       expect(state.settings).toEqual(DEFAULT_SETTINGS);
     });
   });
+
+  describe("Tag Security", () => {
+    const xssPayloads = [
+      '<script>alert("xss")</script>',
+      '<img src=x onerror=alert("xss")>',
+      '"><script>alert("xss")</script>',
+      "javascript:alert('xss')",
+      '<svg onload=alert("xss")>',
+    ];
+
+    it.each(xssPayloads)("safely handles XSS in tag name: %s", (payload) => {
+      const state: AppState = {
+        cards: [],
+        columns: DEFAULT_COLUMNS,
+        templates: [],
+        settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: [
+          ...DEFAULT_TAGS,
+          { id: "xss-tag", name: payload, color: "#FF0000", categoryId: "type" },
+        ],
+      };
+
+      saveState(state);
+      const loaded = loadState();
+
+      // Payload should be stored as-is (React will escape on render)
+      const xssTag = loaded.tags.find((t) => t.id === "xss-tag");
+      expect(xssTag?.name).toBe(payload);
+    });
+
+    it.each(xssPayloads)("safely handles XSS in tag category name: %s", (payload) => {
+      const state: AppState = {
+        cards: [],
+        columns: DEFAULT_COLUMNS,
+        templates: [],
+        settings: DEFAULT_SETTINGS,
+        tagCategories: [
+          ...DEFAULT_TAG_CATEGORIES,
+          { id: "xss-category", name: payload, order: 99 },
+        ],
+        tags: DEFAULT_TAGS,
+      };
+
+      saveState(state);
+      const loaded = loadState();
+
+      const xssCategory = loaded.tagCategories.find((c) => c.id === "xss-category");
+      expect(xssCategory?.name).toBe(payload);
+    });
+
+    it("handles extremely long tag names", () => {
+      const longName = "A".repeat(10000);
+      const state: AppState = {
+        cards: [],
+        columns: DEFAULT_COLUMNS,
+        templates: [],
+        settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: [
+          ...DEFAULT_TAGS,
+          { id: "long-tag", name: longName, color: "#FF0000", categoryId: "type" },
+        ],
+      };
+
+      saveState(state);
+      const loaded = loadState();
+
+      const longTag = loaded.tags.find((t) => t.id === "long-tag");
+      expect(longTag?.name).toBe(longName);
+    });
+
+    it("handles special characters in tag names", () => {
+      const specialName = 'Test\n\t"\'\\<>&😀日本語';
+      const state: AppState = {
+        cards: [],
+        columns: DEFAULT_COLUMNS,
+        templates: [],
+        settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: [
+          ...DEFAULT_TAGS,
+          { id: "special-tag", name: specialName, color: "#FF0000", categoryId: "type" },
+        ],
+      };
+
+      saveState(state);
+      const loaded = loadState();
+
+      const specialTag = loaded.tags.find((t) => t.id === "special-tag");
+      expect(specialTag?.name).toBe(specialName);
+    });
+
+    it("handles malformed tag color values", () => {
+      const state: AppState = {
+        cards: [],
+        columns: DEFAULT_COLUMNS,
+        templates: [],
+        settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: [
+          ...DEFAULT_TAGS,
+          { id: "bad-color", name: "Bad Color", color: "not-a-color", categoryId: "type" },
+          { id: "script-color", name: "Script Color", color: '<script>alert(1)</script>', categoryId: "type" },
+        ],
+      };
+
+      saveState(state);
+      const loaded = loadState();
+
+      // App should handle invalid colors gracefully (they're stored but won't render as valid CSS)
+      expect(loaded.tags.find((t) => t.id === "bad-color")?.color).toBe("not-a-color");
+      expect(loaded.tags.find((t) => t.id === "script-color")?.color).toBe('<script>alert(1)</script>');
+    });
+
+    it("handles many tags without performance issues", () => {
+      const manyTags = Array.from({ length: 500 }, (_, i) => ({
+        id: `tag-${i}`,
+        name: `Tag ${i}`,
+        color: `#${(i % 16).toString(16).repeat(6)}`.slice(0, 7),
+        categoryId: "type",
+      }));
+
+      const state: AppState = {
+        cards: [],
+        columns: DEFAULT_COLUMNS,
+        templates: [],
+        settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: [...DEFAULT_TAGS, ...manyTags],
+      };
+
+      const start = performance.now();
+      saveState(state);
+      const loaded = loadState();
+      const end = performance.now();
+
+      // Should complete within reasonable time (1 second)
+      expect(end - start).toBeLessThan(1000);
+      expect(loaded.tags).toHaveLength(DEFAULT_TAGS.length + 500);
+    });
+
+    it("prevents prototype pollution via tag data", () => {
+      const maliciousData = {
+        cards: [],
+        columns: DEFAULT_COLUMNS,
+        settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: [
+          {
+            id: "malicious",
+            name: "Malicious",
+            color: "#FF0000",
+            categoryId: "type",
+            __proto__: { polluted: true },
+          },
+        ],
+      };
+
+      localStorage.setItem("focusboard:v3", JSON.stringify(maliciousData));
+      loadState();
+
+      expect(({} as { polluted?: boolean }).polluted).toBeUndefined();
+    });
+  });
 });
