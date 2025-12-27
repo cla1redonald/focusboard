@@ -63,6 +63,7 @@ describe("Security Tests", () => {
           metrics={{ completedCards: [], dailySnapshots: [], wipViolations: 0 }}
           onAdd={vi.fn()}
           onMove={vi.fn()}
+          onDelete={vi.fn()}
           onOpenCard={vi.fn()}
           onSettings={vi.fn()}
           onOpenMetrics={vi.fn()}
@@ -389,12 +390,19 @@ describe("Security Tests", () => {
       open: true,
       settings: DEFAULT_SETTINGS,
       columns: DEFAULT_COLUMNS,
+      state: {
+        cards: [],
+        columns: DEFAULT_COLUMNS,
+        templates: [],
+        settings: DEFAULT_SETTINGS,
+      },
       onClose: vi.fn(),
       onChange: vi.fn(),
       onUpdateColumn: vi.fn(),
       onAddColumn: vi.fn(),
       onDeleteColumn: vi.fn(),
       onReorderColumns: vi.fn(),
+      onImport: vi.fn(),
     };
 
     it("safely renders settings panel with default settings", () => {

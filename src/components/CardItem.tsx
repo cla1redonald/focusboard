@@ -7,10 +7,12 @@ export function CardItem({
   card,
   onOpen,
   cardRefSetter,
+  focused = false,
 }: {
   card: Card;
   onOpen: (card: Card) => void;
   cardRefSetter?: (id: string, el: HTMLElement | null) => void;
+  focused?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, isDragging } =
     useDraggable({
@@ -34,7 +36,11 @@ export function CardItem({
     <div
       ref={refFn}
       style={style}
-      className="group rounded-xl border border-emerald-700/10 bg-white px-3 py-2 text-sm text-emerald-950 shadow-[0_10px_30px_rgba(0,0,0,0.08)] transition hover:-translate-y-0.5 hover:border-emerald-700/20 hover:bg-emerald-50/50"
+      className={`group rounded-xl border bg-white px-3 py-2 text-sm text-emerald-950 shadow-[0_10px_30px_rgba(0,0,0,0.08)] transition hover:-translate-y-0.5 hover:border-emerald-700/20 hover:bg-emerald-50/50 ${
+        focused
+          ? "border-emerald-500 ring-2 ring-emerald-400/50"
+          : "border-emerald-700/10"
+      }`}
     >
       <div className="flex items-start justify-between gap-2">
         <button

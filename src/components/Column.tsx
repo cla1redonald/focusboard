@@ -31,6 +31,8 @@ export function Column({
   onAdd,
   onOpenCard,
   cardRefSetter,
+  columnFocused = false,
+  focusedCardIndex = null,
 }: {
   id: ColumnId;
   title: string;
@@ -42,6 +44,8 @@ export function Column({
   onAdd: (column: ColumnId, title: string) => void;
   onOpenCard: (card: Card) => void;
   cardRefSetter?: (id: string, el: HTMLElement | null) => void;
+  columnFocused?: boolean;
+  focusedCardIndex?: number | null;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   const accentRgb = hexToRgb(accentColor);
@@ -61,10 +65,15 @@ export function Column({
       ? "border-amber-300/50 bg-amber-100/40"
       : "border-emerald-700/10 bg-white/70";
 
+  const headerFocusClass =
+    columnFocused && focusedCardIndex === null
+      ? "ring-2 ring-emerald-400/50"
+      : "";
+
   return (
     <div className="w-[320px] shrink-0">
       <div
-        className={`relative overflow-hidden rounded-2xl border ${headerClass} px-4 py-3`}
+        className={`relative overflow-hidden rounded-2xl border ${headerClass} ${headerFocusClass} px-4 py-3`}
         style={{ boxShadow: accentGlow }}
       >
         <div className="absolute inset-0" style={{ backgroundImage: accentGradient }} />
@@ -91,12 +100,13 @@ export function Column({
           isOver ? "ring-2 ring-emerald-300/40" : ""
         }`}
       >
-        {cards.map((c) => (
+        {cards.map((c, idx) => (
           <CardItem
             key={c.id}
             card={c}
             onOpen={onOpenCard}
             cardRefSetter={cardRefSetter}
+            focused={columnFocused && focusedCardIndex === idx}
           />
         ))}
 
@@ -114,6 +124,7 @@ export function Column({
             value={text}
             onChange={(e) => setText(e.target.value)}
             placeholder="Add a card…"
+            data-column-input={id}
             className="w-full rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-900 outline-none transition focus:border-emerald-700/30 focus:bg-emerald-50/40"
           />
         </form>

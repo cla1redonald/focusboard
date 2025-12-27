@@ -19,6 +19,7 @@ describe("Board", () => {
     metrics: defaultMetrics,
     onAdd: vi.fn(),
     onMove: vi.fn(),
+    onDelete: vi.fn(),
     onOpenCard: vi.fn(),
     onSettings: vi.fn(),
     onOpenMetrics: vi.fn(),

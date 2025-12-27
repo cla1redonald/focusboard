@@ -3,19 +3,28 @@ import { render, screen, fireEvent } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { SettingsPanel } from "./SettingsPanel";
 import { DEFAULT_SETTINGS, DEFAULT_COLUMNS } from "../app/constants";
-import type { Settings } from "../app/types";
+import type { AppState, Settings } from "../app/types";
 
 describe("SettingsPanel", () => {
+  const defaultState: AppState = {
+    cards: [],
+    columns: DEFAULT_COLUMNS,
+    templates: [],
+    settings: DEFAULT_SETTINGS,
+  };
+
   const defaultProps = {
     open: true,
     settings: DEFAULT_SETTINGS,
     columns: DEFAULT_COLUMNS,
+    state: defaultState,
     onClose: vi.fn(),
     onChange: vi.fn(),
     onUpdateColumn: vi.fn(),
     onAddColumn: vi.fn(),
     onDeleteColumn: vi.fn(),
     onReorderColumns: vi.fn(),
+    onImport: vi.fn(),
   };
 
   beforeEach(() => {

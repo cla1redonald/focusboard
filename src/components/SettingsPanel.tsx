@@ -1,27 +1,33 @@
 import React from "react";
-import type { Column, Settings } from "../app/types";
+import type { AppState, Column, Settings } from "../app/types";
 import { MOO_COLUMN_COLORS, DEFAULT_COLUMN_ICONS } from "../app/constants";
+import { ExportImportPanel } from "./ExportImportPanel";
+import type { ImportMode } from "../app/exportImport";
 
 export function SettingsPanel({
   open,
   settings,
   columns,
+  state,
   onClose,
   onChange,
   onUpdateColumn,
   onAddColumn,
   onDeleteColumn,
   onReorderColumns,
+  onImport,
 }: {
   open: boolean;
   settings: Settings;
   columns: Column[];
+  state: AppState;
   onClose: () => void;
   onChange: (settings: Settings) => void;
   onUpdateColumn: (column: Column) => void;
   onAddColumn: (column: Omit<Column, "id" | "order">) => void;
   onDeleteColumn: (id: string, migrateCardsTo?: string) => void;
   onReorderColumns: (columns: Column[]) => void;
+  onImport: (newState: AppState, mode: ImportMode) => void;
 }) {
   const [editingColumn, setEditingColumn] = React.useState<Column | null>(null);
   const [deleteConfirm, setDeleteConfirm] = React.useState<{ column: Column; migrateToId: string } | null>(null);
@@ -232,6 +238,12 @@ export function SettingsPanel({
               onChange={(e) => set({ reducedMotionOverride: e.target.checked })}
               className="h-4 w-4 accent-emerald-600"
             />
+          </div>
+
+          {/* Export/Import Section */}
+          <div className="rounded-xl border border-emerald-700/15 bg-white/80 p-4">
+            <div className="mb-3 text-sm font-semibold text-emerald-950">Data Management</div>
+            <ExportImportPanel state={state} onImport={onImport} />
           </div>
         </div>
 

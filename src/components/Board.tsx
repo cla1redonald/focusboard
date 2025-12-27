@@ -5,6 +5,7 @@ import type { Card, Column as ColumnType, ColumnId, FilterState, MetricsState, S
 import { CONFETTI_COLORS } from "../app/constants";
 import { groupByColumn, isToday, nowIso } from "../app/utils";
 import { DEFAULT_FILTER, filterCards, getAllTags } from "../app/filters";
+import { useKeyboardNav } from "../app/useKeyboardNav";
 import { Column } from "./Column";
 import { TopStrip } from "./TopStrip";
 import { FilterBar } from "./FilterBar";
@@ -30,6 +31,7 @@ export function Board({
   metrics,
   onAdd,
   onMove,
+  onDelete,
   onOpenCard,
   onSettings,
   onOpenMetrics,
@@ -44,6 +46,7 @@ export function Board({
   metrics: MetricsState;
   onAdd: (column: ColumnId, title: string) => void;
   onMove: (id: string, to: ColumnId, patch?: Partial<Card>) => void;
+  onDelete: (id: string) => void;
   onOpenCard: (card: Card) => void;
   onSettings: () => void;
   onOpenMetrics: () => void;
@@ -55,14 +58,40 @@ export function Board({
   const reducedMotion = usePrefersReducedMotion() || settings.reducedMotionOverride;
   const [filter, setFilter] = React.useState<FilterState>(DEFAULT_FILTER);
 
+  // modal state (declared early for keyboard nav)
+  const [modal, setModal] = React.useState<
+    | null
+    | {
+        kind: "wip" | "blocked";
+        cardId: string;
+        from: ColumnId;
+        to: ColumnId;
+        allowOverride: boolean;
+      }
+  >(null);
+
   // Sort columns by order
   const sortedColumns = [...columns].sort((a, b) => a.order - b.order);
 
   // Apply filters
   const filteredCards = filterCards(cards, filter);
   const allTags = getAllTags(cards);
-
   const byCol = groupByColumn(filteredCards, columns);
+
+  // Keyboard navigation
+  const { focusPosition, isNavigating } = useKeyboardNav({
+    columns: sortedColumns,
+    cardsByColumn: byCol,
+    onOpenCard,
+    onDeleteCard: onDelete,
+    onAddCard: (columnId) => {
+      // Focus the add input for the column
+      const input = document.querySelector(`[data-column-input="${columnId}"]`) as HTMLInputElement;
+      input?.focus();
+    },
+    enabled: !modal, // Disable when modal is open
+  });
+
   const doingCol = sortedColumns.find((c) => c.id === "doing");
   const doingCard = doingCol ? byCol[doingCol.id]?.[0] : undefined;
   const blockedCol = sortedColumns.find((c) => c.id === "blocked");
@@ -107,18 +136,6 @@ export function Board({
     active: false,
   });
   const lastCelebrateRef = React.useRef<number>(0);
-
-  // modal state
-  const [modal, setModal] = React.useState<
-    | null
-    | {
-        kind: "wip" | "blocked";
-        cardId: string;
-        from: ColumnId;
-        to: ColumnId;
-        allowOverride: boolean;
-      }
-  >(null);
 
   const pendingRef = React.useRef<{ id: string; from: ColumnId; to: ColumnId } | null>(null);
 
@@ -263,27 +280,32 @@ export function Board({
 
       <DndContext onDragEnd={onDragEnd}>
         <div className="flex gap-5 overflow-x-auto pb-6">
-          {sortedColumns.map((col) => (
-            <div key={col.id}>
-              <div
-                id={col.isTerminal ? `${col.id}-header` : undefined}
-                className="rounded-xl"
-              >
-                <Column
-                  id={col.id}
-                  title={col.title}
-                  cards={byCol[col.id] ?? []}
-                  accentColor={col.color}
-                  icon={col.icon}
-                  countLabel={countLabel(col.id)}
-                  headerState={headerState(col.id)}
-                  onAdd={onAdd}
-                  onOpenCard={onOpenCard}
-                  cardRefSetter={setCardEl}
-                />
+          {sortedColumns.map((col, colIdx) => {
+            const isColumnFocused = isNavigating && focusPosition?.columnIndex === colIdx;
+            return (
+              <div key={col.id}>
+                <div
+                  id={col.isTerminal ? `${col.id}-header` : undefined}
+                  className="rounded-xl"
+                >
+                  <Column
+                    id={col.id}
+                    title={col.title}
+                    cards={byCol[col.id] ?? []}
+                    accentColor={col.color}
+                    icon={col.icon}
+                    countLabel={countLabel(col.id)}
+                    headerState={headerState(col.id)}
+                    onAdd={onAdd}
+                    onOpenCard={onOpenCard}
+                    cardRefSetter={setCardEl}
+                    columnFocused={isColumnFocused}
+                    focusedCardIndex={isColumnFocused ? focusPosition?.cardIndex ?? null : null}
+                  />
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </DndContext>
 

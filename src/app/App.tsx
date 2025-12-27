@@ -1,19 +1,43 @@
 import React from "react";
 import { useAppState } from "./state";
-import type { Card, Column, MetricsState, RelationType } from "./types";
+import type { AppState, Card, Column, MetricsState, RelationType } from "./types";
 import { loadMetrics, saveMetrics, recordCompletedCard, takeDailySnapshot } from "./metrics";
 import { Board } from "../components/Board";
 import { CardModal } from "../components/CardModal";
 import { SettingsPanel } from "../components/SettingsPanel";
 import { MetricsDashboard } from "../components/MetricsDashboard";
+import { KeyboardShortcutsModal } from "../components/KeyboardShortcutsModal";
 
 export default function App() {
   const { state, dispatch, canUndo, canRedo } = useAppState();
   const [openCard, setOpenCard] = React.useState<Card | null>(null);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [metricsDashboardOpen, setMetricsDashboardOpen] = React.useState(false);
+  const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const [metrics, setMetrics] = React.useState<MetricsState>(() => loadMetrics());
   const hasBgImage = !!state.settings.backgroundImage;
+
+  // Keyboard shortcut for ? to show help
+  React.useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      const target = e.target as HTMLElement;
+      if (
+        target.tagName === "INPUT" ||
+        target.tagName === "TEXTAREA" ||
+        target.isContentEditable
+      ) {
+        return;
+      }
+
+      if (e.key === "?" && !e.metaKey && !e.ctrlKey) {
+        e.preventDefault();
+        setShortcutsOpen(true);
+      }
+    };
+
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   // Track previously completed cards to detect new completions
   const prevCardsRef = React.useRef<Card[]>([]);
@@ -77,6 +101,7 @@ export default function App() {
             metrics={metrics}
             onAdd={(column, title) => dispatch({ type: "ADD_CARD", column, title })}
             onMove={(id, to, patch) => dispatch({ type: "MOVE_CARD", id, to, patch })}
+            onDelete={(id) => dispatch({ type: "DELETE_CARD", id })}
             onOpenCard={(c) => setOpenCard(c)}
             onSettings={() => setSettingsOpen(true)}
             onOpenMetrics={() => setMetricsDashboardOpen(true)}
@@ -113,18 +138,25 @@ export default function App() {
         open={settingsOpen}
         settings={state.settings}
         columns={state.columns}
+        state={state}
         onClose={() => setSettingsOpen(false)}
         onChange={(settings) => dispatch({ type: "SET_SETTINGS", settings })}
         onUpdateColumn={(column: Column) => dispatch({ type: "UPDATE_COLUMN", column })}
         onAddColumn={(column: Omit<Column, "id" | "order">) => dispatch({ type: "ADD_COLUMN", column })}
         onDeleteColumn={(id: string, migrateCardsTo?: string) => dispatch({ type: "DELETE_COLUMN", id, migrateCardsTo })}
         onReorderColumns={(columns: Column[]) => dispatch({ type: "REORDER_COLUMNS", columns })}
+        onImport={(newState: AppState) => dispatch({ type: "IMPORT_STATE", state: newState })}
       />
 
       <MetricsDashboard
         open={metricsDashboardOpen}
         metrics={metrics}
         onClose={() => setMetricsDashboardOpen(false)}
+      />
+
+      <KeyboardShortcutsModal
+        open={shortcutsOpen}
+        onClose={() => setShortcutsOpen(false)}
       />
     </div>
   );

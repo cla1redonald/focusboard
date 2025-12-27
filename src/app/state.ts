@@ -37,6 +37,7 @@ type Action =
   | { type: "DELETE_TEMPLATE"; id: string }
   | { type: "ADD_RELATION"; cardId: string; targetCardId: string; relationType: RelationType }
   | { type: "REMOVE_RELATION"; cardId: string; relationId: string }
+  | { type: "IMPORT_STATE"; state: AppState }
   | { type: "UNDO" }
   | { type: "REDO" };
 
@@ -314,6 +315,10 @@ function appReducer(state: AppState, action: Action): AppState {
           return c;
         }),
       };
+    }
+
+    case "IMPORT_STATE": {
+      return action.state;
     }
 
     default:
