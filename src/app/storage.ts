@@ -272,3 +272,13 @@ export function loadState(): AppState {
 export function saveState(state: AppState) {
   localStorage.setItem(KEY_V4, JSON.stringify(state));
 }
+
+const KEY_ONBOARDING = "focusboard:onboarding_seen";
+
+export function hasSeenOnboarding(): boolean {
+  return localStorage.getItem(KEY_ONBOARDING) === "true";
+}
+
+export function markOnboardingSeen(): void {
+  localStorage.setItem(KEY_ONBOARDING, "true");
+}

@@ -1,4 +1,5 @@
 import React from "react";
+import { motion } from "framer-motion";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import type { Card, Tag } from "../app/types";
@@ -12,6 +13,7 @@ export function CardItem({
   focused = false,
   allTags = [],
   showAgingIndicator = false,
+  reducedMotion = false,
 }: {
   card: Card;
   onOpen: (card: Card) => void;
@@ -19,6 +21,7 @@ export function CardItem({
   focused?: boolean;
   allTags?: Tag[];
   showAgingIndicator?: boolean;
+  reducedMotion?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({
@@ -39,9 +42,14 @@ export function CardItem({
   };
 
   return (
-    <div
+    <motion.div
       ref={refFn}
       style={style}
+      layout={!reducedMotion}
+      initial={reducedMotion ? false : { opacity: 0, y: -10, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={reducedMotion ? undefined : { opacity: 0, scale: 0.95 }}
+      transition={{ duration: reducedMotion ? 0 : 0.2, ease: "easeOut" }}
       className={`group rounded-xl border bg-white px-3 py-2 text-sm text-emerald-950 shadow-[0_10px_30px_rgba(0,0,0,0.08)] transition hover:-translate-y-0.5 hover:border-emerald-700/20 hover:bg-emerald-50/50 ${
         focused
           ? "border-emerald-500 ring-2 ring-emerald-400/50"
@@ -135,6 +143,6 @@ export function CardItem({
           <RelationshipIndicators card={card} />
         </div>
       )}
-    </div>
+    </motion.div>
   );
 }

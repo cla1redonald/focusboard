@@ -90,6 +90,9 @@ export type MetricsState = {
   dailySnapshots: DailySnapshot[];
   wipViolations: number;
   lastSnapshotDate?: string;
+  currentStreak: number;
+  longestStreak: number;
+  lastCompletionDate?: string;
 };
 
 export type CardTemplate = {

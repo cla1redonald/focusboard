@@ -61,6 +61,15 @@ export function TopStrip({
       <div className="text-sm text-emerald-900">
         <span className="text-emerald-900/70">Due today:</span> {dueTodayCount}
       </div>
+      {metrics.currentStreak > 0 && (
+        <div
+          className="flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-0.5 text-sm font-medium text-amber-700"
+          title={`Longest streak: ${metrics.longestStreak} day${metrics.longestStreak !== 1 ? "s" : ""}`}
+        >
+          <span>🔥</span>
+          <span>{metrics.currentStreak} day{metrics.currentStreak !== 1 ? "s" : ""}</span>
+        </div>
+      )}
       <div className="ml-auto h-4 w-px bg-emerald-700/20" />
       <MetricsWidget metrics={metrics} onOpenDashboard={onOpenMetrics} />
     </div>

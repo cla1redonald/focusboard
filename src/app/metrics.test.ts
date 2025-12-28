@@ -49,6 +49,8 @@ describe("metrics", () => {
         ],
         dailySnapshots: [],
         wipViolations: 5,
+        currentStreak: 0,
+        longestStreak: 0,
       };
       localStorage.setItem("focusboard:metrics", JSON.stringify(stored));
 
@@ -66,6 +68,8 @@ describe("metrics", () => {
         completedCards: [],
         dailySnapshots: [],
         wipViolations: 10,
+        currentStreak: 0,
+        longestStreak: 0,
       };
 
       saveMetrics(metrics);
@@ -83,6 +87,8 @@ describe("metrics", () => {
         completedCards: [],
         dailySnapshots: [],
         wipViolations: 0,
+        currentStreak: 0,
+        longestStreak: 0,
       };
 
       const card: Card = {
@@ -109,6 +115,8 @@ describe("metrics", () => {
         completedCards: [],
         dailySnapshots: [],
         wipViolations: 0,
+        currentStreak: 0,
+        longestStreak: 0,
       };
 
       const card: Card = {
@@ -134,6 +142,8 @@ describe("metrics", () => {
         completedCards: [],
         dailySnapshots: [],
         wipViolations: 0,
+        currentStreak: 0,
+        longestStreak: 0,
       };
 
       const columnHistory: ColumnTransition[] = [
@@ -177,6 +187,8 @@ describe("metrics", () => {
         completedCards: existingCards,
         dailySnapshots: [],
         wipViolations: 0,
+        currentStreak: 0,
+        longestStreak: 0,
       };
 
       const card: Card = {
@@ -204,6 +216,8 @@ describe("metrics", () => {
         completedCards: [],
         dailySnapshots: [],
         wipViolations: 5,
+        currentStreak: 0,
+        longestStreak: 0,
       };
 
       const updated = recordWipViolation(metrics);
@@ -218,6 +232,8 @@ describe("metrics", () => {
         completedCards: [],
         dailySnapshots: [],
         wipViolations: 0,
+        currentStreak: 0,
+        longestStreak: 0,
       };
 
       expect(calculateAverageLeadTime(metrics)).toBeNull();
@@ -245,6 +261,8 @@ describe("metrics", () => {
         ],
         dailySnapshots: [],
         wipViolations: 0,
+        currentStreak: 0,
+        longestStreak: 0,
       };
 
       expect(calculateAverageLeadTime(metrics)).toBe(150000);
@@ -257,6 +275,8 @@ describe("metrics", () => {
         completedCards: [],
         dailySnapshots: [],
         wipViolations: 0,
+        currentStreak: 0,
+        longestStreak: 0,
       };
 
       expect(calculateAverageCycleTime(metrics)).toBeNull();
@@ -284,6 +304,8 @@ describe("metrics", () => {
         ],
         dailySnapshots: [],
         wipViolations: 0,
+        currentStreak: 0,
+        longestStreak: 0,
       };
 
       expect(calculateAverageCycleTime(metrics)).toBe(75000);
@@ -296,6 +318,8 @@ describe("metrics", () => {
         completedCards: [],
         dailySnapshots: [],
         wipViolations: 0,
+        currentStreak: 0,
+        longestStreak: 0,
       };
 
       expect(calculateThroughput(metrics)).toBe(0);
@@ -327,6 +351,8 @@ describe("metrics", () => {
         ],
         dailySnapshots: [],
         wipViolations: 0,
+        currentStreak: 0,
+        longestStreak: 0,
       };
 
       // 2 cards in 7 days = 2 per week

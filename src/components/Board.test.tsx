@@ -10,6 +10,8 @@ describe("Board", () => {
     completedCards: [],
     dailySnapshots: [],
     wipViolations: 0,
+    currentStreak: 0,
+    longestStreak: 0,
   };
 
   const defaultProps = {

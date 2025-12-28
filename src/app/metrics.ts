@@ -20,6 +20,8 @@ const DEFAULT_METRICS: MetricsState = {
   completedCards: [],
   dailySnapshots: [],
   wipViolations: 0,
+  currentStreak: 0,
+  longestStreak: 0,
 };
 
 export function loadMetrics(): MetricsState {
@@ -32,6 +34,9 @@ export function loadMetrics(): MetricsState {
       dailySnapshots: parsed.dailySnapshots ?? [],
       wipViolations: parsed.wipViolations ?? 0,
       lastSnapshotDate: parsed.lastSnapshotDate,
+      currentStreak: parsed.currentStreak ?? 0,
+      longestStreak: parsed.longestStreak ?? 0,
+      lastCompletionDate: parsed.lastCompletionDate,
     };
   } catch {
     return DEFAULT_METRICS;
@@ -40,6 +45,51 @@ export function loadMetrics(): MetricsState {
 
 export function saveMetrics(metrics: MetricsState): void {
   localStorage.setItem(METRICS_KEY, JSON.stringify(metrics));
+}
+
+function getDateString(date: Date): string {
+  return date.toISOString().split("T")[0];
+}
+
+function getDaysDifference(date1: string, date2: string): number {
+  const d1 = new Date(date1);
+  const d2 = new Date(date2);
+  return Math.floor((d2.getTime() - d1.getTime()) / (24 * 60 * 60 * 1000));
+}
+
+export function updateStreak(metrics: MetricsState): MetricsState {
+  const today = getDateString(new Date());
+  const lastDate = metrics.lastCompletionDate;
+
+  // Already completed something today - no change
+  if (lastDate === today) {
+    return metrics;
+  }
+
+  let newStreak: number;
+
+  if (!lastDate) {
+    // First ever completion
+    newStreak = 1;
+  } else {
+    const daysDiff = getDaysDifference(lastDate, today);
+    if (daysDiff === 1) {
+      // Consecutive day - extend streak
+      newStreak = metrics.currentStreak + 1;
+    } else {
+      // Streak broken - start fresh
+      newStreak = 1;
+    }
+  }
+
+  const newLongest = Math.max(metrics.longestStreak, newStreak);
+
+  return {
+    ...metrics,
+    currentStreak: newStreak,
+    longestStreak: newLongest,
+    lastCompletionDate: today,
+  };
 }
 
 export function recordCompletedCard(
@@ -93,8 +143,11 @@ export function recordCompletedCard(
     MAX_COMPLETED_CARDS
   );
 
+  // Update streak when a card is completed
+  const withStreak = updateStreak(metrics);
+
   return {
-    ...metrics,
+    ...withStreak,
     completedCards: newCompletedCards,
   };
 }

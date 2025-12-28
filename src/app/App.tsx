@@ -2,8 +2,9 @@ import React from "react";
 import { useAppState } from "./state";
 import type { AppState, Card, Column, MetricsState, RelationType } from "./types";
 import { loadMetrics, saveMetrics, recordCompletedCard, takeDailySnapshot } from "./metrics";
+import { hasSeenOnboarding, markOnboardingSeen } from "./storage";
 import { AuthProvider, useRequireAuth, useAuth } from "./AuthContext";
-import { ToastProvider } from "./ToastContext";
+import { ToastProvider, useToast } from "./ToastContext";
 import { isSupabaseConfigured } from "./supabase";
 import { debouncedSaveToSupabase, debouncedSaveMetricsToSupabase } from "./sync";
 import { Board } from "../components/Board";
@@ -12,6 +13,7 @@ import { SettingsPanel } from "../components/SettingsPanel";
 import { MetricsDashboard } from "../components/MetricsDashboard";
 import { KeyboardShortcutsModal } from "../components/KeyboardShortcutsModal";
 import { CommandPalette } from "../components/CommandPalette";
+import { OnboardingModal } from "../components/OnboardingModal";
 import { ToastContainer } from "../components/ToastContainer";
 import { LoginPage } from "../components/LoginPage";
 import { SetPasswordPage } from "../components/SetPasswordPage";
@@ -19,11 +21,13 @@ import { SetPasswordPage } from "../components/SetPasswordPage";
 function AppContent() {
   const { state, dispatch, canUndo, canRedo } = useAppState();
   const { signOut } = useAuth();
+  const { showToast } = useToast();
   const [openCard, setOpenCard] = React.useState<Card | null>(null);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [metricsDashboardOpen, setMetricsDashboardOpen] = React.useState(false);
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = React.useState(false);
+  const [onboardingOpen, setOnboardingOpen] = React.useState(() => !hasSeenOnboarding());
   const [metrics, setMetrics] = React.useState<MetricsState>(() => loadMetrics());
   const hasBgImage = !!state.settings.backgroundImage;
 
@@ -131,9 +135,33 @@ function AppContent() {
             settings={state.settings}
             metrics={metrics}
             tagDefinitions={state.tags}
-            onAdd={(column, title) => dispatch({ type: "ADD_CARD", column, title })}
-            onMove={(id, to, patch) => dispatch({ type: "MOVE_CARD", id, to, patch })}
-            onDelete={(id) => dispatch({ type: "DELETE_CARD", id })}
+            onAdd={(column, title) => {
+              dispatch({ type: "ADD_CARD", column, title });
+              showToast({ type: "success", message: `Card "${title}" added` });
+            }}
+            onMove={(id, to, patch) => {
+              const card = state.cards.find((c) => c.id === id);
+              const toColumn = state.columns.find((c) => c.id === to);
+              dispatch({ type: "MOVE_CARD", id, to, patch });
+              if (card && toColumn) {
+                showToast({
+                  type: "info",
+                  message: `Moved "${card.title}" to ${toColumn.title}`,
+                  undoAction: () => dispatch({ type: "UNDO" }),
+                });
+              }
+            }}
+            onDelete={(id) => {
+              const card = state.cards.find((c) => c.id === id);
+              dispatch({ type: "DELETE_CARD", id });
+              if (card) {
+                showToast({
+                  type: "warning",
+                  message: `Deleted "${card.title}"`,
+                  undoAction: () => dispatch({ type: "UNDO" }),
+                });
+              }
+            }}
             onOpenCard={(c) => setOpenCard(c)}
             onSettings={() => setSettingsOpen(true)}
             onOpenMetrics={() => setMetricsDashboardOpen(true)}
@@ -230,6 +258,14 @@ function AppContent() {
           if (columnEl) {
             columnEl.scrollIntoView({ behavior: "smooth", inline: "center" });
           }
+        }}
+      />
+
+      <OnboardingModal
+        open={onboardingOpen}
+        onClose={() => {
+          setOnboardingOpen(false);
+          markOnboardingSeen();
         }}
       />
 

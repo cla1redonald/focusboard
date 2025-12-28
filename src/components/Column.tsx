@@ -1,4 +1,5 @@
 import React from "react";
+import { AnimatePresence } from "framer-motion";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import type { Card, ColumnId, Tag } from "../app/types";
@@ -37,6 +38,7 @@ export function Column({
   focusedCardIndex = null,
   allTags = [],
   showAgingIndicators = false,
+  reducedMotion = false,
 }: {
   id: ColumnId;
   title: string;
@@ -52,6 +54,7 @@ export function Column({
   focusedCardIndex?: number | null;
   allTags?: Tag[];
   showAgingIndicators?: boolean;
+  reducedMotion?: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
   const accentRgb = hexToRgb(accentColor);
@@ -113,17 +116,20 @@ export function Column({
           {cards.length === 0 ? (
             <EmptyColumnState columnId={id} />
           ) : (
-            cards.map((c, idx) => (
-              <CardItem
-                key={c.id}
-                card={c}
-                onOpen={onOpenCard}
-                cardRefSetter={cardRefSetter}
-                focused={columnFocused && focusedCardIndex === idx}
-                allTags={allTags}
-                showAgingIndicator={showAgingIndicators}
-              />
-            ))
+            <AnimatePresence mode="popLayout">
+              {cards.map((c, idx) => (
+                <CardItem
+                  key={c.id}
+                  card={c}
+                  onOpen={onOpenCard}
+                  cardRefSetter={cardRefSetter}
+                  focused={columnFocused && focusedCardIndex === idx}
+                  allTags={allTags}
+                  showAgingIndicator={showAgingIndicators}
+                  reducedMotion={reducedMotion}
+                />
+              ))}
+            </AnimatePresence>
           )}
         </SortableContext>
 
