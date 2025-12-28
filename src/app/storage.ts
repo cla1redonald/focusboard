@@ -197,6 +197,11 @@ export function loadState(): AppState {
     const rawV4 = localStorage.getItem(KEY_V4);
     if (rawV4) {
       const parsed = JSON.parse(rawV4) as AppState;
+      // Ensure "custom" category exists
+      let tagCategories = parsed.tagCategories?.length ? parsed.tagCategories : DEFAULT_TAG_CATEGORIES;
+      if (!tagCategories.some((c) => c.id === "custom")) {
+        tagCategories = [...tagCategories, { id: "custom", name: "Custom", order: tagCategories.length }];
+      }
       return {
         cards: parsed.cards ?? [],
         columns: parsed.columns?.length ? parsed.columns : DEFAULT_COLUMNS,
@@ -205,7 +210,7 @@ export function loadState(): AppState {
           ...DEFAULT_SETTINGS,
           ...(parsed.settings ?? {}),
         },
-        tagCategories: parsed.tagCategories?.length ? parsed.tagCategories : DEFAULT_TAG_CATEGORIES,
+        tagCategories,
         tags: parsed.tags?.length ? parsed.tags : DEFAULT_TAGS,
       };
     }

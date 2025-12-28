@@ -2,6 +2,7 @@ import React from "react";
 import type { Card, RelationType, Tag, TagCategory } from "../app/types";
 import { nanoid } from "nanoid";
 import { RelationshipPicker, RelationshipBadge } from "./RelationshipPicker";
+import { TAG_COLOR_PALETTE } from "../app/constants";
 
 const EMOJI_CHOICES = ["✨", "✅", "🧠", "🧩", "🛠️", "📌", "🔥", "🚧", "🎯", "🔍"];
 
@@ -16,6 +17,7 @@ type Props = {
   onDelete: (id: string) => void;
   onAddRelation?: (cardId: string, targetCardId: string, relationType: RelationType) => void;
   onRemoveRelation?: (cardId: string, relationId: string) => void;
+  onAddTag?: (tag: Omit<Tag, "id">) => void;
 };
 
 export function CardModal({
@@ -29,13 +31,20 @@ export function CardModal({
   onDelete,
   onAddRelation,
   onRemoveRelation,
+  onAddTag,
 }: Props) {
   const [draft, setDraft] = React.useState<Card | null>(card);
   const [showRelationPicker, setShowRelationPicker] = React.useState(false);
+  const [showAddTag, setShowAddTag] = React.useState(false);
+  const [newTagName, setNewTagName] = React.useState("");
+  const [newTagColor, setNewTagColor] = React.useState(TAG_COLOR_PALETTE[0]);
 
   React.useEffect(() => {
     setDraft(card);
     setShowRelationPicker(false);
+    setShowAddTag(false);
+    setNewTagName("");
+    setNewTagColor(TAG_COLOR_PALETTE[0]);
   }, [card]);
 
   if (!open || !draft) return null;
@@ -142,8 +151,67 @@ export function CardModal({
           </div>
 
           <div>
-            <label className="text-xs text-emerald-900/60">Tags</label>
-            {tags.length > 0 && tagCategories.length > 0 ? (
+            <div className="flex items-center justify-between">
+              <label className="text-xs text-emerald-900/60">Tags</label>
+              {onAddTag && (
+                <button
+                  type="button"
+                  onClick={() => setShowAddTag(!showAddTag)}
+                  className="text-xs text-emerald-600 hover:text-emerald-700"
+                >
+                  {showAddTag ? "Cancel" : "+ Add custom tag"}
+                </button>
+              )}
+            </div>
+
+            {/* Add Tag Form */}
+            {showAddTag && onAddTag && (
+              <div className="mt-2 rounded-xl border border-emerald-700/15 bg-emerald-50/50 p-3">
+                <div className="flex gap-2">
+                  <input
+                    value={newTagName}
+                    onChange={(e) => setNewTagName(e.target.value)}
+                    placeholder="Tag name"
+                    className="flex-1 rounded-lg border border-emerald-700/15 bg-white px-3 py-1.5 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (newTagName.trim()) {
+                        onAddTag({
+                          name: newTagName.trim(),
+                          color: newTagColor,
+                          categoryId: "custom",
+                        });
+                        // Add the new tag to draft immediately (it will get the real ID from state)
+                        setNewTagName("");
+                        setShowAddTag(false);
+                      }
+                    }}
+                    disabled={!newTagName.trim()}
+                    className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                  >
+                    Add
+                  </button>
+                </div>
+                <div className="mt-2 flex flex-wrap gap-1">
+                  {TAG_COLOR_PALETTE.map((color) => (
+                    <button
+                      key={color}
+                      type="button"
+                      onClick={() => setNewTagColor(color)}
+                      className={`h-6 w-6 rounded-full transition-transform ${
+                        newTagColor === color ? "scale-110 ring-2 ring-offset-1 ring-emerald-600" : "hover:scale-105"
+                      }`}
+                      style={{ backgroundColor: color }}
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Tag Categories */}
+            {tags.length > 0 ? (
               <div className="mt-2 space-y-3">
                 {tagCategories
                   .slice()
@@ -197,10 +265,61 @@ export function CardModal({
                       </div>
                     );
                   })}
+
+                {/* Custom/Uncategorized Tags */}
+                {(() => {
+                  const customTags = tags.filter((t) => t.categoryId === "custom" || !tagCategories.some((c) => c.id === t.categoryId));
+                  if (customTags.length === 0) return null;
+                  return (
+                    <div>
+                      <div className="text-[10px] font-medium uppercase tracking-wide text-emerald-900/40 mb-1.5">
+                        Custom
+                      </div>
+                      <div className="flex flex-wrap gap-1.5">
+                        {customTags.map((tag) => {
+                          const isSelected = (draft.tags ?? []).includes(tag.id);
+                          return (
+                            <button
+                              key={tag.id}
+                              type="button"
+                              onClick={() => {
+                                const currentTags = draft.tags ?? [];
+                                update({
+                                  tags: isSelected
+                                    ? currentTags.filter((t) => t !== tag.id)
+                                    : [...currentTags, tag.id],
+                                });
+                              }}
+                              className={`
+                                inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium
+                                transition-all duration-150
+                                ${isSelected
+                                  ? "ring-2 ring-offset-1"
+                                  : "opacity-60 hover:opacity-100"
+                                }
+                              `}
+                              style={{
+                                backgroundColor: `${tag.color}20`,
+                                color: tag.color,
+                                ...(isSelected ? { ringColor: tag.color } : {}),
+                              }}
+                            >
+                              <span
+                                className="h-2 w-2 rounded-full"
+                                style={{ backgroundColor: tag.color }}
+                              />
+                              {tag.name}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
               </div>
             ) : (
               <div className="mt-2 text-xs text-emerald-900/50">
-                No tags configured. Add tags in Settings.
+                No tags yet. Click &quot;+ Add custom tag&quot; to create one.
               </div>
             )}
           </div>

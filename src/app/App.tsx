@@ -195,6 +195,7 @@ function AppContent() {
         onRemoveRelation={(cardId: string, relationId: string) => {
           dispatch({ type: "REMOVE_RELATION", cardId, relationId });
         }}
+        onAddTag={(tag) => dispatch({ type: "ADD_TAG", tag })}
       />
 
       <SettingsPanel

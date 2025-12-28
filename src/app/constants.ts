@@ -34,6 +34,7 @@ export const DEFAULT_TAG_CATEGORIES: TagCategory[] = [
   { id: "priority", name: "Priority", order: 0 },
   { id: "type", name: "Type", order: 1 },
   { id: "effort", name: "Effort", order: 2 },
+  { id: "custom", name: "Custom", order: 3 },
 ];
 
 export const DEFAULT_TAGS: Tag[] = [
