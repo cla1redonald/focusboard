@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { getSupabaseAdmin } from "../lib/supabase";
-import { createCard, addCardToUserState } from "../lib/cards";
+import { getSupabaseAdmin } from "../_lib/supabase";
+import { createCard, addCardToUserState } from "../_lib/cards";
 
 /**
  * Simple webhook endpoint for adding cards from Slack Workflow Builder

@@ -1,7 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { verifySlackRequest } from "../lib/slack";
-import { getSupabaseAdmin } from "../lib/supabase";
-import { createCard, addCardToUserState } from "../lib/cards";
+import { verifySlackRequest } from "../_lib/slack";
+import { getSupabaseAdmin } from "../_lib/supabase";
+import { createCard, addCardToUserState } from "../_lib/cards";
 
 type SlackEvent = {
   type: string;
