@@ -515,6 +515,7 @@ export function useAppState() {
   // Track if we've loaded from cloud to avoid overwriting
   const hasLoadedFromCloud = React.useRef(false);
   const isExternalUpdate = React.useRef(false);
+  const lastLocalSaveTime = React.useRef<number>(0);
 
   // Load from Supabase on startup (if logged in)
   React.useEffect(() => {
@@ -537,6 +538,13 @@ export function useAppState() {
     if (!supabase) return;
 
     const unsubscribe = subscribeToStateChanges((cloudState) => {
+      // Ignore updates that arrive within 3 seconds of our own save
+      // (these are likely echoes of our own changes)
+      const timeSinceLastSave = Date.now() - lastLocalSaveTime.current;
+      if (timeSinceLastSave < 3000) {
+        return;
+      }
+
       // Only update if this wasn't triggered by our own save
       isExternalUpdate.current = true;
       dispatch({ type: "IMPORT_STATE", state: cloudState });
@@ -559,6 +567,7 @@ export function useAppState() {
 
     // Save to Supabase (debounced)
     if (supabase) {
+      lastLocalSaveTime.current = Date.now();
       debouncedSaveToSupabase(state);
     }
   }, [state]);
