@@ -23,40 +23,46 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { title, secret, column = "backlog", source = "Webhook" } = req.body;
+  try {
+    const { title, secret, column = "backlog", source = "Webhook" } = req.body || {};
 
-  // Simple secret-based auth
-  const expectedSecret = process.env.WEBHOOK_SECRET;
-  if (!expectedSecret) {
-    console.error("WEBHOOK_SECRET not configured");
-    return res.status(500).json({ error: "Server configuration error" });
+    // Simple secret-based auth
+    const expectedSecret = process.env.WEBHOOK_SECRET;
+    if (!expectedSecret) {
+      console.error("WEBHOOK_SECRET not configured");
+      return res.status(500).json({ error: "Server configuration error" });
+    }
+
+    if (secret !== expectedSecret) {
+      return res.status(401).json({ error: "Invalid secret" });
+    }
+
+    if (!title?.trim()) {
+      return res.status(400).json({ error: "Title is required" });
+    }
+
+    const userId = process.env.FOCUSBOARD_USER_ID;
+    if (!userId) {
+      console.error("FOCUSBOARD_USER_ID not configured");
+      return res.status(500).json({ error: "Server configuration error" });
+    }
+
+    const card = createCard(title.trim(), column, source);
+    const supabase = getSupabaseAdmin();
+    const result = await addCardToUserState(supabase, userId, card);
+
+    if (!result.success) {
+      console.error("Failed to add card:", result.error);
+      return res.status(500).json({ error: result.error });
+    }
+
+    return res.status(200).json({
+      success: true,
+      message: `Added "${title}" to ${column}`,
+      cardId: card.id
+    });
+  } catch (err) {
+    console.error("Webhook error:", err);
+    return res.status(500).json({ error: String(err) });
   }
-
-  if (secret !== expectedSecret) {
-    return res.status(401).json({ error: "Invalid secret" });
-  }
-
-  if (!title?.trim()) {
-    return res.status(400).json({ error: "Title is required" });
-  }
-
-  const userId = process.env.FOCUSBOARD_USER_ID;
-  if (!userId) {
-    console.error("FOCUSBOARD_USER_ID not configured");
-    return res.status(500).json({ error: "Server configuration error" });
-  }
-
-  const card = createCard(title.trim(), column, source);
-  const result = await addCardToUserState(getSupabaseAdmin(), userId, card);
-
-  if (!result.success) {
-    console.error("Failed to add card:", result.error);
-    return res.status(500).json({ error: result.error });
-  }
-
-  return res.status(200).json({
-    success: true,
-    message: `Added "${title}" to ${column}`,
-    cardId: card.id
-  });
 }
