@@ -134,11 +134,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     state.cards.unshift(card);
 
     // Save
-    const { error: upsertError } = await supabase.from("app_state").upsert({
-      user_id: userId,
-      state,
-      updated_at: new Date().toISOString(),
-    });
+    const { error: upsertError } = await supabase.from("app_state").upsert(
+      {
+        user_id: userId,
+        state,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: "user_id" }
+    );
 
     if (upsertError) {
       return res.status(500).json({ error: upsertError.message });
