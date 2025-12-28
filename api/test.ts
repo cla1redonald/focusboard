@@ -1,9 +1,8 @@
-import { getSupabaseAdmin } from "./_lib/supabase";
+import { createClient } from "@supabase/supabase-js";
 
 export default function handler(req: any, res: any) {
   try {
-    const supabase = getSupabaseAdmin();
-    res.status(200).json({ ok: true, hasSupabase: !!supabase });
+    res.status(200).json({ ok: true, hasCreateClient: typeof createClient === "function" });
   } catch (err) {
     res.status(500).json({ error: String(err) });
   }
