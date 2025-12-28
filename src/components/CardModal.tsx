@@ -50,6 +50,8 @@ export function CardModal({
   const [newTagName, setNewTagName] = React.useState("");
   const [newTagColor, setNewTagColor] = React.useState(TAG_COLOR_PALETTE[0]);
   const [showUnsplashPicker, setShowUnsplashPicker] = React.useState(false);
+  const [showUrlInput, setShowUrlInput] = React.useState(false);
+  const [customUrl, setCustomUrl] = React.useState("");
   const emojiInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
@@ -59,6 +61,8 @@ export function CardModal({
     setNewTagName("");
     setNewTagColor(TAG_COLOR_PALETTE[0]);
     setShowUnsplashPicker(false);
+    setShowUrlInput(false);
+    setCustomUrl("");
   }, [card]);
 
   if (!open || !draft) return null;
@@ -198,22 +202,83 @@ export function CardModal({
                     className="h-full w-full object-cover"
                   />
                 </div>
-                <button
-                  type="button"
-                  onClick={() => setShowUnsplashPicker(true)}
-                  className="mt-2 text-xs text-amber-600 hover:text-amber-700"
-                >
-                  Change image
-                </button>
+                <div className="mt-2 flex gap-2">
+                  <button
+                    type="button"
+                    onClick={() => { setShowUnsplashPicker(true); setShowUrlInput(false); }}
+                    className="text-xs text-amber-600 hover:text-amber-700"
+                  >
+                    Search Unsplash
+                  </button>
+                  <span className="text-xs text-amber-900/30">|</span>
+                  <button
+                    type="button"
+                    onClick={() => { setShowUrlInput(true); setShowUnsplashPicker(false); }}
+                    className="text-xs text-amber-600 hover:text-amber-700"
+                  >
+                    Paste URL
+                  </button>
+                </div>
               </div>
             ) : (
-              <button
-                type="button"
-                onClick={() => setShowUnsplashPicker(true)}
-                className="mt-2 rounded-lg border border-dashed border-amber-700/20 bg-amber-50/50 px-4 py-3 text-xs text-amber-900/70 hover:border-amber-700/30 hover:bg-amber-50"
-              >
-                + Add background image from Unsplash
-              </button>
+              <div className="mt-2 flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => { setShowUnsplashPicker(true); setShowUrlInput(false); }}
+                  className="rounded-lg border border-dashed border-amber-700/20 bg-amber-50/50 px-3 py-2 text-xs text-amber-900/70 hover:border-amber-700/30 hover:bg-amber-50"
+                >
+                  Search Unsplash
+                </button>
+                <button
+                  type="button"
+                  onClick={() => { setShowUrlInput(true); setShowUnsplashPicker(false); }}
+                  className="rounded-lg border border-dashed border-amber-700/20 bg-amber-50/50 px-3 py-2 text-xs text-amber-900/70 hover:border-amber-700/30 hover:bg-amber-50"
+                >
+                  Paste URL
+                </button>
+              </div>
+            )}
+
+            {/* URL Input */}
+            {showUrlInput && (
+              <div className="mt-3 rounded-xl border border-amber-700/15 bg-amber-50/50 p-3">
+                <div className="text-xs text-amber-900/60 mb-2">
+                  Paste an image URL (Google Drive, Dropbox, etc.)
+                </div>
+                <div className="flex gap-2">
+                  <input
+                    type="url"
+                    value={customUrl}
+                    onChange={(e) => setCustomUrl(e.target.value)}
+                    placeholder="https://..."
+                    className="flex-1 rounded-lg border border-amber-700/15 bg-white px-3 py-1.5 text-sm text-amber-950 outline-none focus:border-amber-700/30"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (customUrl.trim()) {
+                        update({ backgroundImage: customUrl.trim() });
+                        setShowUrlInput(false);
+                        setCustomUrl("");
+                      }
+                    }}
+                    disabled={!customUrl.trim()}
+                    className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+                  >
+                    Add
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => { setShowUrlInput(false); setCustomUrl(""); }}
+                    className="rounded-lg border border-amber-700/15 bg-white px-3 py-1.5 text-xs text-amber-900 hover:bg-amber-50"
+                  >
+                    Cancel
+                  </button>
+                </div>
+                <div className="mt-2 text-[10px] text-amber-900/50">
+                  Tip: For Google Drive, use "Get link" → "Anyone with the link" and change /file/d/ID/view to /uc?id=ID
+                </div>
+              </div>
             )}
 
             {showUnsplashPicker && (
