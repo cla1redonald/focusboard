@@ -80,7 +80,7 @@ export function Column({
       : "";
 
   return (
-    <div className="w-[320px] shrink-0">
+    <div className="w-[280px] shrink-0 sm:w-[320px]">
       <div
         className={`relative overflow-hidden rounded-2xl border ${headerClass} ${headerFocusClass} px-4 py-3`}
         style={{ boxShadow: accentGlow }}

@@ -127,7 +127,7 @@ function AppContent() {
       {!hasBgImage && <div className="orb orb-3" />}
       <div className="noise" />
 
-      <div className="app-shell h-full px-6 py-8">
+      <div className="app-shell h-full px-3 py-4 sm:px-6 sm:py-8">
         <div className="mx-auto flex h-full w-full max-w-[1500px] flex-col">
           <Board
             cards={state.cards}

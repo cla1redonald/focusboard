@@ -56,15 +56,18 @@ export function CardModal({
   };
 
   return (
-    <div className="fixed inset-0 z-[1100] flex items-center justify-center">
+    <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-emerald-950/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative w-[720px] max-w-[94vw] rounded-2xl border border-emerald-700/15 bg-white/95 p-6 shadow-[0_30px_90px_rgba(0,0,0,0.2)]">
-        <div className="flex items-center justify-between">
-          <div className="display-font text-xl text-emerald-950">Edit card</div>
-          <button onClick={onClose} className="text-emerald-900/60 hover:text-emerald-900">✕</button>
+      <div className="relative flex max-h-[90vh] w-full max-w-[720px] flex-col rounded-2xl border border-emerald-700/15 bg-white/95 shadow-[0_30px_90px_rgba(0,0,0,0.2)]">
+        {/* Fixed Header */}
+        <div className="flex shrink-0 items-center justify-between border-b border-emerald-700/10 px-4 py-3 sm:px-6 sm:py-4">
+          <div className="display-font text-lg text-emerald-950 sm:text-xl">Edit card</div>
+          <button onClick={onClose} className="rounded-full p-1 text-emerald-900/60 hover:bg-emerald-100 hover:text-emerald-900">✕</button>
         </div>
 
-        <div className="mt-4 space-y-4">
+        {/* Scrollable Content */}
+        <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
+        <div className="space-y-4">
           <div>
             <label className="text-xs text-emerald-900/60">Title</label>
             <input
@@ -116,7 +119,7 @@ export function CardModal({
             />
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid gap-3 sm:grid-cols-2">
             <div>
               <label className="text-xs text-emerald-900/60">Link</label>
               <input
@@ -315,25 +318,27 @@ export function CardModal({
             </div>
           )}
         </div>
+        </div>
 
-        <div className="mt-6 flex justify-between">
+        {/* Fixed Footer */}
+        <div className="flex shrink-0 flex-col gap-3 border-t border-emerald-700/10 px-4 py-3 sm:flex-row sm:justify-between sm:px-6 sm:py-4">
           <button
             onClick={() => onDelete(draft.id)}
-            className="rounded-full border border-rose-400/30 bg-rose-100 px-4 py-2 text-sm text-rose-700 hover:border-rose-400/50"
+            className="order-2 rounded-full border border-rose-400/30 bg-rose-100 px-4 py-2 text-sm text-rose-700 hover:border-rose-400/50 sm:order-1"
           >
             Delete
           </button>
 
-          <div className="flex gap-2">
+          <div className="order-1 flex gap-2 sm:order-2">
             <button
               onClick={onClose}
-              className="rounded-full border border-emerald-700/15 bg-emerald-50/70 px-4 py-2 text-sm text-emerald-900 hover:border-emerald-700/30 hover:bg-emerald-100/70"
+              className="flex-1 rounded-full border border-emerald-700/15 bg-emerald-50/70 px-4 py-2 text-sm text-emerald-900 hover:border-emerald-700/30 hover:bg-emerald-100/70 sm:flex-none"
             >
               Cancel
             </button>
             <button
               onClick={() => onSave(draft)}
-              className="rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(16,185,129,0.2)] transition hover:-translate-y-0.5 hover:bg-emerald-700"
+              className="flex-1 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(16,185,129,0.2)] transition hover:-translate-y-0.5 hover:bg-emerald-700 sm:flex-none"
             >
               Save
             </button>

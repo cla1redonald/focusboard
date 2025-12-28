@@ -14,11 +14,12 @@ src/
 │   ├── constants.ts       # Default values, color palettes, icons
 │   ├── state.ts           # Reducer and state management hook
 │   ├── storage.ts         # localStorage persistence and migrations
+│   ├── sync.ts            # Cloud sync with Supabase
 │   ├── filters.ts         # Card filtering logic
 │   ├── metrics.ts         # Analytics and metrics calculations
 │   ├── utils.ts           # Helper functions
 │   ├── exportImport.ts    # JSON/CSV export and import
-│   ├── supabase.ts        # Supabase client and sync logic
+│   ├── supabase.ts        # Supabase client initialization
 │   └── useKeyboardNav.ts  # Keyboard navigation hook
 ├── components/            # React components
 │   ├── Board.tsx          # Main board with columns and drag-drop
@@ -35,6 +36,14 @@ src/
 │   └── ...
 ├── test/                  # Test utilities and security tests
 └── main.tsx              # Application entry point
+
+api/                        # Vercel serverless functions
+└── webhook/
+    └── add-card.ts        # POST /api/webhook/add-card
+
+docs/                       # Documentation
+├── API.md                 # Webhook API reference
+└── SUPABASE.md           # Database schema and setup
 ```
 
 ## Data Model
@@ -267,6 +276,33 @@ filterCards(cards, filter) {
 - XSS protection via React's default escaping
 - localStorage data is user-controlled
 - Supabase RLS policies protect user data
+
+## Webhook API
+
+The `/api/webhook/add-card` endpoint allows external tools to add cards.
+
+```
+┌─────────────────┐     ┌─────────────────┐     ┌─────────────────┐
+│  External Tool  │────▶│  Vercel API     │────▶│    Supabase     │
+│  (Shortcuts,    │     │  /api/webhook/  │     │   app_state     │
+│   Zapier, etc)  │     │  add-card       │     │                 │
+└─────────────────┘     └─────────────────┘     └─────────────────┘
+                                                        │
+                                                        ▼ (real-time)
+                                                ┌─────────────────┐
+                                                │   Focusboard    │
+                                                │   (auto-sync)   │
+                                                └─────────────────┘
+```
+
+**Key Design Decisions:**
+
+1. **Self-contained functions** - API routes inline all types to avoid bundling issues with Vercel
+2. **Service role key** - Webhook uses service role to bypass RLS for server-side writes
+3. **Shared secret auth** - Simple authentication suitable for personal use
+4. **Real-time sync** - Cards added via webhook appear in app via Supabase subscriptions
+
+See [docs/API.md](docs/API.md) for full API documentation.
 
 ## Future Considerations
 

@@ -19,6 +19,7 @@ A focused Kanban-style board with WIP limits, colored tags, and cloud sync.
 - **Celebrations** - Confetti animation when completing tasks (can be disabled)
 - **Custom Backgrounds** - Upload your own background image
 - **Responsive Design** - Works on desktop and tablet
+- **Webhook API** - Add cards from Apple Shortcuts, Zapier, or any automation tool
 
 ## Quick Start
 
@@ -48,7 +49,19 @@ To enable cloud sync with Supabase:
 1. Create a Supabase project at [supabase.com](https://supabase.com)
 2. Copy `.env.example` to `.env.local`
 3. Fill in your Supabase URL and anon key
-4. Run the SQL migration in your Supabase dashboard (see `supabase/` folder if available)
+4. Run the SQL setup in your Supabase dashboard (see [docs/SUPABASE.md](docs/SUPABASE.md))
+
+## Webhook API
+
+Add cards to Focusboard from external tools like Apple Shortcuts, Zapier, or custom scripts.
+
+```bash
+curl -X POST https://your-app.vercel.app/api/webhook/add-card \
+  -H "Content-Type: application/json" \
+  -d '{"title": "Buy coffee", "secret": "your-secret"}'
+```
+
+See [docs/API.md](docs/API.md) for full documentation.
 
 ## Keyboard Shortcuts
 
@@ -69,7 +82,17 @@ To enable cloud sync with Supabase:
 - Tailwind CSS
 - @dnd-kit (drag and drop)
 - Supabase (optional auth & storage)
+- Vercel (hosting & serverless functions)
 - Vitest + React Testing Library
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Technical architecture and data model |
+| [TESTING.md](TESTING.md) | Testing strategy and guidelines |
+| [docs/API.md](docs/API.md) | Webhook API for external integrations |
+| [docs/SUPABASE.md](docs/SUPABASE.md) | Database schema and RLS setup |
 
 ## License
 
