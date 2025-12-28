@@ -3,8 +3,19 @@ import type { Card, RelationType, Tag, TagCategory } from "../app/types";
 import { nanoid } from "nanoid";
 import { RelationshipPicker, RelationshipBadge } from "./RelationshipPicker";
 import { TAG_COLOR_PALETTE } from "../app/constants";
+import { UnsplashPicker } from "./UnsplashPicker";
 
-const EMOJI_CHOICES = ["✨", "✅", "🧠", "🧩", "🛠️", "📌", "🔥", "🚧", "🎯", "🔍"];
+// Extended emoji palette organized by category
+const EMOJI_CHOICES = [
+  // Status
+  "✨", "✅", "⚡", "🔥", "🚧", "⛔", "🎯", "🔍",
+  // Work
+  "📝", "📌", "📎", "🛠️", "💡", "🧠", "🧩", "🎨",
+  // Objects
+  "📱", "💻", "📊", "📈", "🔗", "📧", "💬", "🔔",
+  // Nature & Fun
+  "⭐", "💎", "🌟", "🏆", "🎉", "💪", "🚀", "🌈",
+];
 
 type Props = {
   open: boolean;
@@ -38,6 +49,8 @@ export function CardModal({
   const [showAddTag, setShowAddTag] = React.useState(false);
   const [newTagName, setNewTagName] = React.useState("");
   const [newTagColor, setNewTagColor] = React.useState(TAG_COLOR_PALETTE[0]);
+  const [showUnsplashPicker, setShowUnsplashPicker] = React.useState(false);
+  const emojiInputRef = React.useRef<HTMLInputElement>(null);
 
   React.useEffect(() => {
     setDraft(card);
@@ -45,6 +58,7 @@ export function CardModal({
     setShowAddTag(false);
     setNewTagName("");
     setNewTagColor(TAG_COLOR_PALETTE[0]);
+    setShowUnsplashPicker(false);
   }, [card]);
 
   if (!open || !draft) return null;
@@ -88,33 +102,43 @@ export function CardModal({
 
           <div>
             <label className="text-xs text-amber-900/60">Icon (emoji)</label>
-            <div className="mt-2 flex flex-wrap items-center gap-2">
-              <input
-                value={draft.icon ?? ""}
-                onChange={(e) => update({ icon: e.target.value })}
-                placeholder="Pick or type"
-                className="w-28 rounded-xl border border-amber-700/15 bg-white px-3 py-2 text-sm text-amber-950 outline-none focus:border-amber-700/30"
-              />
+            <div className="mt-2 space-y-2">
+              <div className="flex items-center gap-2">
+                <input
+                  ref={emojiInputRef}
+                  value={draft.icon ?? ""}
+                  onChange={(e) => update({ icon: e.target.value })}
+                  placeholder="Type or paste emoji"
+                  className="w-32 rounded-xl border border-amber-700/15 bg-white px-3 py-2 text-center text-lg text-amber-950 outline-none focus:border-amber-700/30"
+                />
+                {draft.icon && (
+                  <button
+                    type="button"
+                    onClick={() => update({ icon: undefined })}
+                    className="rounded-lg border border-amber-700/15 bg-amber-50/70 px-3 py-2 text-xs text-amber-900 hover:border-amber-700/30"
+                  >
+                    Clear
+                  </button>
+                )}
+                <span className="text-[10px] text-amber-900/50">
+                  Tip: Press {navigator.platform.includes("Mac") ? "⌘+Ctrl+Space" : "Win+."} for full emoji keyboard
+                </span>
+              </div>
               <div className="flex flex-wrap gap-1">
                 {EMOJI_CHOICES.map((emoji) => (
                   <button
                     key={emoji}
                     type="button"
                     onClick={() => update({ icon: emoji })}
-                    className="rounded-lg border border-amber-700/15 bg-amber-50/70 px-2 py-1 text-base hover:border-amber-700/30"
+                    className={`rounded-lg border px-2 py-1 text-base transition ${
+                      draft.icon === emoji
+                        ? "border-amber-500 bg-amber-100"
+                        : "border-amber-700/15 bg-amber-50/70 hover:border-amber-700/30"
+                    }`}
                   >
                     {emoji}
                   </button>
                 ))}
-                {draft.icon && (
-                  <button
-                    type="button"
-                    onClick={() => update({ icon: undefined })}
-                    className="rounded-lg border border-amber-700/15 bg-amber-50/70 px-2 py-1 text-xs text-amber-900 hover:border-amber-700/30"
-                  >
-                    Clear
-                  </button>
-                )}
               </div>
             </div>
           </div>
@@ -148,6 +172,61 @@ export function CardModal({
                 className="mt-2 w-full rounded-xl border border-amber-700/15 bg-white px-3 py-2 text-sm text-amber-950 outline-none focus:border-amber-700/30"
               />
             </div>
+          </div>
+
+          {/* Card Background */}
+          <div>
+            <div className="flex items-center justify-between">
+              <label className="text-xs text-amber-900/60">Card Background</label>
+              {draft.backgroundImage && (
+                <button
+                  type="button"
+                  onClick={() => update({ backgroundImage: undefined })}
+                  className="text-xs text-rose-600 hover:text-rose-700"
+                >
+                  Remove
+                </button>
+              )}
+            </div>
+
+            {draft.backgroundImage ? (
+              <div className="mt-2">
+                <div className="relative aspect-video w-full max-w-[200px] overflow-hidden rounded-lg border border-amber-700/15">
+                  <img
+                    src={draft.backgroundImage}
+                    alt="Card background"
+                    className="h-full w-full object-cover"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setShowUnsplashPicker(true)}
+                  className="mt-2 text-xs text-amber-600 hover:text-amber-700"
+                >
+                  Change image
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setShowUnsplashPicker(true)}
+                className="mt-2 rounded-lg border border-dashed border-amber-700/20 bg-amber-50/50 px-4 py-3 text-xs text-amber-900/70 hover:border-amber-700/30 hover:bg-amber-50"
+              >
+                + Add background image from Unsplash
+              </button>
+            )}
+
+            {showUnsplashPicker && (
+              <div className="mt-3">
+                <UnsplashPicker
+                  onSelect={(imageUrl) => {
+                    update({ backgroundImage: imageUrl });
+                    setShowUnsplashPicker(false);
+                  }}
+                  onCancel={() => setShowUnsplashPicker(false)}
+                />
+              </div>
+            )}
           </div>
 
           <div>

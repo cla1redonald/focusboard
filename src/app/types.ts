@@ -65,6 +65,8 @@ export type Card = {
 
   columnHistory?: ColumnTransition[]; // Track all column movements
   relations?: CardRelation[]; // Links to other cards
+
+  backgroundImage?: string; // URL to background image (e.g., from Unsplash)
 };
 
 // Metrics types

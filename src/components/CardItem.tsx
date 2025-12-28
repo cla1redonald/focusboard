@@ -41,6 +41,8 @@ export function CardItem({
     cardRefSetter?.(card.id, el);
   };
 
+  const hasBackground = !!card.backgroundImage;
+
   return (
     <motion.div
       ref={refFn}
@@ -51,97 +53,117 @@ export function CardItem({
       exit={reducedMotion ? undefined : { opacity: 0, scale: 0.95 }}
       transition={{ duration: reducedMotion ? 0 : 0.2, ease: "easeOut" }}
       onClick={() => onOpen(card)}
-      className={`group cursor-pointer rounded-xl border bg-white px-3 py-2 text-sm text-amber-950 shadow-[0_10px_30px_rgba(0,0,0,0.08)] transition hover:-translate-y-0.5 hover:border-amber-700/20 hover:bg-amber-50/50 ${
+      className={`group relative cursor-pointer overflow-hidden rounded-xl border shadow-[0_10px_30px_rgba(0,0,0,0.08)] transition hover:-translate-y-0.5 hover:border-amber-700/20 ${
         focused
           ? "border-amber-500 ring-2 ring-amber-400/50"
           : "border-amber-700/10"
-      }`}
+      } ${hasBackground ? "" : "bg-white hover:bg-amber-50/50"}`}
     >
-      <div className="flex items-start justify-between gap-2">
-        <div className="text-left font-medium leading-snug text-amber-950">
-          <span className="inline-flex items-center gap-2">
-            {card.icon && <span className="text-base">{card.icon}</span>}
-            <span>{card.title}</span>
-            {showAgingIndicator && (() => {
-              const ageLevel = getCardAgeLevel(card);
-              if (ageLevel === "none") return null;
-              const ageDays = getCardAgeDays(card);
-              const colors = {
-                yellow: "bg-amber-400",
-                orange: "bg-orange-500",
-                red: "bg-rose-500",
-              };
-              return (
-                <span
-                  className={`inline-block h-2 w-2 rounded-full ${colors[ageLevel]}`}
-                  title={`${ageDays} days since last update`}
-                />
-              );
-            })()}
-          </span>
-        </div>
-        <div
-          className="cursor-grab select-none text-amber-900/40 group-hover:text-amber-900/70"
-          title="Drag"
-          onClick={(e) => e.stopPropagation()}
-          {...listeners}
-          {...attributes}
-        >
-          ⋮⋮
-        </div>
-      </div>
+      {/* Background Image */}
+      {hasBackground && (
+        <>
+          <div
+            className="absolute inset-0 bg-cover bg-center"
+            style={{ backgroundImage: `url(${card.backgroundImage})` }}
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/40 to-black/20" />
+        </>
+      )}
 
-      {(card.tags?.length ?? 0) > 0 && (
-        <div className="mt-2 flex flex-wrap gap-1">
-          {card.tags!.slice(0, 3).map((tagId) => {
-            const tag = allTags.find((t) => t.id === tagId);
-            if (tag) {
+      {/* Card Content */}
+      <div className={`relative px-3 py-2 text-sm ${hasBackground ? "text-white" : "text-amber-950"}`}>
+        <div className="flex items-start justify-between gap-2">
+          <div className={`text-left font-medium leading-snug ${hasBackground ? "text-white" : "text-amber-950"}`}>
+            <span className="inline-flex items-center gap-2">
+              {card.icon && <span className="text-base">{card.icon}</span>}
+              <span>{card.title}</span>
+              {showAgingIndicator && (() => {
+                const ageLevel = getCardAgeLevel(card);
+                if (ageLevel === "none") return null;
+                const ageDays = getCardAgeDays(card);
+                const colors = {
+                  yellow: "bg-amber-400",
+                  orange: "bg-orange-500",
+                  red: "bg-rose-500",
+                };
+                return (
+                  <span
+                    className={`inline-block h-2 w-2 rounded-full ${colors[ageLevel]}`}
+                    title={`${ageDays} days since last update`}
+                  />
+                );
+              })()}
+            </span>
+          </div>
+          <div
+            className={`cursor-grab select-none ${hasBackground ? "text-white/60 group-hover:text-white" : "text-amber-900/40 group-hover:text-amber-900/70"}`}
+            title="Drag"
+            onClick={(e) => e.stopPropagation()}
+            {...listeners}
+            {...attributes}
+          >
+            ⋮⋮
+          </div>
+        </div>
+
+        {(card.tags?.length ?? 0) > 0 && (
+          <div className="mt-2 flex flex-wrap gap-1">
+            {card.tags!.slice(0, 3).map((tagId) => {
+              const tag = allTags.find((t) => t.id === tagId);
+              if (tag) {
+                return (
+                  <span
+                    key={tagId}
+                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
+                    style={{
+                      backgroundColor: hasBackground ? "rgba(255,255,255,0.25)" : `${tag.color}20`,
+                      color: hasBackground ? "white" : tag.color,
+                    }}
+                  >
+                    <span
+                      className="h-1.5 w-1.5 rounded-full"
+                      style={{ backgroundColor: hasBackground ? "white" : tag.color }}
+                    />
+                    {tag.name}
+                  </span>
+                );
+              }
+              // Fallback for tags not in the system (e.g., old string tags)
               return (
                 <span
                   key={tagId}
-                  className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
-                  style={{
-                    backgroundColor: `${tag.color}20`,
-                    color: tag.color,
-                  }}
+                  className={`rounded-full px-2 py-0.5 text-[11px] ${
+                    hasBackground
+                      ? "bg-white/20 text-white"
+                      : "border border-amber-700/10 bg-amber-50/60 text-amber-900"
+                  }`}
                 >
-                  <span
-                    className="h-1.5 w-1.5 rounded-full"
-                    style={{ backgroundColor: tag.color }}
-                  />
-                  {tag.name}
+                  {tagId}
                 </span>
               );
-            }
-            // Fallback for tags not in the system (e.g., old string tags)
-            return (
-              <span
-                key={tagId}
-                className="rounded-full border border-amber-700/10 bg-amber-50/60 px-2 py-0.5 text-[11px] text-amber-900"
-              >
-                {tagId}
+            })}
+            {(card.tags?.length ?? 0) > 3 && (
+              <span className={`rounded-full px-2 py-0.5 text-[11px] ${
+                hasBackground ? "bg-white/20 text-white" : "bg-amber-100 text-amber-700"
+              }`}>
+                +{card.tags!.length - 3}
               </span>
-            );
-          })}
-          {(card.tags?.length ?? 0) > 3 && (
-            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] text-amber-700">
-              +{card.tags!.length - 3}
-            </span>
-          )}
-        </div>
-      )}
+            )}
+          </div>
+        )}
 
-      {card.blockedReason && (
-        <div className="mt-2 text-[11px] text-rose-700/80">
-          Blocked: {card.blockedReason}
-        </div>
-      )}
+        {card.blockedReason && (
+          <div className={`mt-2 text-[11px] ${hasBackground ? "text-rose-300" : "text-rose-700/80"}`}>
+            Blocked: {card.blockedReason}
+          </div>
+        )}
 
-      {card.relations && card.relations.length > 0 && (
-        <div className="mt-2">
-          <RelationshipIndicators card={card} />
-        </div>
-      )}
+        {card.relations && card.relations.length > 0 && (
+          <div className="mt-2">
+            <RelationshipIndicators card={card} />
+          </div>
+        )}
+      </div>
     </motion.div>
   );
 }
