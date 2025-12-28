@@ -45,12 +45,12 @@ function getDefaultState(): AppState {
   return {
     cards: [],
     columns: [
-      { id: "backlog", title: "Backlog", icon: "📋", color: "#86B6B0", wipLimit: null, isTerminal: false, order: 0 },
-      { id: "design", title: "Design & Planning", icon: "✨", color: "#9EC6AD", wipLimit: 5, isTerminal: false, order: 1 },
-      { id: "todo", title: "To Do", icon: "📝", color: "#B6D6C1", wipLimit: 12, isTerminal: false, order: 2 },
-      { id: "doing", title: "Doing", icon: "🎯", color: "#7ABFA6", wipLimit: 1, isTerminal: false, order: 3 },
-      { id: "blocked", title: "Blocked", icon: "🚧", color: "#A6C2C7", wipLimit: 5, isTerminal: false, order: 4 },
-      { id: "done", title: "Done", icon: "✅", color: "#6FBAC8", wipLimit: null, isTerminal: true, order: 5 },
+      { id: "backlog", title: "Backlog", icon: "🗂️", color: "#F59E0B", wipLimit: null, isTerminal: false, order: 0 },
+      { id: "design", title: "Design & Planning", icon: "🎨", color: "#FBBF24", wipLimit: 5, isTerminal: false, order: 1 },
+      { id: "todo", title: "To Do", icon: "📝", color: "#FCD34D", wipLimit: 12, isTerminal: false, order: 2 },
+      { id: "doing", title: "Doing", icon: "⚡", color: "#FB923C", wipLimit: 1, isTerminal: false, order: 3 },
+      { id: "blocked", title: "Blocked", icon: "⛔", color: "#F87171", wipLimit: 5, isTerminal: false, order: 4 },
+      { id: "done", title: "Done", icon: "✅", color: "#34D399", wipLimit: null, isTerminal: true, order: 5 },
     ],
     templates: [],
     settings: { celebrations: true, reducedMotionOverride: false, backgroundImage: null, showAgingIndicators: false, staleCardThreshold: 7 },

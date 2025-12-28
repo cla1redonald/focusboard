@@ -24,10 +24,10 @@ function MetricCard({
   sublabel?: string;
 }) {
   return (
-    <div className="rounded-xl border border-emerald-700/15 bg-white/80 p-4">
-      <div className="text-xs text-emerald-900/60">{label}</div>
-      <div className="mt-1 text-2xl font-semibold text-emerald-950">{value}</div>
-      {sublabel && <div className="mt-0.5 text-xs text-emerald-900/50">{sublabel}</div>}
+    <div className="rounded-xl border border-amber-700/15 bg-white/80 p-4">
+      <div className="text-xs text-amber-900/60">{label}</div>
+      <div className="mt-1 text-2xl font-semibold text-amber-950">{value}</div>
+      {sublabel && <div className="mt-0.5 text-xs text-amber-900/50">{sublabel}</div>}
     </div>
   );
 }
@@ -43,19 +43,19 @@ function CycleTimeChart({ metrics }: { metrics: MetricsState }) {
   const maxPercentage = Math.max(...distribution.map((b) => b.percentage));
 
   return (
-    <div className="rounded-xl border border-emerald-700/15 bg-white/80 p-4">
-      <div className="mb-3 text-sm font-medium text-emerald-900">Cycle Time Distribution</div>
+    <div className="rounded-xl border border-amber-700/15 bg-white/80 p-4">
+      <div className="mb-3 text-sm font-medium text-amber-900">Cycle Time Distribution</div>
       <div className="space-y-2">
         {distribution.map((bucket) => (
           <div key={bucket.label} className="flex items-center gap-3">
-            <div className="w-16 text-xs text-emerald-900/70">{bucket.label}</div>
+            <div className="w-16 text-xs text-amber-900/70">{bucket.label}</div>
             <div className="flex-1">
               <div
-                className="h-5 rounded bg-emerald-500/80 transition-all"
+                className="h-5 rounded bg-amber-500/80 transition-all"
                 style={{ width: `${(bucket.percentage / maxPercentage) * 100}%` }}
               />
             </div>
-            <div className="w-16 text-right text-xs text-emerald-900/60">
+            <div className="w-16 text-right text-xs text-amber-900/60">
               {bucket.count} ({bucket.percentage.toFixed(0)}%)
             </div>
           </div>
@@ -74,29 +74,29 @@ function ColumnAgePanel({ cards, columns }: { cards: Card[]; columns: Column[] }
   if (ageStats.length === 0) return null;
 
   return (
-    <div className="rounded-xl border border-emerald-700/15 bg-white/80 p-4">
-      <div className="mb-3 text-sm font-medium text-emerald-900">Age by Column</div>
+    <div className="rounded-xl border border-amber-700/15 bg-white/80 p-4">
+      <div className="mb-3 text-sm font-medium text-amber-900">Age by Column</div>
       <div className="space-y-2">
         {ageStats.map((stat) => (
           <div
             key={stat.columnId}
-            className="flex items-center gap-3 rounded-lg border border-emerald-700/10 bg-emerald-50/50 px-3 py-2"
+            className="flex items-center gap-3 rounded-lg border border-amber-700/10 bg-amber-50/50 px-3 py-2"
           >
             <div
               className="h-3 w-3 rounded-full"
               style={{ backgroundColor: stat.columnColor }}
             />
             <div className="flex-1">
-              <div className="text-sm text-emerald-950">{stat.columnTitle}</div>
-              <div className="text-xs text-emerald-900/60">
+              <div className="text-sm text-amber-950">{stat.columnTitle}</div>
+              <div className="text-xs text-amber-900/60">
                 {stat.cardCount} card{stat.cardCount !== 1 ? "s" : ""}
               </div>
             </div>
             <div className="text-right">
-              <div className="text-sm text-emerald-900">
+              <div className="text-sm text-amber-900">
                 avg: {stat.avgAgeMs > 0 ? formatDuration(stat.avgAgeMs) : "-"}
               </div>
-              <div className="text-xs text-emerald-900/60">
+              <div className="text-xs text-amber-900/60">
                 max: {stat.maxAgeMs > 0 ? formatDuration(stat.maxAgeMs) : "-"}
               </div>
             </div>
@@ -123,11 +123,11 @@ function CumulativeFlowDiagram({
 
   if (data.length < 2) {
     return (
-      <div className="rounded-xl border border-emerald-700/15 bg-white/80 p-4">
+      <div className="rounded-xl border border-amber-700/15 bg-white/80 p-4">
         <div className="mb-3 flex items-center justify-between">
-          <div className="text-sm font-medium text-emerald-900">Cumulative Flow Diagram</div>
+          <div className="text-sm font-medium text-amber-900">Cumulative Flow Diagram</div>
         </div>
-        <div className="py-8 text-center text-sm text-emerald-900/60">
+        <div className="py-8 text-center text-sm text-amber-900/60">
           Need at least 2 days of snapshots to display. Keep using Focusboard!
         </div>
       </div>
@@ -150,9 +150,9 @@ function CumulativeFlowDiagram({
   const yScale = (v: number) => padding.top + chartHeight - (v / (maxValue || 1)) * chartHeight;
 
   return (
-    <div className="rounded-xl border border-emerald-700/15 bg-white/80 p-4">
+    <div className="rounded-xl border border-amber-700/15 bg-white/80 p-4">
       <div className="mb-3 flex items-center justify-between">
-        <div className="text-sm font-medium text-emerald-900">Cumulative Flow Diagram</div>
+        <div className="text-sm font-medium text-amber-900">Cumulative Flow Diagram</div>
         <div className="flex gap-1">
           {([30, 60, 90] as const).map((d) => (
             <button
@@ -160,8 +160,8 @@ function CumulativeFlowDiagram({
               onClick={() => setDays(d)}
               className={`rounded px-2 py-1 text-xs transition ${
                 days === d
-                  ? "bg-emerald-600 text-white"
-                  : "text-emerald-900/60 hover:bg-emerald-100"
+                  ? "bg-amber-600 text-white"
+                  : "text-amber-900/60 hover:bg-amber-100"
               }`}
             >
               {d}d
@@ -245,7 +245,7 @@ function CumulativeFlowDiagram({
               className="h-3 w-3 rounded"
               style={{ backgroundColor: col.color }}
             />
-            <span className="text-xs text-emerald-900/70">{col.title}</span>
+            <span className="text-xs text-amber-900/70">{col.title}</span>
           </div>
         ))}
       </div>
@@ -285,8 +285,8 @@ function BlockedPanel({
 
       {/* Currently blocked cards */}
       {blockedStats.currentlyBlocked.length > 0 && (
-        <div className="rounded-xl border border-emerald-700/15 bg-white/80 p-4">
-          <div className="mb-3 text-sm font-medium text-emerald-900">Currently Blocked</div>
+        <div className="rounded-xl border border-amber-700/15 bg-white/80 p-4">
+          <div className="mb-3 text-sm font-medium text-amber-900">Currently Blocked</div>
           <div className="space-y-2">
             {blockedStats.currentlyBlocked.map(({ card, blockedSinceMs }) => (
               <button
@@ -295,7 +295,7 @@ function BlockedPanel({
                 className="flex w-full items-center justify-between rounded-lg border border-rose-200 bg-rose-50 px-3 py-2 text-left transition hover:bg-rose-100"
               >
                 <div>
-                  <div className="text-sm text-emerald-950">{card.title}</div>
+                  <div className="text-sm text-amber-950">{card.title}</div>
                   {card.blockedReason && (
                     <div className="text-xs text-rose-700">{card.blockedReason}</div>
                   )}
@@ -311,15 +311,15 @@ function BlockedPanel({
 
       {/* Frequently blocked */}
       {blockedStats.frequentlyBlocked.length > 0 && (
-        <div className="rounded-xl border border-emerald-700/15 bg-white/80 p-4">
-          <div className="mb-3 text-sm font-medium text-emerald-900">Frequently Blocked Cards</div>
+        <div className="rounded-xl border border-amber-700/15 bg-white/80 p-4">
+          <div className="mb-3 text-sm font-medium text-amber-900">Frequently Blocked Cards</div>
           <div className="space-y-2">
             {blockedStats.frequentlyBlocked.map((item) => (
               <div
                 key={item.cardId}
                 className="flex items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3 py-2"
               >
-                <span className="text-sm text-emerald-950">{item.title}</span>
+                <span className="text-sm text-amber-950">{item.title}</span>
                 <span className="text-xs text-amber-700">{item.blockCount}x blocked</span>
               </div>
             ))}
@@ -328,9 +328,9 @@ function BlockedPanel({
       )}
 
       {blockedStats.currentlyBlocked.length === 0 && blockedStats.frequentlyBlocked.length === 0 && (
-        <div className="rounded-xl border border-emerald-700/15 bg-white/80 p-8 text-center">
-          <div className="text-emerald-600 mb-2">✓</div>
-          <div className="text-sm text-emerald-900/70">No blocked cards. Great flow!</div>
+        <div className="rounded-xl border border-amber-700/15 bg-white/80 p-8 text-center">
+          <div className="text-amber-600 mb-2">✓</div>
+          <div className="text-sm text-amber-900/70">No blocked cards. Great flow!</div>
         </div>
       )}
     </div>
@@ -355,9 +355,9 @@ function StaleCardsPanel({
 
   if (staleCards.length === 0) {
     return (
-      <div className="rounded-xl border border-emerald-700/15 bg-white/80 p-8 text-center">
-        <div className="text-emerald-600 mb-2">✓</div>
-        <div className="text-sm text-emerald-900/70">
+      <div className="rounded-xl border border-amber-700/15 bg-white/80 p-8 text-center">
+        <div className="text-amber-600 mb-2">✓</div>
+        <div className="text-sm text-amber-900/70">
           No stale cards (threshold: {settings.staleCardThreshold} days)
         </div>
       </div>
@@ -366,7 +366,7 @@ function StaleCardsPanel({
 
   return (
     <div className="space-y-2">
-      <div className="mb-3 text-sm text-emerald-900/60">
+      <div className="mb-3 text-sm text-amber-900/60">
         Cards not updated in {settings.staleCardThreshold}+ days
       </div>
       {staleCards.map(({ card, columnTitle, daysSinceUpdate }) => (
@@ -376,8 +376,8 @@ function StaleCardsPanel({
           className="flex w-full items-center justify-between rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-left transition hover:bg-amber-100"
         >
           <div>
-            <div className="text-sm text-emerald-950">{card.title}</div>
-            <div className="text-xs text-emerald-900/60">{columnTitle}</div>
+            <div className="text-sm text-amber-950">{card.title}</div>
+            <div className="text-xs text-amber-900/60">{columnTitle}</div>
           </div>
           <div className="text-right">
             <div className="text-xs font-medium text-amber-700">{daysSinceUpdate}d stale</div>
@@ -432,14 +432,14 @@ export function MetricsDashboard({
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-emerald-700/15 bg-white/95 p-6 shadow-2xl"
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto rounded-2xl border border-amber-700/15 bg-white/95 p-6 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="mb-4 flex items-center justify-between">
-          <h2 className="text-xl font-semibold text-emerald-950">Productivity Metrics</h2>
+          <h2 className="text-xl font-semibold text-amber-950">Productivity Metrics</h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-2 text-emerald-700 transition hover:bg-emerald-600/10"
+            className="rounded-lg p-2 text-amber-700 transition hover:bg-amber-600/10"
             aria-label="Close"
           >
             <svg
@@ -460,15 +460,15 @@ export function MetricsDashboard({
         </div>
 
         {/* Tabs */}
-        <div className="mb-6 flex gap-1 rounded-lg border border-emerald-700/15 bg-emerald-50/50 p-1">
+        <div className="mb-6 flex gap-1 rounded-lg border border-amber-700/15 bg-amber-50/50 p-1">
           {tabs.map((tab) => (
             <button
               key={tab.id}
               onClick={() => setActiveTab(tab.id)}
               className={`flex-1 rounded-md px-3 py-2 text-sm font-medium transition ${
                 activeTab === tab.id
-                  ? "bg-white text-emerald-900 shadow-sm"
-                  : "text-emerald-900/60 hover:text-emerald-900"
+                  ? "bg-white text-amber-900 shadow-sm"
+                  : "text-amber-900/60 hover:text-amber-900"
               }`}
             >
               {tab.label}
@@ -481,7 +481,7 @@ export function MetricsDashboard({
           <>
             {metrics.completedCards.length === 0 ? (
               <div className="py-12 text-center">
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-emerald-100">
+                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-amber-100">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="32"
@@ -492,14 +492,14 @@ export function MetricsDashboard({
                     strokeWidth="2"
                     strokeLinecap="round"
                     strokeLinejoin="round"
-                    className="text-emerald-600"
+                    className="text-amber-600"
                   >
                     <path d="M3 3v18h18" />
                     <path d="m19 9-5 5-4-4-3 3" />
                   </svg>
                 </div>
-                <h3 className="text-lg font-medium text-emerald-950">No data yet</h3>
-                <p className="mt-2 text-sm text-emerald-900/60">
+                <h3 className="text-lg font-medium text-amber-950">No data yet</h3>
+                <p className="mt-2 text-sm text-amber-900/60">
                   Complete some cards to start tracking your productivity metrics.
                 </p>
               </div>
@@ -572,15 +572,15 @@ export function MetricsDashboard({
                 <ColumnAgePanel cards={cards} columns={columns} />
 
                 <div>
-                  <h3 className="mb-3 text-sm font-medium text-emerald-900">Recent Completions</h3>
+                  <h3 className="mb-3 text-sm font-medium text-amber-900">Recent Completions</h3>
                   <div className="space-y-2">
                     {recentCompletions.map((card) => (
                       <div
                         key={card.cardId}
-                        className="flex items-center justify-between rounded-lg border border-emerald-700/10 bg-emerald-50/50 px-3 py-2"
+                        className="flex items-center justify-between rounded-lg border border-amber-700/10 bg-amber-50/50 px-3 py-2"
                       >
-                        <span className="truncate text-sm text-emerald-950">{card.title}</span>
-                        <div className="flex items-center gap-3 text-xs text-emerald-900/60">
+                        <span className="truncate text-sm text-amber-950">{card.title}</span>
+                        <div className="flex items-center gap-3 text-xs text-amber-900/60">
                           <span>Lead: {formatDuration(card.leadTimeMs)}</span>
                           <span>Cycle: {formatDuration(card.cycleTimeMs)}</span>
                         </div>
@@ -613,7 +613,7 @@ export function MetricsDashboard({
         <div className="mt-6 flex justify-end">
           <button
             onClick={onClose}
-            className="rounded-full border border-emerald-700/20 bg-emerald-600/10 px-4 py-2 text-sm text-emerald-900 transition hover:bg-emerald-600/20"
+            className="rounded-full border border-amber-700/20 bg-amber-600/10 px-4 py-2 text-sm text-amber-900 transition hover:bg-amber-600/20"
           >
             Close
           </button>

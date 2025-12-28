@@ -67,14 +67,14 @@ export function SetPasswordPage({ onComplete }: Props) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-emerald-100">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-white to-amber-100">
       <div className="w-full max-w-md px-6">
-        <div className="rounded-2xl border border-emerald-700/10 bg-white/90 p-8 shadow-[0_20px_60px_rgba(0,0,0,0.1)] backdrop-blur">
+        <div className="rounded-2xl border border-amber-700/10 bg-white/90 p-8 shadow-[0_20px_60px_rgba(0,0,0,0.1)] backdrop-blur">
           <div className="text-center mb-8">
-            <div className="display-font text-3xl text-emerald-950 mb-2">
+            <div className="display-font text-3xl text-amber-950 mb-2">
               Focusboard
             </div>
-            <div className="text-sm text-emerald-900/70">
+            <div className="text-sm text-amber-900/70">
               Set your password
             </div>
           </div>
@@ -82,16 +82,16 @@ export function SetPasswordPage({ onComplete }: Props) {
           {status === "success" ? (
             <div className="text-center">
               <div className="mb-4 text-5xl">✅</div>
-              <div className="text-lg font-medium text-emerald-900 mb-2">
+              <div className="text-lg font-medium text-amber-900 mb-2">
                 Password set!
               </div>
-              <div className="text-sm text-emerald-900/70">
+              <div className="text-sm text-amber-900/70">
                 Redirecting to your board...
               </div>
             </div>
           ) : (
             <form onSubmit={handleSubmit}>
-              <label className="block mb-2 text-sm font-medium text-emerald-900">
+              <label className="block mb-2 text-sm font-medium text-amber-900">
                 New password
               </label>
               <input
@@ -101,14 +101,14 @@ export function SetPasswordPage({ onComplete }: Props) {
                 placeholder="Min 8 chars, uppercase, lowercase, number"
                 disabled={status === "loading"}
                 autoComplete="new-password"
-                className="w-full rounded-xl border border-emerald-700/20 bg-white px-4 py-3 text-emerald-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-400/30 disabled:opacity-50"
+                className="w-full rounded-xl border border-amber-700/20 bg-white px-4 py-3 text-amber-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-400/30 disabled:opacity-50"
                 autoFocus
               />
-              <div className="mt-1 text-xs text-emerald-700/60">
+              <div className="mt-1 text-xs text-amber-700/60">
                 At least 8 characters with uppercase, lowercase, and a number
               </div>
 
-              <label className="block mt-4 mb-2 text-sm font-medium text-emerald-900">
+              <label className="block mt-4 mb-2 text-sm font-medium text-amber-900">
                 Confirm password
               </label>
               <input
@@ -118,7 +118,7 @@ export function SetPasswordPage({ onComplete }: Props) {
                 placeholder="Enter password again"
                 disabled={status === "loading"}
                 autoComplete="new-password"
-                className="w-full rounded-xl border border-emerald-700/20 bg-white px-4 py-3 text-emerald-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-400/30 disabled:opacity-50"
+                className="w-full rounded-xl border border-amber-700/20 bg-white px-4 py-3 text-amber-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-400/30 disabled:opacity-50"
               />
 
               {status === "error" && (
@@ -130,7 +130,7 @@ export function SetPasswordPage({ onComplete }: Props) {
               <button
                 type="submit"
                 disabled={status === "loading" || !password || !confirmPassword}
-                className="mt-6 w-full rounded-xl bg-emerald-600 px-4 py-3 font-medium text-white shadow-lg transition hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="mt-6 w-full rounded-xl bg-amber-600 px-4 py-3 font-medium text-white shadow-lg transition hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {status === "loading" ? "Setting password..." : "Set password"}
               </button>

@@ -51,14 +51,14 @@ export function CardItem({
       exit={reducedMotion ? undefined : { opacity: 0, scale: 0.95 }}
       transition={{ duration: reducedMotion ? 0 : 0.2, ease: "easeOut" }}
       onClick={() => onOpen(card)}
-      className={`group cursor-pointer rounded-xl border bg-white px-3 py-2 text-sm text-emerald-950 shadow-[0_10px_30px_rgba(0,0,0,0.08)] transition hover:-translate-y-0.5 hover:border-emerald-700/20 hover:bg-emerald-50/50 ${
+      className={`group cursor-pointer rounded-xl border bg-white px-3 py-2 text-sm text-amber-950 shadow-[0_10px_30px_rgba(0,0,0,0.08)] transition hover:-translate-y-0.5 hover:border-amber-700/20 hover:bg-amber-50/50 ${
         focused
-          ? "border-emerald-500 ring-2 ring-emerald-400/50"
-          : "border-emerald-700/10"
+          ? "border-amber-500 ring-2 ring-amber-400/50"
+          : "border-amber-700/10"
       }`}
     >
       <div className="flex items-start justify-between gap-2">
-        <div className="text-left font-medium leading-snug text-emerald-950">
+        <div className="text-left font-medium leading-snug text-amber-950">
           <span className="inline-flex items-center gap-2">
             {card.icon && <span className="text-base">{card.icon}</span>}
             <span>{card.title}</span>
@@ -81,7 +81,7 @@ export function CardItem({
           </span>
         </div>
         <div
-          className="cursor-grab select-none text-emerald-900/40 group-hover:text-emerald-900/70"
+          className="cursor-grab select-none text-amber-900/40 group-hover:text-amber-900/70"
           title="Drag"
           onClick={(e) => e.stopPropagation()}
           {...listeners}
@@ -117,14 +117,14 @@ export function CardItem({
             return (
               <span
                 key={tagId}
-                className="rounded-full border border-emerald-700/10 bg-emerald-50/60 px-2 py-0.5 text-[11px] text-emerald-900"
+                className="rounded-full border border-amber-700/10 bg-amber-50/60 px-2 py-0.5 text-[11px] text-amber-900"
               >
                 {tagId}
               </span>
             );
           })}
           {(card.tags?.length ?? 0) > 3 && (
-            <span className="rounded-full bg-emerald-100 px-2 py-0.5 text-[11px] text-emerald-700">
+            <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] text-amber-700">
               +{card.tags!.length - 3}
             </span>
           )}

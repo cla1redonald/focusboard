@@ -104,14 +104,14 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-emerald-100">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-white to-amber-100">
       <div className="w-full max-w-md px-6">
-        <div className="rounded-2xl border border-emerald-700/10 bg-white/90 p-8 shadow-[0_20px_60px_rgba(0,0,0,0.1)] backdrop-blur">
+        <div className="rounded-2xl border border-amber-700/10 bg-white/90 p-8 shadow-[0_20px_60px_rgba(0,0,0,0.1)] backdrop-blur">
           <div className="text-center mb-8">
-            <div className="display-font text-3xl text-emerald-950 mb-2">
+            <div className="display-font text-3xl text-amber-950 mb-2">
               Focusboard
             </div>
-            <div className="text-sm text-emerald-900/70">
+            <div className="text-sm text-amber-900/70">
               Plan with intent. Keep flow sacred.
             </div>
           </div>
@@ -121,10 +121,10 @@ export function LoginPage() {
               <div className="mb-4 text-5xl">
                 {mode === "signup" ? "✅" : "📧"}
               </div>
-              <div className="text-lg font-medium text-emerald-900 mb-2">
+              <div className="text-lg font-medium text-amber-900 mb-2">
                 {mode === "signup" ? "Account created!" : "Check your email"}
               </div>
-              <div className="text-sm text-emerald-900/70 mb-6">
+              <div className="text-sm text-amber-900/70 mb-6">
                 {mode === "signup"
                   ? "You can now sign in with your password."
                   : mode === "reset-password"
@@ -137,14 +137,14 @@ export function LoginPage() {
                   resetForm();
                   setMode("login");
                 }}
-                className="text-sm text-emerald-700 hover:text-emerald-900 underline"
+                className="text-sm text-amber-700 hover:text-amber-900 underline"
               >
                 {mode === "signup" || mode === "reset-password" ? "Sign in now" : "Use a different email"}
               </button>
             </div>
           ) : mode === "magic-link" ? (
             <form onSubmit={handleMagicLinkSubmit}>
-              <label className="block mb-2 text-sm font-medium text-emerald-900">
+              <label className="block mb-2 text-sm font-medium text-amber-900">
                 Email address
               </label>
               <input
@@ -153,7 +153,7 @@ export function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 disabled={status === "loading"}
-                className="w-full rounded-xl border border-emerald-700/20 bg-white px-4 py-3 text-emerald-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-400/30 disabled:opacity-50"
+                className="w-full rounded-xl border border-amber-700/20 bg-white px-4 py-3 text-amber-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-400/30 disabled:opacity-50"
                 autoFocus
               />
 
@@ -166,7 +166,7 @@ export function LoginPage() {
               <button
                 type="submit"
                 disabled={status === "loading" || !email.trim()}
-                className="mt-4 w-full rounded-xl bg-emerald-600 px-4 py-3 font-medium text-white shadow-lg transition hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="mt-4 w-full rounded-xl bg-amber-600 px-4 py-3 font-medium text-white shadow-lg transition hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {status === "loading" ? "Sending..." : "Send magic link"}
               </button>
@@ -174,17 +174,17 @@ export function LoginPage() {
               <button
                 type="button"
                 onClick={() => { resetForm(); setMode("login"); }}
-                className="mt-4 w-full text-sm text-emerald-700 hover:text-emerald-900"
+                className="mt-4 w-full text-sm text-amber-700 hover:text-amber-900"
               >
                 Back to password login
               </button>
             </form>
           ) : mode === "reset-password" ? (
             <form onSubmit={handleResetPassword}>
-              <div className="mb-4 text-sm text-emerald-900/70">
+              <div className="mb-4 text-sm text-amber-900/70">
                 Enter your email and we'll send you a link to set your password.
               </div>
-              <label className="block mb-2 text-sm font-medium text-emerald-900">
+              <label className="block mb-2 text-sm font-medium text-amber-900">
                 Email address
               </label>
               <input
@@ -193,7 +193,7 @@ export function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 disabled={status === "loading"}
-                className="w-full rounded-xl border border-emerald-700/20 bg-white px-4 py-3 text-emerald-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-400/30 disabled:opacity-50"
+                className="w-full rounded-xl border border-amber-700/20 bg-white px-4 py-3 text-amber-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-400/30 disabled:opacity-50"
                 autoFocus
               />
 
@@ -206,7 +206,7 @@ export function LoginPage() {
               <button
                 type="submit"
                 disabled={status === "loading" || !email.trim()}
-                className="mt-4 w-full rounded-xl bg-emerald-600 px-4 py-3 font-medium text-white shadow-lg transition hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="mt-4 w-full rounded-xl bg-amber-600 px-4 py-3 font-medium text-white shadow-lg transition hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {status === "loading" ? "Sending..." : "Send password reset link"}
               </button>
@@ -214,14 +214,14 @@ export function LoginPage() {
               <button
                 type="button"
                 onClick={() => { resetForm(); setMode("login"); }}
-                className="mt-4 w-full text-sm text-emerald-700 hover:text-emerald-900"
+                className="mt-4 w-full text-sm text-amber-700 hover:text-amber-900"
               >
                 Back to login
               </button>
             </form>
           ) : (
             <form onSubmit={handlePasswordSubmit}>
-              <label className="block mb-2 text-sm font-medium text-emerald-900">
+              <label className="block mb-2 text-sm font-medium text-amber-900">
                 Email address
               </label>
               <input
@@ -231,11 +231,11 @@ export function LoginPage() {
                 placeholder="you@example.com"
                 disabled={status === "loading"}
                 autoComplete="email"
-                className="w-full rounded-xl border border-emerald-700/20 bg-white px-4 py-3 text-emerald-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-400/30 disabled:opacity-50"
+                className="w-full rounded-xl border border-amber-700/20 bg-white px-4 py-3 text-amber-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-400/30 disabled:opacity-50"
                 autoFocus
               />
 
-              <label className="block mt-4 mb-2 text-sm font-medium text-emerald-900">
+              <label className="block mt-4 mb-2 text-sm font-medium text-amber-900">
                 Password
               </label>
               <input
@@ -245,10 +245,10 @@ export function LoginPage() {
                 placeholder={mode === "signup" ? "Min 8 chars, upper/lower/number" : "Enter your password"}
                 disabled={status === "loading"}
                 autoComplete={mode === "signup" ? "new-password" : "current-password"}
-                className="w-full rounded-xl border border-emerald-700/20 bg-white px-4 py-3 text-emerald-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-400/30 disabled:opacity-50"
+                className="w-full rounded-xl border border-amber-700/20 bg-white px-4 py-3 text-amber-900 outline-none transition focus:border-amber-500 focus:ring-2 focus:ring-amber-400/30 disabled:opacity-50"
               />
               {mode === "signup" && (
-                <div className="mt-1 text-xs text-emerald-700/60">
+                <div className="mt-1 text-xs text-amber-700/60">
                   At least 8 characters with uppercase, lowercase, and a number
                 </div>
               )}
@@ -257,7 +257,7 @@ export function LoginPage() {
                 <button
                   type="button"
                   onClick={() => { setStatus("idle"); setErrorMessage(""); setMode("reset-password"); }}
-                  className="mt-2 text-xs text-emerald-600 hover:text-emerald-800"
+                  className="mt-2 text-xs text-amber-600 hover:text-amber-800"
                 >
                   Forgot password? Set a new one
                 </button>
@@ -272,7 +272,7 @@ export function LoginPage() {
               <button
                 type="submit"
                 disabled={status === "loading" || !email.trim() || !password}
-                className="mt-4 w-full rounded-xl bg-emerald-600 px-4 py-3 font-medium text-white shadow-lg transition hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                className="mt-4 w-full rounded-xl bg-amber-600 px-4 py-3 font-medium text-white shadow-lg transition hover:bg-amber-700 disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 {status === "loading"
                   ? (mode === "signup" ? "Creating account..." : "Signing in...")
@@ -284,14 +284,14 @@ export function LoginPage() {
                 <button
                   type="button"
                   onClick={() => { resetForm(); setMode(mode === "signup" ? "login" : "signup"); }}
-                  className="text-emerald-700 hover:text-emerald-900"
+                  className="text-amber-700 hover:text-amber-900"
                 >
                   {mode === "signup" ? "Already have an account?" : "Create an account"}
                 </button>
                 <button
                   type="button"
                   onClick={() => { resetForm(); setMode("magic-link"); }}
-                  className="text-emerald-700 hover:text-emerald-900"
+                  className="text-amber-700 hover:text-amber-900"
                 >
                   Use magic link
                 </button>

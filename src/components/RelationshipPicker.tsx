@@ -31,11 +31,11 @@ export function RelationshipPicker({
 
   if (availableCards.length === 0) {
     return (
-      <div className="rounded-xl border border-emerald-700/20 bg-white p-4 text-sm text-emerald-900/70">
+      <div className="rounded-xl border border-amber-700/20 bg-white p-4 text-sm text-amber-900/70">
         <p>No other cards available to link.</p>
         <button
           onClick={onCancel}
-          className="mt-3 text-emerald-600 hover:text-emerald-700"
+          className="mt-3 text-amber-600 hover:text-amber-700"
         >
           Close
         </button>
@@ -44,15 +44,15 @@ export function RelationshipPicker({
   }
 
   return (
-    <div className="rounded-xl border border-emerald-700/20 bg-white p-4 shadow-lg">
-      <div className="mb-3 text-sm font-medium text-emerald-950">Add Relationship</div>
+    <div className="rounded-xl border border-amber-700/20 bg-white p-4 shadow-lg">
+      <div className="mb-3 text-sm font-medium text-amber-950">Add Relationship</div>
       <div className="max-h-60 space-y-2 overflow-y-auto">
         {availableCards.map((card) => (
           <div
             key={card.id}
-            className="rounded-lg border border-emerald-700/10 bg-emerald-50/50 p-2"
+            className="rounded-lg border border-amber-700/10 bg-amber-50/50 p-2"
           >
-            <div className="mb-2 flex items-center gap-2 text-sm text-emerald-950">
+            <div className="mb-2 flex items-center gap-2 text-sm text-amber-950">
               {card.icon && <span>{card.icon}</span>}
               <span className="truncate">{card.title}</span>
             </div>
@@ -62,7 +62,7 @@ export function RelationshipPicker({
                   <button
                     key={type}
                     onClick={() => onSelect(card.id, type)}
-                    className="rounded-md bg-emerald-100 px-2 py-1 text-xs text-emerald-800 transition hover:bg-emerald-200"
+                    className="rounded-md bg-amber-100 px-2 py-1 text-xs text-amber-800 transition hover:bg-amber-200"
                     title={RELATION_LABELS[type]}
                   >
                     {RELATION_ICONS[type]} {RELATION_LABELS[type]}
@@ -75,7 +75,7 @@ export function RelationshipPicker({
       </div>
       <button
         onClick={onCancel}
-        className="mt-3 text-sm text-emerald-600 hover:text-emerald-700"
+        className="mt-3 text-sm text-amber-600 hover:text-amber-700"
       >
         Cancel
       </button>
@@ -98,12 +98,12 @@ export function RelationshipBadge({
 
   return (
     <div
-      className="group flex items-center gap-1 rounded-lg bg-emerald-100/50 px-2 py-1 text-xs"
+      className="group flex items-center gap-1 rounded-lg bg-amber-100/50 px-2 py-1 text-xs"
       onClick={onClick}
     >
-      <span className="text-emerald-600">{RELATION_ICONS[relation.type]}</span>
-      <span className="text-emerald-900/70">{RELATION_LABELS[relation.type]}</span>
-      <span className="truncate font-medium text-emerald-950" title={targetCard.title}>
+      <span className="text-amber-600">{RELATION_ICONS[relation.type]}</span>
+      <span className="text-amber-900/70">{RELATION_LABELS[relation.type]}</span>
+      <span className="truncate font-medium text-amber-950" title={targetCard.title}>
         {targetCard.title.slice(0, 20)}
         {targetCard.title.length > 20 && "..."}
       </span>
@@ -126,7 +126,7 @@ export function RelationshipBadge({
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="text-emerald-600 hover:text-red-500"
+            className="text-amber-600 hover:text-red-500"
           >
             <path d="M18 6 6 18" />
             <path d="m6 6 12 12" />
@@ -186,7 +186,7 @@ export function RelationshipIndicators({
       )}
       {relatedCount > 0 && (
         <span
-          className="rounded bg-emerald-100 px-1 py-0.5 text-[10px] text-emerald-700"
+          className="rounded bg-amber-100 px-1 py-0.5 text-[10px] text-amber-700"
           title={`Related to ${relatedCount} card${relatedCount > 1 ? "s" : ""}`}
         >
           🔗 {relatedCount}

@@ -22,11 +22,11 @@ export function MetricsWidget({
   return (
     <button
       onClick={onOpenDashboard}
-      className="group flex items-center gap-3 rounded-lg px-2 py-1 text-left transition hover:bg-emerald-600/10"
+      className="group flex items-center gap-3 rounded-lg px-2 py-1 text-left transition hover:bg-amber-600/10"
       title="View metrics dashboard"
     >
       <div className="flex items-center gap-2 text-xs">
-        <span className="text-emerald-600">
+        <span className="text-amber-600">
           <svg
             xmlns="http://www.w3.org/2000/svg"
             width="14"
@@ -44,26 +44,26 @@ export function MetricsWidget({
         </span>
         {hasData ? (
           <>
-            <span className="text-emerald-900/70">Lead:</span>
-            <span className="font-medium text-emerald-950">
+            <span className="text-amber-900/70">Lead:</span>
+            <span className="font-medium text-amber-950">
               {avgLeadTime ? formatDuration(avgLeadTime) : "-"}
             </span>
-            <span className="text-emerald-700/30">|</span>
-            <span className="text-emerald-900/70">Cycle:</span>
-            <span className="font-medium text-emerald-950">
+            <span className="text-amber-700/30">|</span>
+            <span className="text-amber-900/70">Cycle:</span>
+            <span className="font-medium text-amber-950">
               {avgCycleTime ? formatDuration(avgCycleTime) : "-"}
             </span>
-            <span className="text-emerald-700/30">|</span>
-            <span className="text-emerald-900/70">Throughput:</span>
-            <span className="font-medium text-emerald-950">
+            <span className="text-amber-700/30">|</span>
+            <span className="text-amber-900/70">Throughput:</span>
+            <span className="font-medium text-amber-950">
               {throughput.toFixed(1)}/wk
             </span>
           </>
         ) : (
-          <span className="text-emerald-900/50">No completed cards yet</span>
+          <span className="text-amber-900/50">No completed cards yet</span>
         )}
       </div>
-      <span className="text-emerald-600 opacity-0 transition group-hover:opacity-100">
+      <span className="text-amber-600 opacity-0 transition group-hover:opacity-100">
         <svg
           xmlns="http://www.w3.org/2000/svg"
           width="12"

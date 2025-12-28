@@ -15,7 +15,7 @@ export function EmptyColumnState({ columnId }: { columnId: string }) {
   return (
     <div className="flex flex-col items-center justify-center py-8 text-center">
       <span className="text-3xl">{state.emoji}</span>
-      <span className="mt-2 text-sm text-emerald-700/50">{state.message}</span>
+      <span className="mt-2 text-sm text-amber-700/50">{state.message}</span>
     </div>
   );
 }

@@ -66,34 +66,34 @@ export function CardModal({
 
   return (
     <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-emerald-950/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative flex max-h-[90vh] w-full max-w-[720px] flex-col rounded-2xl border border-emerald-700/15 bg-white/95 shadow-[0_30px_90px_rgba(0,0,0,0.2)]">
+      <div className="absolute inset-0 bg-amber-950/30 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative flex max-h-[90vh] w-full max-w-[720px] flex-col rounded-2xl border border-amber-700/15 bg-white/95 shadow-[0_30px_90px_rgba(0,0,0,0.2)]">
         {/* Fixed Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-emerald-700/10 px-4 py-3 sm:px-6 sm:py-4">
-          <div className="display-font text-lg text-emerald-950 sm:text-xl">Edit card</div>
-          <button onClick={onClose} className="rounded-full p-1 text-emerald-900/60 hover:bg-emerald-100 hover:text-emerald-900">✕</button>
+        <div className="flex shrink-0 items-center justify-between border-b border-amber-700/10 px-4 py-3 sm:px-6 sm:py-4">
+          <div className="display-font text-lg text-amber-950 sm:text-xl">Edit card</div>
+          <button onClick={onClose} className="rounded-full p-1 text-amber-900/60 hover:bg-amber-100 hover:text-amber-900">✕</button>
         </div>
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
         <div className="space-y-4">
           <div>
-            <label className="text-xs text-emerald-900/60">Title</label>
+            <label className="text-xs text-amber-900/60">Title</label>
             <input
               value={draft.title}
               onChange={(e) => update({ title: e.target.value })}
-              className="mt-2 w-full rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
+              className="mt-2 w-full rounded-xl border border-amber-700/15 bg-white px-3 py-2 text-sm text-amber-950 outline-none focus:border-amber-700/30"
             />
           </div>
 
           <div>
-            <label className="text-xs text-emerald-900/60">Icon (emoji)</label>
+            <label className="text-xs text-amber-900/60">Icon (emoji)</label>
             <div className="mt-2 flex flex-wrap items-center gap-2">
               <input
                 value={draft.icon ?? ""}
                 onChange={(e) => update({ icon: e.target.value })}
                 placeholder="Pick or type"
-                className="w-28 rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
+                className="w-28 rounded-xl border border-amber-700/15 bg-white px-3 py-2 text-sm text-amber-950 outline-none focus:border-amber-700/30"
               />
               <div className="flex flex-wrap gap-1">
                 {EMOJI_CHOICES.map((emoji) => (
@@ -101,7 +101,7 @@ export function CardModal({
                     key={emoji}
                     type="button"
                     onClick={() => update({ icon: emoji })}
-                    className="rounded-lg border border-emerald-700/15 bg-emerald-50/70 px-2 py-1 text-base hover:border-emerald-700/30"
+                    className="rounded-lg border border-amber-700/15 bg-amber-50/70 px-2 py-1 text-base hover:border-amber-700/30"
                   >
                     {emoji}
                   </button>
@@ -110,7 +110,7 @@ export function CardModal({
                   <button
                     type="button"
                     onClick={() => update({ icon: undefined })}
-                    className="rounded-lg border border-emerald-700/15 bg-emerald-50/70 px-2 py-1 text-xs text-emerald-900 hover:border-emerald-700/30"
+                    className="rounded-lg border border-amber-700/15 bg-amber-50/70 px-2 py-1 text-xs text-amber-900 hover:border-amber-700/30"
                   >
                     Clear
                   </button>
@@ -120,44 +120,44 @@ export function CardModal({
           </div>
 
           <div>
-            <label className="text-xs text-emerald-900/60">Notes</label>
+            <label className="text-xs text-amber-900/60">Notes</label>
             <textarea
               value={draft.notes ?? ""}
               onChange={(e) => update({ notes: e.target.value })}
-              className="mt-2 w-full min-h-[90px] rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
+              className="mt-2 w-full min-h-[90px] rounded-xl border border-amber-700/15 bg-white px-3 py-2 text-sm text-amber-950 outline-none focus:border-amber-700/30"
             />
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="text-xs text-emerald-900/60">Link</label>
+              <label className="text-xs text-amber-900/60">Link</label>
               <input
                 value={draft.link ?? ""}
                 onChange={(e) => update({ link: e.target.value })}
-                className="mt-2 w-full rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
+                className="mt-2 w-full rounded-xl border border-amber-700/15 bg-white px-3 py-2 text-sm text-amber-950 outline-none focus:border-amber-700/30"
               />
             </div>
             <div>
-              <label className="text-xs text-emerald-900/60">Due date</label>
+              <label className="text-xs text-amber-900/60">Due date</label>
               <input
                 type="date"
                 value={draft.dueDate ? draft.dueDate.slice(0, 10) : ""}
                 onChange={(e) =>
                   update({ dueDate: e.target.value ? new Date(e.target.value).toISOString() : undefined })
                 }
-                className="mt-2 w-full rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
+                className="mt-2 w-full rounded-xl border border-amber-700/15 bg-white px-3 py-2 text-sm text-amber-950 outline-none focus:border-amber-700/30"
               />
             </div>
           </div>
 
           <div>
             <div className="flex items-center justify-between">
-              <label className="text-xs text-emerald-900/60">Tags</label>
+              <label className="text-xs text-amber-900/60">Tags</label>
               {onAddTag && (
                 <button
                   type="button"
                   onClick={() => setShowAddTag(!showAddTag)}
-                  className="text-xs text-emerald-600 hover:text-emerald-700"
+                  className="text-xs text-amber-600 hover:text-amber-700"
                 >
                   {showAddTag ? "Cancel" : "+ Add custom tag"}
                 </button>
@@ -166,13 +166,13 @@ export function CardModal({
 
             {/* Add Tag Form */}
             {showAddTag && onAddTag && (
-              <div className="mt-2 rounded-xl border border-emerald-700/15 bg-emerald-50/50 p-3">
+              <div className="mt-2 rounded-xl border border-amber-700/15 bg-amber-50/50 p-3">
                 <div className="flex gap-2">
                   <input
                     value={newTagName}
                     onChange={(e) => setNewTagName(e.target.value)}
                     placeholder="Tag name"
-                    className="flex-1 rounded-lg border border-emerald-700/15 bg-white px-3 py-1.5 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
+                    className="flex-1 rounded-lg border border-amber-700/15 bg-white px-3 py-1.5 text-sm text-amber-950 outline-none focus:border-amber-700/30"
                   />
                   <button
                     type="button"
@@ -189,7 +189,7 @@ export function CardModal({
                       }
                     }}
                     disabled={!newTagName.trim()}
-                    className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
+                    className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-50"
                   >
                     Add
                   </button>
@@ -201,7 +201,7 @@ export function CardModal({
                       type="button"
                       onClick={() => setNewTagColor(color)}
                       className={`h-6 w-6 rounded-full transition-transform ${
-                        newTagColor === color ? "scale-110 ring-2 ring-offset-1 ring-emerald-600" : "hover:scale-105"
+                        newTagColor === color ? "scale-110 ring-2 ring-offset-1 ring-amber-600" : "hover:scale-105"
                       }`}
                       style={{ backgroundColor: color }}
                     />
@@ -221,7 +221,7 @@ export function CardModal({
                     if (categoryTags.length === 0) return null;
                     return (
                       <div key={category.id}>
-                        <div className="text-[10px] font-medium uppercase tracking-wide text-emerald-900/40 mb-1.5">
+                        <div className="text-[10px] font-medium uppercase tracking-wide text-amber-900/40 mb-1.5">
                           {category.name}
                         </div>
                         <div className="flex flex-wrap gap-1.5">
@@ -272,7 +272,7 @@ export function CardModal({
                   if (customTags.length === 0) return null;
                   return (
                     <div>
-                      <div className="text-[10px] font-medium uppercase tracking-wide text-emerald-900/40 mb-1.5">
+                      <div className="text-[10px] font-medium uppercase tracking-wide text-amber-900/40 mb-1.5">
                         Custom
                       </div>
                       <div className="flex flex-wrap gap-1.5">
@@ -318,7 +318,7 @@ export function CardModal({
                 })()}
               </div>
             ) : (
-              <div className="mt-2 text-xs text-emerald-900/50">
+              <div className="mt-2 text-xs text-amber-900/50">
                 No tags yet. Click &quot;+ Add custom tag&quot; to create one.
               </div>
             )}
@@ -326,7 +326,7 @@ export function CardModal({
 
           <div>
             <div className="flex items-center justify-between">
-            <label className="text-xs text-emerald-900/60">Checklist</label>
+            <label className="text-xs text-amber-900/60">Checklist</label>
               <button
                 onClick={() =>
                   update({
@@ -336,7 +336,7 @@ export function CardModal({
                     ],
                   })
                 }
-                className="text-xs text-emerald-900/60 hover:text-emerald-900"
+                className="text-xs text-amber-900/60 hover:text-amber-900"
               >
                 + Add item
               </button>
@@ -354,7 +354,7 @@ export function CardModal({
                         ),
                       })
                     }
-                    className="h-4 w-4 accent-emerald-600"
+                    className="h-4 w-4 accent-amber-600"
                   />
                   <input
                     value={it.text}
@@ -365,7 +365,7 @@ export function CardModal({
                         ),
                       })
                     }
-                    className="flex-1 rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
+                    className="flex-1 rounded-xl border border-amber-700/15 bg-white px-3 py-2 text-sm text-amber-950 outline-none focus:border-amber-700/30"
                   />
                   <button
                     onClick={() =>
@@ -373,7 +373,7 @@ export function CardModal({
                         checklist: (draft.checklist ?? []).filter((x) => x.id !== it.id),
                       })
                     }
-                    className="text-emerald-900/50 hover:text-emerald-900"
+                    className="text-amber-900/50 hover:text-amber-900"
                   >
                     ✕
                   </button>
@@ -383,7 +383,7 @@ export function CardModal({
           </div>
 
           {(draft.blockedReason || draft.lastOverrideReason) && (
-            <div className="rounded-xl border border-emerald-700/15 bg-emerald-50/70 p-3 text-xs text-emerald-900">
+            <div className="rounded-xl border border-amber-700/15 bg-amber-50/70 p-3 text-xs text-amber-900">
               {draft.blockedReason && <div>Blocked: {draft.blockedReason}</div>}
               {draft.lastOverrideReason && (
                 <div className="mt-1">
@@ -396,10 +396,10 @@ export function CardModal({
           {allCards && onAddRelation && (
             <div>
               <div className="flex items-center justify-between">
-                <label className="text-xs text-emerald-900/60">Relationships</label>
+                <label className="text-xs text-amber-900/60">Relationships</label>
                 <button
                   onClick={() => setShowRelationPicker(!showRelationPicker)}
-                  className="text-xs text-emerald-600 hover:text-emerald-700"
+                  className="text-xs text-amber-600 hover:text-amber-700"
                 >
                   {showRelationPicker ? "Cancel" : "+ Add relationship"}
                 </button>
@@ -430,7 +430,7 @@ export function CardModal({
               )}
 
               {(!card?.relations || card.relations.length === 0) && !showRelationPicker && (
-                <div className="mt-2 text-xs text-emerald-900/50">
+                <div className="mt-2 text-xs text-amber-900/50">
                   No relationships yet
                 </div>
               )}
@@ -440,7 +440,7 @@ export function CardModal({
         </div>
 
         {/* Fixed Footer */}
-        <div className="flex shrink-0 flex-col gap-3 border-t border-emerald-700/10 px-4 py-3 sm:flex-row sm:justify-between sm:px-6 sm:py-4">
+        <div className="flex shrink-0 flex-col gap-3 border-t border-amber-700/10 px-4 py-3 sm:flex-row sm:justify-between sm:px-6 sm:py-4">
           <button
             onClick={() => onDelete(draft.id)}
             className="order-2 rounded-full border border-rose-400/30 bg-rose-100 px-4 py-2 text-sm text-rose-700 hover:border-rose-400/50 sm:order-1"
@@ -451,13 +451,13 @@ export function CardModal({
           <div className="order-1 flex gap-2 sm:order-2">
             <button
               onClick={onClose}
-              className="flex-1 rounded-full border border-emerald-700/15 bg-emerald-50/70 px-4 py-2 text-sm text-emerald-900 hover:border-emerald-700/30 hover:bg-emerald-100/70 sm:flex-none"
+              className="flex-1 rounded-full border border-amber-700/15 bg-amber-50/70 px-4 py-2 text-sm text-amber-900 hover:border-amber-700/30 hover:bg-amber-100/70 sm:flex-none"
             >
               Cancel
             </button>
             <button
               onClick={() => onSave(draft)}
-              className="flex-1 rounded-full bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(16,185,129,0.2)] transition hover:-translate-y-0.5 hover:bg-emerald-700 sm:flex-none"
+              className="flex-1 rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(245,158,11,0.2)] transition hover:-translate-y-0.5 hover:bg-amber-700 sm:flex-none"
             >
               Save
             </button>

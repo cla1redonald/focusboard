@@ -289,15 +289,15 @@ export function Board({
 
       <div className="mb-3 flex flex-wrap items-end justify-between gap-2 sm:mb-5 sm:gap-3">
         <div>
-          <div className="display-font text-2xl text-emerald-950 sm:text-3xl">Focusboard</div>
-          <div className="hidden text-sm text-emerald-900/70 sm:block">
+          <div className="display-font text-2xl text-amber-950 sm:text-3xl">Focusboard</div>
+          <div className="hidden text-sm text-amber-900/70 sm:block">
             Plan with intent. Keep flow sacred.
           </div>
         </div>
         <button
           onClick={onSettings}
           aria-label="Settings"
-          className="rounded-full border border-emerald-700/20 bg-emerald-600/10 px-3 py-1.5 text-sm text-emerald-900 shadow-[0_8px_24px_rgba(0,0,0,0.12)] transition hover:-translate-y-0.5 hover:border-emerald-700/40 hover:bg-emerald-600/15 sm:px-4 sm:py-2"
+          className="rounded-full border border-amber-700/20 bg-amber-600/10 px-3 py-1.5 text-sm text-amber-900 shadow-[0_8px_24px_rgba(0,0,0,0.12)] transition hover:-translate-y-0.5 hover:border-amber-700/40 hover:bg-amber-600/15 sm:px-4 sm:py-2"
         >
           Settings
         </button>

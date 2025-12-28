@@ -289,8 +289,8 @@ function AuthenticatedApp() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-emerald-50 via-white to-emerald-100">
-        <div className="text-emerald-900/70">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-white to-amber-100">
+        <div className="text-amber-900/70">Loading...</div>
       </div>
     );
   }

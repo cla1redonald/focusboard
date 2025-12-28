@@ -4,8 +4,8 @@
 :root {
   color-scheme: light;
   font-family: "Sofia Sans", ui-sans-serif, system-ui, sans-serif;
-  background-color: #f2f6f4;
-  color: #0f2b2b;
+  background-color: #fffbf5;
+  color: #2d2006;
 }
 
 html,
@@ -17,10 +17,10 @@ body,
 body {
   margin: 0;
   background:
-    radial-gradient(1100px 520px at 8% -10%, rgba(112, 188, 170, 0.28), transparent 60%),
-    radial-gradient(900px 480px at 92% 0%, rgba(180, 220, 200, 0.22), transparent 58%),
-    radial-gradient(700px 380px at 10% 90%, rgba(120, 175, 190, 0.2), transparent 60%),
-    #f2f6f4;
+    radial-gradient(1100px 520px at 8% -10%, rgba(251, 191, 36, 0.25), transparent 60%),
+    radial-gradient(900px 480px at 92% 0%, rgba(253, 224, 71, 0.2), transparent 58%),
+    radial-gradient(700px 380px at 10% 90%, rgba(251, 146, 60, 0.18), transparent 60%),
+    #fffbf5;
 }
 
 .app-bg {
@@ -41,7 +41,7 @@ body {
 .bg-scrim {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(243, 247, 244, 0.7), rgba(243, 247, 244, 0.9));
+  background: linear-gradient(180deg, rgba(255, 251, 245, 0.7), rgba(255, 251, 245, 0.9));
   z-index: 1;
 }
 
@@ -54,7 +54,7 @@ body {
   position: absolute;
   border-radius: 999px;
   filter: blur(40px);
-  opacity: 0.55;
+  opacity: 0.6;
   transform: translateZ(0);
 }
 
@@ -63,7 +63,7 @@ body {
   height: 520px;
   left: -160px;
   top: 120px;
-  background: radial-gradient(circle at 30% 30%, rgba(118, 196, 178, 0.5), transparent 65%);
+  background: radial-gradient(circle at 30% 30%, rgba(251, 191, 36, 0.5), transparent 65%);
 }
 
 .orb-2 {
@@ -71,7 +71,7 @@ body {
   height: 420px;
   right: -120px;
   top: 40px;
-  background: radial-gradient(circle at 30% 30%, rgba(170, 214, 195, 0.55), transparent 65%);
+  background: radial-gradient(circle at 30% 30%, rgba(253, 224, 71, 0.5), transparent 65%);
 }
 
 .orb-3 {
@@ -79,7 +79,7 @@ body {
   height: 360px;
   right: 20%;
   bottom: -120px;
-  background: radial-gradient(circle at 30% 30%, rgba(120, 175, 190, 0.45), transparent 65%);
+  background: radial-gradient(circle at 30% 30%, rgba(251, 146, 60, 0.4), transparent 65%);
 }
 
 .noise {

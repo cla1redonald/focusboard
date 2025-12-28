@@ -23,12 +23,12 @@ export function TopStrip({
   onRedo: () => void;
 }) {
   return (
-    <div className="mb-5 flex flex-wrap items-center gap-4 rounded-2xl border border-emerald-700/15 bg-white/70 px-5 py-3 text-sm text-emerald-900 shadow-[0_12px_40px_rgba(0,0,0,0.08)]">
+    <div className="mb-5 flex flex-wrap items-center gap-4 rounded-2xl border border-amber-700/15 bg-white/70 px-5 py-3 text-sm text-amber-900 shadow-[0_12px_40px_rgba(0,0,0,0.08)]">
       <div className="flex items-center gap-1">
         <button
           onClick={onUndo}
           disabled={!canUndo}
-          className="rounded-lg p-1.5 text-emerald-700 transition hover:bg-emerald-600/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+          className="rounded-lg p-1.5 text-amber-700 transition hover:bg-amber-600/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
           title="Undo (Cmd+Z)"
           aria-label="Undo"
         >
@@ -40,7 +40,7 @@ export function TopStrip({
         <button
           onClick={onRedo}
           disabled={!canRedo}
-          className="rounded-lg p-1.5 text-emerald-700 transition hover:bg-emerald-600/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
+          className="rounded-lg p-1.5 text-amber-700 transition hover:bg-amber-600/10 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent"
           title="Redo (Cmd+Shift+Z)"
           aria-label="Redo"
         >
@@ -50,16 +50,16 @@ export function TopStrip({
           </svg>
         </button>
       </div>
-      <div className="h-4 w-px bg-emerald-700/20" />
-      <div className="text-sm text-emerald-900">
-        <span className="text-emerald-900/70">Doing:</span>{" "}
-        <span className="text-emerald-950">{doingCard ? doingCard.title : "None"}</span>
+      <div className="h-4 w-px bg-amber-700/20" />
+      <div className="text-sm text-amber-900">
+        <span className="text-amber-900/70">Doing:</span>{" "}
+        <span className="text-amber-950">{doingCard ? doingCard.title : "None"}</span>
       </div>
-      <div className="text-sm text-emerald-900">
-        <span className="text-emerald-900/70">Blocked:</span> {blockedCount}
+      <div className="text-sm text-amber-900">
+        <span className="text-amber-900/70">Blocked:</span> {blockedCount}
       </div>
-      <div className="text-sm text-emerald-900">
-        <span className="text-emerald-900/70">Due today:</span> {dueTodayCount}
+      <div className="text-sm text-amber-900">
+        <span className="text-amber-900/70">Due today:</span> {dueTodayCount}
       </div>
       {metrics.currentStreak > 0 && (
         <div
@@ -70,7 +70,7 @@ export function TopStrip({
           <span>{metrics.currentStreak} day{metrics.currentStreak !== 1 ? "s" : ""}</span>
         </div>
       )}
-      <div className="ml-auto h-4 w-px bg-emerald-700/20" />
+      <div className="ml-auto h-4 w-px bg-amber-700/20" />
       <MetricsWidget metrics={metrics} onOpenDashboard={onOpenMetrics} />
     </div>
   );

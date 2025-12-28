@@ -158,12 +158,12 @@ export function CommandPalette({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="fixed left-1/2 top-[20%] z-[1500] w-full max-w-[560px] -translate-x-1/2 overflow-hidden rounded-2xl border border-emerald-700/10 bg-white shadow-2xl"
+            className="fixed left-1/2 top-[20%] z-[1500] w-full max-w-[560px] -translate-x-1/2 overflow-hidden rounded-2xl border border-amber-700/10 bg-white shadow-2xl"
           >
             {/* Search Input */}
-            <div className="flex items-center gap-3 border-b border-emerald-700/10 px-4 py-3">
+            <div className="flex items-center gap-3 border-b border-amber-700/10 px-4 py-3">
               <svg
-                className="h-5 w-5 text-emerald-700/50"
+                className="h-5 w-5 text-amber-700/50"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -181,9 +181,9 @@ export function CommandPalette({
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Search cards, columns, or actions..."
-                className="flex-1 bg-transparent text-sm text-emerald-950 outline-none placeholder:text-emerald-700/40"
+                className="flex-1 bg-transparent text-sm text-amber-950 outline-none placeholder:text-amber-700/40"
               />
-              <kbd className="rounded border border-emerald-700/15 bg-emerald-50/60 px-1.5 py-0.5 text-[10px] text-emerald-700/70">
+              <kbd className="rounded border border-amber-700/15 bg-amber-50/60 px-1.5 py-0.5 text-[10px] text-amber-700/70">
                 ESC
               </kbd>
             </div>
@@ -191,7 +191,7 @@ export function CommandPalette({
             {/* Results List */}
             <div ref={listRef} className="max-h-[400px] overflow-y-auto p-2">
               {results.length === 0 ? (
-                <div className="px-3 py-8 text-center text-sm text-emerald-700/50">
+                <div className="px-3 py-8 text-center text-sm text-amber-700/50">
                   No results found
                 </div>
               ) : (
@@ -208,18 +208,18 @@ export function CommandPalette({
                     onClick={() => executeItem(item)}
                     className={`cursor-pointer rounded-xl px-3 py-2.5 transition ${
                       selectedIndex === idx
-                        ? "bg-emerald-100/60"
-                        : "hover:bg-emerald-50/60"
+                        ? "bg-amber-100/60"
+                        : "hover:bg-amber-50/60"
                     }`}
                   >
                     {item.type === "card" && (
                       <div className="flex items-center gap-3">
                         <span className="text-lg">{item.card.icon || "📄"}</span>
                         <div className="flex-1 min-w-0">
-                          <div className="truncate text-sm font-medium text-emerald-950">
+                          <div className="truncate text-sm font-medium text-amber-950">
                             {item.card.title}
                           </div>
-                          <div className="flex items-center gap-1.5 text-xs text-emerald-700/60">
+                          <div className="flex items-center gap-1.5 text-xs text-amber-700/60">
                             <span
                               className="h-1.5 w-1.5 rounded-full"
                               style={{ backgroundColor: item.column.color }}
@@ -227,7 +227,7 @@ export function CommandPalette({
                             {item.column.title}
                           </div>
                         </div>
-                        <span className="text-[10px] text-emerald-700/40 uppercase">Card</span>
+                        <span className="text-[10px] text-amber-700/40 uppercase">Card</span>
                       </div>
                     )}
 
@@ -235,11 +235,11 @@ export function CommandPalette({
                       <div className="flex items-center gap-3">
                         <span className="text-lg">{item.column.icon}</span>
                         <div className="flex-1">
-                          <div className="text-sm font-medium text-emerald-950">
+                          <div className="text-sm font-medium text-amber-950">
                             Jump to {item.column.title}
                           </div>
                         </div>
-                        <span className="text-[10px] text-emerald-700/40 uppercase">Column</span>
+                        <span className="text-[10px] text-amber-700/40 uppercase">Column</span>
                       </div>
                     )}
 
@@ -247,9 +247,9 @@ export function CommandPalette({
                       <div className="flex items-center gap-3">
                         <span className="text-lg">{item.icon}</span>
                         <div className="flex-1">
-                          <div className="text-sm font-medium text-emerald-950">{item.label}</div>
+                          <div className="text-sm font-medium text-amber-950">{item.label}</div>
                         </div>
-                        <span className="text-[10px] text-emerald-700/40 uppercase">Action</span>
+                        <span className="text-[10px] text-amber-700/40 uppercase">Action</span>
                       </div>
                     )}
                   </div>
@@ -258,15 +258,15 @@ export function CommandPalette({
             </div>
 
             {/* Footer hints */}
-            <div className="flex items-center justify-between border-t border-emerald-700/10 px-4 py-2 text-[10px] text-emerald-700/50">
+            <div className="flex items-center justify-between border-t border-amber-700/10 px-4 py-2 text-[10px] text-amber-700/50">
               <div className="flex items-center gap-3">
                 <span className="flex items-center gap-1">
-                  <kbd className="rounded border border-emerald-700/10 bg-emerald-50/60 px-1 py-0.5">↑</kbd>
-                  <kbd className="rounded border border-emerald-700/10 bg-emerald-50/60 px-1 py-0.5">↓</kbd>
+                  <kbd className="rounded border border-amber-700/10 bg-amber-50/60 px-1 py-0.5">↑</kbd>
+                  <kbd className="rounded border border-amber-700/10 bg-amber-50/60 px-1 py-0.5">↓</kbd>
                   to navigate
                 </span>
                 <span className="flex items-center gap-1">
-                  <kbd className="rounded border border-emerald-700/10 bg-emerald-50/60 px-1 py-0.5">↵</kbd>
+                  <kbd className="rounded border border-amber-700/10 bg-amber-50/60 px-1 py-0.5">↵</kbd>
                   to select
                 </span>
               </div>

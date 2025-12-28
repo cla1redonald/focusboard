@@ -79,25 +79,25 @@ export function SettingsPanel({
 
   return (
     <div className="fixed inset-0 z-[1200] flex items-center justify-center">
-      <div className="absolute inset-0 bg-emerald-950/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative max-h-[90vh] w-[560px] max-w-[92vw] overflow-y-auto rounded-2xl border border-emerald-700/15 bg-white/95 p-6 shadow-[0_30px_80px_rgba(0,0,0,0.2)]">
+      <div className="absolute inset-0 bg-amber-950/30 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative max-h-[90vh] w-[560px] max-w-[92vw] overflow-y-auto rounded-2xl border border-amber-700/15 bg-white/95 p-6 shadow-[0_30px_80px_rgba(0,0,0,0.2)]">
         <div className="flex items-center justify-between">
-          <div className="display-font text-xl text-emerald-950">Settings</div>
-          <button onClick={onClose} className="text-emerald-900/60 hover:text-emerald-900">✕</button>
+          <div className="display-font text-xl text-amber-950">Settings</div>
+          <button onClick={onClose} className="text-amber-900/60 hover:text-amber-900">✕</button>
         </div>
 
         <div className="mt-5 space-y-5">
           {/* Background Section */}
-          <div className="rounded-xl border border-emerald-700/15 bg-white/80 p-4">
-            <div className="text-sm font-semibold text-emerald-950">Background</div>
-            <div className="mt-2 text-xs text-emerald-900/60">
+          <div className="rounded-xl border border-amber-700/15 bg-white/80 p-4">
+            <div className="text-sm font-semibold text-amber-950">Background</div>
+            <div className="mt-2 text-xs text-amber-900/60">
               Upload a background image. It&apos;s saved locally in your browser.
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <label
                 htmlFor={fileInputId}
-                className="cursor-pointer rounded-full border border-emerald-700/15 bg-emerald-50/80 px-4 py-2 text-xs text-emerald-900 hover:border-emerald-700/30 hover:bg-emerald-100/80"
+                className="cursor-pointer rounded-full border border-amber-700/15 bg-amber-50/80 px-4 py-2 text-xs text-amber-900 hover:border-amber-700/30 hover:bg-amber-100/80"
               >
                 Upload image
               </label>
@@ -120,7 +120,7 @@ export function SettingsPanel({
               {settings.backgroundImage && (
                 <button
                   onClick={() => set({ backgroundImage: null })}
-                  className="rounded-full border border-emerald-700/15 bg-emerald-50/80 px-4 py-2 text-xs text-emerald-900 hover:border-emerald-700/30 hover:bg-emerald-100/80"
+                  className="rounded-full border border-amber-700/15 bg-amber-50/80 px-4 py-2 text-xs text-amber-900 hover:border-amber-700/30 hover:bg-amber-100/80"
                 >
                   Remove
                 </button>
@@ -128,7 +128,7 @@ export function SettingsPanel({
             </div>
 
             {settings.backgroundImage && (
-              <div className="mt-4 h-[140px] w-full overflow-hidden rounded-2xl border border-emerald-700/15">
+              <div className="mt-4 h-[140px] w-full overflow-hidden rounded-2xl border border-amber-700/15">
                 <div
                   className="h-full w-full bg-cover bg-center"
                   style={{ backgroundImage: `url(${settings.backgroundImage})` }}
@@ -138,14 +138,14 @@ export function SettingsPanel({
           </div>
 
           {/* Columns Section */}
-          <div className="rounded-xl border border-emerald-700/15 bg-white/80 p-4">
+          <div className="rounded-xl border border-amber-700/15 bg-white/80 p-4">
             <div className="flex items-center justify-between gap-3">
-              <div className="text-sm font-semibold text-emerald-950">Columns</div>
+              <div className="text-sm font-semibold text-amber-950">Columns</div>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={handleMooColors}
-                  className="rounded-full border border-emerald-700/15 bg-emerald-50/80 px-3 py-1 text-[11px] text-emerald-900 hover:border-emerald-700/30 hover:bg-emerald-100/80"
+                  className="rounded-full border border-amber-700/15 bg-amber-50/80 px-3 py-1 text-[11px] text-amber-900 hover:border-amber-700/30 hover:bg-amber-100/80"
                 >
                   Use Moo palette
                 </button>
@@ -160,7 +160,7 @@ export function SettingsPanel({
                     isTerminal: false,
                     order: sortedColumns.length,
                   })}
-                  className="rounded-full border border-emerald-700/15 bg-emerald-50/80 px-3 py-1 text-[11px] text-emerald-900 hover:border-emerald-700/30 hover:bg-emerald-100/80"
+                  className="rounded-full border border-amber-700/15 bg-amber-50/80 px-3 py-1 text-[11px] text-amber-900 hover:border-amber-700/30 hover:bg-amber-100/80"
                 >
                   + Add column
                 </button>
@@ -171,14 +171,14 @@ export function SettingsPanel({
               {sortedColumns.map((col, idx) => (
                 <div
                   key={col.id}
-                  className="flex items-center gap-3 rounded-lg border border-emerald-700/10 bg-white/60 p-2"
+                  className="flex items-center gap-3 rounded-lg border border-amber-700/10 bg-white/60 p-2"
                 >
                   <div className="flex flex-col gap-0.5">
                     <button
                       type="button"
                       disabled={idx === 0}
                       onClick={() => moveColumn(col, "up")}
-                      className="text-xs text-emerald-900/40 hover:text-emerald-900 disabled:opacity-30"
+                      className="text-xs text-amber-900/40 hover:text-amber-900 disabled:opacity-30"
                     >
                       ▲
                     </button>
@@ -186,22 +186,22 @@ export function SettingsPanel({
                       type="button"
                       disabled={idx === sortedColumns.length - 1}
                       onClick={() => moveColumn(col, "down")}
-                      className="text-xs text-emerald-900/40 hover:text-emerald-900 disabled:opacity-30"
+                      className="text-xs text-amber-900/40 hover:text-amber-900 disabled:opacity-30"
                     >
                       ▼
                     </button>
                   </div>
 
                   <div
-                    className="h-6 w-6 rounded-full border border-emerald-700/20"
+                    className="h-6 w-6 rounded-full border border-amber-700/20"
                     style={{ backgroundColor: col.color }}
                   />
 
                   <span className="text-base">{col.icon}</span>
 
                   <div className="flex-1">
-                    <span className="text-sm text-emerald-950">{col.title}</span>
-                    <span className="ml-2 text-xs text-emerald-900/50">
+                    <span className="text-sm text-amber-950">{col.title}</span>
+                    <span className="ml-2 text-xs text-amber-900/50">
                       WIP: {col.wipLimit ?? "∞"}
                       {col.isTerminal && " • Terminal"}
                     </span>
@@ -210,7 +210,7 @@ export function SettingsPanel({
                   <button
                     type="button"
                     onClick={() => setEditingColumn(col)}
-                    className="rounded-full px-2 py-1 text-xs text-emerald-900/60 hover:bg-emerald-100/80 hover:text-emerald-900"
+                    className="rounded-full px-2 py-1 text-xs text-amber-900/60 hover:bg-amber-100/80 hover:text-amber-900"
                   >
                     Edit
                   </button>
@@ -231,9 +231,9 @@ export function SettingsPanel({
 
           {/* Tags Section */}
           {onAddTag && onUpdateTag && onDeleteTag && (
-            <div className="rounded-xl border border-emerald-700/15 bg-white/80 p-4">
+            <div className="rounded-xl border border-amber-700/15 bg-white/80 p-4">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-sm font-semibold text-emerald-950">Tags</div>
+                <div className="text-sm font-semibold text-amber-950">Tags</div>
                 <div className="flex gap-2">
                   {onAddTagCategory && (
                     <button
@@ -243,7 +243,7 @@ export function SettingsPanel({
                         name: "New Category",
                         order: (state.tagCategories?.length ?? 0),
                       })}
-                      className="rounded-full border border-emerald-700/15 bg-emerald-50/80 px-3 py-1 text-[11px] text-emerald-900 hover:border-emerald-700/30 hover:bg-emerald-100/80"
+                      className="rounded-full border border-amber-700/15 bg-amber-50/80 px-3 py-1 text-[11px] text-amber-900 hover:border-amber-700/30 hover:bg-amber-100/80"
                     >
                       + Category
                     </button>
@@ -256,7 +256,7 @@ export function SettingsPanel({
                       color: TAG_COLOR_PALETTE[0],
                       categoryId: state.tagCategories?.[0]?.id ?? "",
                     })}
-                    className="rounded-full border border-emerald-700/15 bg-emerald-50/80 px-3 py-1 text-[11px] text-emerald-900 hover:border-emerald-700/30 hover:bg-emerald-100/80"
+                    className="rounded-full border border-amber-700/15 bg-amber-50/80 px-3 py-1 text-[11px] text-amber-900 hover:border-amber-700/30 hover:bg-amber-100/80"
                   >
                     + Tag
                   </button>
@@ -270,9 +270,9 @@ export function SettingsPanel({
                   .map((category) => {
                     const categoryTags = (state.tags ?? []).filter((t) => t.categoryId === category.id);
                     return (
-                      <div key={category.id} className="rounded-lg border border-emerald-700/10 bg-white/60 p-2">
+                      <div key={category.id} className="rounded-lg border border-amber-700/10 bg-white/60 p-2">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium uppercase tracking-wide text-emerald-900/60">
+                          <span className="text-xs font-medium uppercase tracking-wide text-amber-900/60">
                             {category.name}
                           </span>
                           <div className="flex gap-1">
@@ -280,7 +280,7 @@ export function SettingsPanel({
                               <button
                                 type="button"
                                 onClick={() => setEditingCategory(category)}
-                                className="rounded px-1.5 py-0.5 text-[10px] text-emerald-900/60 hover:bg-emerald-100/80 hover:text-emerald-900"
+                                className="rounded px-1.5 py-0.5 text-[10px] text-amber-900/60 hover:bg-amber-100/80 hover:text-amber-900"
                               >
                                 Edit
                               </button>
@@ -315,7 +315,7 @@ export function SettingsPanel({
                               <button
                                 type="button"
                                 onClick={() => setEditingTag(tag)}
-                                className="ml-1 opacity-0 group-hover:opacity-100 text-[10px] text-emerald-900/60 hover:text-emerald-900"
+                                className="ml-1 opacity-0 group-hover:opacity-100 text-[10px] text-amber-900/60 hover:text-amber-900"
                               >
                                 ✎
                               </button>
@@ -329,7 +329,7 @@ export function SettingsPanel({
                             </div>
                           ))}
                           {categoryTags.length === 0 && (
-                            <span className="text-xs text-emerald-900/40 italic">No tags</span>
+                            <span className="text-xs text-amber-900/40 italic">No tags</span>
                           )}
                         </div>
                       </div>
@@ -342,41 +342,41 @@ export function SettingsPanel({
           {/* Celebrations Toggle */}
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-sm text-emerald-950">Celebrations</div>
-              <div className="text-xs text-emerald-900/60">Subtle confetti when moving to terminal column</div>
+              <div className="text-sm text-amber-950">Celebrations</div>
+              <div className="text-xs text-amber-900/60">Subtle confetti when moving to terminal column</div>
             </div>
             <input
               type="checkbox"
               checked={settings.celebrations}
               onChange={(e) => set({ celebrations: e.target.checked })}
-              className="h-4 w-4 accent-emerald-600"
+              className="h-4 w-4 accent-amber-600"
             />
           </div>
 
           {/* Reduced Motion Toggle */}
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-sm text-emerald-950">Reduced motion override</div>
-              <div className="text-xs text-emerald-900/60">Disables confetti and uses header pulse</div>
+              <div className="text-sm text-amber-950">Reduced motion override</div>
+              <div className="text-xs text-amber-900/60">Disables confetti and uses header pulse</div>
             </div>
             <input
               type="checkbox"
               checked={settings.reducedMotionOverride}
               onChange={(e) => set({ reducedMotionOverride: e.target.checked })}
-              className="h-4 w-4 accent-emerald-600"
+              className="h-4 w-4 accent-amber-600"
             />
           </div>
 
           {/* Analytics Section */}
-          <div className="rounded-xl border border-emerald-700/15 bg-white/80 p-4">
-            <div className="text-sm font-semibold text-emerald-950">Analytics</div>
+          <div className="rounded-xl border border-amber-700/15 bg-white/80 p-4">
+            <div className="text-sm font-semibold text-amber-950">Analytics</div>
 
             <div className="mt-3 space-y-4">
               {/* Aging WIP Indicators Toggle */}
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-sm text-emerald-950">Aging WIP indicators</div>
-                  <div className="text-xs text-emerald-900/60">
+                  <div className="text-sm text-amber-950">Aging WIP indicators</div>
+                  <div className="text-xs text-amber-900/60">
                     Show colored dots on cards based on age (yellow: 3d, orange: 7d, red: 14d)
                   </div>
                 </div>
@@ -384,22 +384,22 @@ export function SettingsPanel({
                   type="checkbox"
                   checked={settings.showAgingIndicators}
                   onChange={(e) => set({ showAgingIndicators: e.target.checked })}
-                  className="h-4 w-4 accent-emerald-600"
+                  className="h-4 w-4 accent-amber-600"
                 />
               </div>
 
               {/* Stale Card Threshold */}
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-sm text-emerald-950">Stale card threshold</div>
-                  <div className="text-xs text-emerald-900/60">
+                  <div className="text-sm text-amber-950">Stale card threshold</div>
+                  <div className="text-xs text-amber-900/60">
                     Days of inactivity before a card is considered stale
                   </div>
                 </div>
                 <select
                   value={settings.staleCardThreshold}
                   onChange={(e) => set({ staleCardThreshold: Number(e.target.value) as 3 | 7 | 14 })}
-                  className="rounded-lg border border-emerald-700/15 bg-white px-3 py-1.5 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
+                  className="rounded-lg border border-amber-700/15 bg-white px-3 py-1.5 text-sm text-amber-950 outline-none focus:border-amber-700/30"
                 >
                   <option value={3}>3 days</option>
                   <option value={7}>7 days</option>
@@ -410,17 +410,17 @@ export function SettingsPanel({
           </div>
 
           {/* Export/Import Section */}
-          <div className="rounded-xl border border-emerald-700/15 bg-white/80 p-4">
-            <div className="mb-3 text-sm font-semibold text-emerald-950">Data Management</div>
+          <div className="rounded-xl border border-amber-700/15 bg-white/80 p-4">
+            <div className="mb-3 text-sm font-semibold text-amber-950">Data Management</div>
             <ExportImportPanel state={state} onImport={onImport} />
           </div>
 
           {/* Account Section - only show when Supabase is configured */}
           {isSupabaseConfigured() && onSignOut && (
-            <div className="rounded-xl border border-emerald-700/15 bg-white/80 p-4">
-              <div className="mb-3 text-sm font-semibold text-emerald-950">Account</div>
+            <div className="rounded-xl border border-amber-700/15 bg-white/80 p-4">
+              <div className="mb-3 text-sm font-semibold text-amber-950">Account</div>
               <div className="flex items-center justify-between">
-                <div className="text-sm text-emerald-900/70">
+                <div className="text-sm text-amber-900/70">
                   Your data is synced to the cloud
                 </div>
                 <button
@@ -437,7 +437,7 @@ export function SettingsPanel({
         <div className="mt-6 flex justify-end">
           <button
             onClick={onClose}
-            className="rounded-full border border-emerald-700/15 bg-emerald-50/80 px-4 py-2 text-sm text-emerald-900 hover:border-emerald-700/30 hover:bg-emerald-100/80"
+            className="rounded-full border border-amber-700/15 bg-amber-50/80 px-4 py-2 text-sm text-amber-900 hover:border-amber-700/30 hover:bg-amber-100/80"
           >
             Close
           </button>
@@ -447,31 +447,31 @@ export function SettingsPanel({
       {/* Column Edit Modal */}
       {editingColumn && (
         <div className="fixed inset-0 z-[1300] flex items-center justify-center">
-          <div className="absolute inset-0 bg-emerald-950/30 backdrop-blur-sm" onClick={() => setEditingColumn(null)} />
-          <div className="relative w-[400px] max-w-[90vw] rounded-2xl border border-emerald-700/15 bg-white/95 p-6 shadow-[0_30px_80px_rgba(0,0,0,0.2)]">
-            <div className="display-font text-lg text-emerald-950">
+          <div className="absolute inset-0 bg-amber-950/30 backdrop-blur-sm" onClick={() => setEditingColumn(null)} />
+          <div className="relative w-[400px] max-w-[90vw] rounded-2xl border border-amber-700/15 bg-white/95 p-6 shadow-[0_30px_80px_rgba(0,0,0,0.2)]">
+            <div className="display-font text-lg text-amber-950">
               {editingColumn.id ? "Edit Column" : "Add Column"}
             </div>
 
             <div className="mt-4 space-y-4">
               <div>
-                <label className="text-xs text-emerald-900/60">Title</label>
+                <label className="text-xs text-amber-900/60">Title</label>
                 <input
                   type="text"
                   value={editingColumn.title}
                   onChange={(e) => setEditingColumn({ ...editingColumn, title: e.target.value })}
-                  className="mt-1 w-full rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
+                  className="mt-1 w-full rounded-xl border border-amber-700/15 bg-white px-3 py-2 text-sm text-amber-950 outline-none focus:border-amber-700/30"
                 />
               </div>
 
               <div className="flex gap-4">
                 <div className="flex-1">
-                  <label className="text-xs text-emerald-900/60">Icon</label>
+                  <label className="text-xs text-amber-900/60">Icon</label>
                   <input
                     type="text"
                     value={editingColumn.icon}
                     onChange={(e) => setEditingColumn({ ...editingColumn, icon: e.target.value })}
-                    className="mt-1 w-full rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
+                    className="mt-1 w-full rounded-xl border border-amber-700/15 bg-white px-3 py-2 text-sm text-amber-950 outline-none focus:border-amber-700/30"
                   />
                   <div className="mt-2 flex flex-wrap gap-1">
                     {DEFAULT_COLUMN_ICONS.map((emoji) => (
@@ -479,7 +479,7 @@ export function SettingsPanel({
                         key={emoji}
                         type="button"
                         onClick={() => setEditingColumn({ ...editingColumn, icon: emoji })}
-                        className="rounded-md border border-emerald-700/15 bg-emerald-50/80 px-1.5 py-0.5 text-sm hover:border-emerald-700/30"
+                        className="rounded-md border border-amber-700/15 bg-amber-50/80 px-1.5 py-0.5 text-sm hover:border-amber-700/30"
                       >
                         {emoji}
                       </button>
@@ -488,25 +488,25 @@ export function SettingsPanel({
                 </div>
 
                 <div>
-                  <label className="text-xs text-emerald-900/60">Color</label>
+                  <label className="text-xs text-amber-900/60">Color</label>
                   <div className="mt-1 flex gap-2">
                     <input
                       type="color"
                       value={editingColumn.color}
                       onChange={(e) => setEditingColumn({ ...editingColumn, color: e.target.value })}
-                      className="h-10 w-10 cursor-pointer rounded border border-emerald-700/20 bg-transparent"
+                      className="h-10 w-10 cursor-pointer rounded border border-amber-700/20 bg-transparent"
                     />
                     <input
                       value={editingColumn.color}
                       onChange={(e) => setEditingColumn({ ...editingColumn, color: e.target.value })}
-                      className="w-24 rounded-lg border border-emerald-700/15 bg-white px-2 py-1 text-xs text-emerald-900 outline-none focus:border-emerald-700/30"
+                      className="w-24 rounded-lg border border-amber-700/15 bg-white px-2 py-1 text-xs text-amber-900 outline-none focus:border-amber-700/30"
                     />
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="text-xs text-emerald-900/60">WIP Limit (leave empty for unlimited)</label>
+                <label className="text-xs text-amber-900/60">WIP Limit (leave empty for unlimited)</label>
                 <input
                   type="number"
                   min={1}
@@ -516,7 +516,7 @@ export function SettingsPanel({
                     wipLimit: e.target.value ? Math.max(1, Number(e.target.value)) : null,
                   })}
                   placeholder="Unlimited"
-                  className="mt-1 w-full rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
+                  className="mt-1 w-full rounded-xl border border-amber-700/15 bg-white px-3 py-2 text-sm text-amber-950 outline-none focus:border-amber-700/30"
                 />
               </div>
 
@@ -526,9 +526,9 @@ export function SettingsPanel({
                   id="isTerminal"
                   checked={editingColumn.isTerminal}
                   onChange={(e) => setEditingColumn({ ...editingColumn, isTerminal: e.target.checked })}
-                  className="h-4 w-4 accent-emerald-600"
+                  className="h-4 w-4 accent-amber-600"
                 />
-                <label htmlFor="isTerminal" className="text-sm text-emerald-950">
+                <label htmlFor="isTerminal" className="text-sm text-amber-950">
                   Terminal column (triggers celebration)
                 </label>
               </div>
@@ -537,7 +537,7 @@ export function SettingsPanel({
             <div className="mt-6 flex justify-end gap-2">
               <button
                 onClick={() => setEditingColumn(null)}
-                className="rounded-full border border-emerald-700/15 bg-emerald-50/80 px-4 py-2 text-sm text-emerald-900 hover:border-emerald-700/30 hover:bg-emerald-100/80"
+                className="rounded-full border border-amber-700/15 bg-amber-50/80 px-4 py-2 text-sm text-amber-900 hover:border-amber-700/30 hover:bg-amber-100/80"
               >
                 Cancel
               </button>
@@ -551,7 +551,7 @@ export function SettingsPanel({
                   }
                   setEditingColumn(null);
                 }}
-                className="rounded-full border border-emerald-600 bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-700"
+                className="rounded-full border border-amber-600 bg-amber-600 px-4 py-2 text-sm text-white hover:bg-amber-700"
               >
                 {editingColumn.id ? "Save" : "Add"}
               </button>
@@ -563,20 +563,20 @@ export function SettingsPanel({
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-[1300] flex items-center justify-center">
-          <div className="absolute inset-0 bg-emerald-950/30 backdrop-blur-sm" onClick={() => setDeleteConfirm(null)} />
-          <div className="relative w-[400px] max-w-[90vw] rounded-2xl border border-emerald-700/15 bg-white/95 p-6 shadow-[0_30px_80px_rgba(0,0,0,0.2)]">
-            <div className="display-font text-lg text-emerald-950">Delete Column</div>
+          <div className="absolute inset-0 bg-amber-950/30 backdrop-blur-sm" onClick={() => setDeleteConfirm(null)} />
+          <div className="relative w-[400px] max-w-[90vw] rounded-2xl border border-amber-700/15 bg-white/95 p-6 shadow-[0_30px_80px_rgba(0,0,0,0.2)]">
+            <div className="display-font text-lg text-amber-950">Delete Column</div>
 
-            <p className="mt-3 text-sm text-emerald-900/70">
+            <p className="mt-3 text-sm text-amber-900/70">
               Are you sure you want to delete &quot;{deleteConfirm.column.title}&quot;?
             </p>
 
             <div className="mt-4">
-              <label className="text-xs text-emerald-900/60">Move existing cards to:</label>
+              <label className="text-xs text-amber-900/60">Move existing cards to:</label>
               <select
                 value={deleteConfirm.migrateToId}
                 onChange={(e) => setDeleteConfirm({ ...deleteConfirm, migrateToId: e.target.value })}
-                className="mt-1 w-full rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
+                className="mt-1 w-full rounded-xl border border-amber-700/15 bg-white px-3 py-2 text-sm text-amber-950 outline-none focus:border-amber-700/30"
               >
                 <option value="">Delete cards too</option>
                 {sortedColumns
@@ -592,7 +592,7 @@ export function SettingsPanel({
             <div className="mt-6 flex justify-end gap-2">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="rounded-full border border-emerald-700/15 bg-emerald-50/80 px-4 py-2 text-sm text-emerald-900 hover:border-emerald-700/30 hover:bg-emerald-100/80"
+                className="rounded-full border border-amber-700/15 bg-amber-50/80 px-4 py-2 text-sm text-amber-900 hover:border-amber-700/30 hover:bg-amber-100/80"
               >
                 Cancel
               </button>
@@ -616,29 +616,29 @@ export function SettingsPanel({
       {/* Tag Edit Modal */}
       {editingTag && onAddTag && onUpdateTag && (
         <div className="fixed inset-0 z-[1300] flex items-center justify-center">
-          <div className="absolute inset-0 bg-emerald-950/30 backdrop-blur-sm" onClick={() => setEditingTag(null)} />
-          <div className="relative w-[400px] max-w-[90vw] rounded-2xl border border-emerald-700/15 bg-white/95 p-6 shadow-[0_30px_80px_rgba(0,0,0,0.2)]">
-            <div className="display-font text-lg text-emerald-950">
+          <div className="absolute inset-0 bg-amber-950/30 backdrop-blur-sm" onClick={() => setEditingTag(null)} />
+          <div className="relative w-[400px] max-w-[90vw] rounded-2xl border border-amber-700/15 bg-white/95 p-6 shadow-[0_30px_80px_rgba(0,0,0,0.2)]">
+            <div className="display-font text-lg text-amber-950">
               {editingTag.id ? "Edit Tag" : "Add Tag"}
             </div>
 
             <div className="mt-4 space-y-4">
               <div>
-                <label className="text-xs text-emerald-900/60">Name</label>
+                <label className="text-xs text-amber-900/60">Name</label>
                 <input
                   type="text"
                   value={editingTag.name}
                   onChange={(e) => setEditingTag({ ...editingTag, name: e.target.value })}
-                  className="mt-1 w-full rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
+                  className="mt-1 w-full rounded-xl border border-amber-700/15 bg-white px-3 py-2 text-sm text-amber-950 outline-none focus:border-amber-700/30"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-emerald-900/60">Category</label>
+                <label className="text-xs text-amber-900/60">Category</label>
                 <select
                   value={editingTag.categoryId}
                   onChange={(e) => setEditingTag({ ...editingTag, categoryId: e.target.value })}
-                  className="mt-1 w-full rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
+                  className="mt-1 w-full rounded-xl border border-amber-700/15 bg-white px-3 py-2 text-sm text-amber-950 outline-none focus:border-amber-700/30"
                 >
                   {(state.tagCategories ?? []).map((cat) => (
                     <option key={cat.id} value={cat.id}>
@@ -649,7 +649,7 @@ export function SettingsPanel({
               </div>
 
               <div>
-                <label className="text-xs text-emerald-900/60">Color</label>
+                <label className="text-xs text-amber-900/60">Color</label>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {TAG_COLOR_PALETTE.map((color) => (
                     <button
@@ -658,7 +658,7 @@ export function SettingsPanel({
                       onClick={() => setEditingTag({ ...editingTag, color })}
                       className={`h-8 w-8 rounded-full border-2 transition ${
                         editingTag.color === color
-                          ? "border-emerald-950 ring-2 ring-emerald-400"
+                          ? "border-amber-950 ring-2 ring-amber-400"
                           : "border-transparent hover:scale-110"
                       }`}
                       style={{ backgroundColor: color }}
@@ -670,19 +670,19 @@ export function SettingsPanel({
                     type="color"
                     value={editingTag.color}
                     onChange={(e) => setEditingTag({ ...editingTag, color: e.target.value })}
-                    className="h-8 w-8 cursor-pointer rounded border border-emerald-700/20 bg-transparent"
+                    className="h-8 w-8 cursor-pointer rounded border border-amber-700/20 bg-transparent"
                   />
                   <input
                     value={editingTag.color}
                     onChange={(e) => setEditingTag({ ...editingTag, color: e.target.value })}
-                    className="w-24 rounded-lg border border-emerald-700/15 bg-white px-2 py-1 text-xs text-emerald-900 outline-none focus:border-emerald-700/30"
+                    className="w-24 rounded-lg border border-amber-700/15 bg-white px-2 py-1 text-xs text-amber-900 outline-none focus:border-amber-700/30"
                   />
                 </div>
               </div>
 
               {/* Preview */}
               <div>
-                <label className="text-xs text-emerald-900/60">Preview</label>
+                <label className="text-xs text-amber-900/60">Preview</label>
                 <div className="mt-2">
                   <span
                     className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
@@ -704,7 +704,7 @@ export function SettingsPanel({
             <div className="mt-6 flex justify-end gap-2">
               <button
                 onClick={() => setEditingTag(null)}
-                className="rounded-full border border-emerald-700/15 bg-emerald-50/80 px-4 py-2 text-sm text-emerald-900 hover:border-emerald-700/30 hover:bg-emerald-100/80"
+                className="rounded-full border border-amber-700/15 bg-amber-50/80 px-4 py-2 text-sm text-amber-900 hover:border-amber-700/30 hover:bg-amber-100/80"
               >
                 Cancel
               </button>
@@ -719,7 +719,7 @@ export function SettingsPanel({
                   setEditingTag(null);
                 }}
                 disabled={!editingTag.name.trim() || !editingTag.categoryId}
-                className="rounded-full border border-emerald-600 bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-700 disabled:opacity-50"
+                className="rounded-full border border-amber-600 bg-amber-600 px-4 py-2 text-sm text-white hover:bg-amber-700 disabled:opacity-50"
               >
                 {editingTag.id ? "Save" : "Add"}
               </button>
@@ -731,20 +731,20 @@ export function SettingsPanel({
       {/* Category Edit Modal */}
       {editingCategory && onAddTagCategory && onUpdateTagCategory && (
         <div className="fixed inset-0 z-[1300] flex items-center justify-center">
-          <div className="absolute inset-0 bg-emerald-950/30 backdrop-blur-sm" onClick={() => setEditingCategory(null)} />
-          <div className="relative w-[400px] max-w-[90vw] rounded-2xl border border-emerald-700/15 bg-white/95 p-6 shadow-[0_30px_80px_rgba(0,0,0,0.2)]">
-            <div className="display-font text-lg text-emerald-950">
+          <div className="absolute inset-0 bg-amber-950/30 backdrop-blur-sm" onClick={() => setEditingCategory(null)} />
+          <div className="relative w-[400px] max-w-[90vw] rounded-2xl border border-amber-700/15 bg-white/95 p-6 shadow-[0_30px_80px_rgba(0,0,0,0.2)]">
+            <div className="display-font text-lg text-amber-950">
               {editingCategory.id ? "Edit Category" : "Add Category"}
             </div>
 
             <div className="mt-4 space-y-4">
               <div>
-                <label className="text-xs text-emerald-900/60">Name</label>
+                <label className="text-xs text-amber-900/60">Name</label>
                 <input
                   type="text"
                   value={editingCategory.name}
                   onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
-                  className="mt-1 w-full rounded-xl border border-emerald-700/15 bg-white px-3 py-2 text-sm text-emerald-950 outline-none focus:border-emerald-700/30"
+                  className="mt-1 w-full rounded-xl border border-amber-700/15 bg-white px-3 py-2 text-sm text-amber-950 outline-none focus:border-amber-700/30"
                 />
               </div>
             </div>
@@ -752,7 +752,7 @@ export function SettingsPanel({
             <div className="mt-6 flex justify-end gap-2">
               <button
                 onClick={() => setEditingCategory(null)}
-                className="rounded-full border border-emerald-700/15 bg-emerald-50/80 px-4 py-2 text-sm text-emerald-900 hover:border-emerald-700/30 hover:bg-emerald-100/80"
+                className="rounded-full border border-amber-700/15 bg-amber-50/80 px-4 py-2 text-sm text-amber-900 hover:border-amber-700/30 hover:bg-amber-100/80"
               >
                 Cancel
               </button>
@@ -767,7 +767,7 @@ export function SettingsPanel({
                   setEditingCategory(null);
                 }}
                 disabled={!editingCategory.name.trim()}
-                className="rounded-full border border-emerald-600 bg-emerald-600 px-4 py-2 text-sm text-white hover:bg-emerald-700 disabled:opacity-50"
+                className="rounded-full border border-amber-600 bg-amber-600 px-4 py-2 text-sm text-white hover:bg-amber-700 disabled:opacity-50"
               >
                 {editingCategory.id ? "Save" : "Add"}
               </button>

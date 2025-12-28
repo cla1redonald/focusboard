@@ -11,9 +11,9 @@ const TOAST_ICONS: Record<ToastType, string> = {
 
 const TOAST_COLORS: Record<ToastType, { bg: string; border: string; text: string }> = {
   success: {
-    bg: "bg-emerald-50",
-    border: "border-emerald-200",
-    text: "text-emerald-800",
+    bg: "bg-amber-50",
+    border: "border-amber-200",
+    text: "text-amber-800",
   },
   error: {
     bg: "bg-rose-50",
@@ -103,7 +103,7 @@ function ToastItem({ toast }: { toast: Toast }) {
       {toast.undoAction && (
         <button
           onClick={handleUndo}
-          className="ml-2 rounded-md bg-white/80 px-2 py-1 text-xs font-medium text-emerald-700 transition hover:bg-white"
+          className="ml-2 rounded-md bg-white/80 px-2 py-1 text-xs font-medium text-amber-700 transition hover:bg-white"
         >
           Undo
         </button>
