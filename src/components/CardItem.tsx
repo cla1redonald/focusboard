@@ -163,6 +163,33 @@ export function CardItem({
             <RelationshipIndicators card={card} />
           </div>
         )}
+
+        {/* Quick link button */}
+        {card.link && (
+          <a
+            href={card.link}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            className={`mt-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium transition hover:scale-105 ${
+              hasBackground
+                ? "bg-white/20 text-white hover:bg-white/30"
+                : "bg-amber-100 text-amber-700 hover:bg-amber-200"
+            }`}
+            title={card.link}
+          >
+            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
+            </svg>
+            {card.link.includes("drive.google.com") ? "Google Drive" :
+             card.link.includes("docs.google.com") ? "Google Docs" :
+             card.link.includes("sheets.google.com") ? "Google Sheets" :
+             card.link.includes("figma.com") ? "Figma" :
+             card.link.includes("notion.") ? "Notion" :
+             card.link.includes("github.com") ? "GitHub" :
+             "Open link"}
+          </a>
+        )}
       </div>
     </motion.div>
   );
