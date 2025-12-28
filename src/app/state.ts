@@ -3,6 +3,8 @@ import { nanoid } from "nanoid";
 import type { AppState, Card, CardRelation, CardTemplate, Column, ColumnId, ColumnTransition, RelationType, Settings, Tag, TagCategory } from "./types";
 import { loadState, saveState } from "./storage";
 import { nowIso } from "./utils";
+import { loadStateFromSupabase, debouncedSaveToSupabase, subscribeToStateChanges } from "./sync";
+import { supabase } from "./supabase";
 
 const MAX_HISTORY = 50;
 
@@ -510,8 +512,55 @@ export function useAppState() {
 
   const { present: state, past, future } = historyState;
 
+  // Track if we've loaded from cloud to avoid overwriting
+  const hasLoadedFromCloud = React.useRef(false);
+  const isExternalUpdate = React.useRef(false);
+
+  // Load from Supabase on startup (if logged in)
+  React.useEffect(() => {
+    if (!supabase) return;
+
+    const loadFromCloud = async () => {
+      const cloudState = await loadStateFromSupabase();
+      if (cloudState && !hasLoadedFromCloud.current) {
+        hasLoadedFromCloud.current = true;
+        isExternalUpdate.current = true;
+        dispatch({ type: "IMPORT_STATE", state: cloudState });
+      }
+    };
+
+    loadFromCloud();
+  }, []);
+
+  // Subscribe to real-time changes from Supabase
+  React.useEffect(() => {
+    if (!supabase) return;
+
+    const unsubscribe = subscribeToStateChanges((cloudState) => {
+      // Only update if this wasn't triggered by our own save
+      isExternalUpdate.current = true;
+      dispatch({ type: "IMPORT_STATE", state: cloudState });
+    });
+
+    return () => {
+      if (unsubscribe) unsubscribe();
+    };
+  }, []);
+
+  // Save to localStorage and Supabase when state changes
   React.useEffect(() => {
     saveState(state);
+
+    // Don't save to cloud if this was an external update (to avoid loops)
+    if (isExternalUpdate.current) {
+      isExternalUpdate.current = false;
+      return;
+    }
+
+    // Save to Supabase (debounced)
+    if (supabase) {
+      debouncedSaveToSupabase(state);
+    }
   }, [state]);
 
   // Keyboard shortcuts for undo/redo
