@@ -15,8 +15,3 @@ export function getSupabaseAdmin(): SupabaseClient {
   }
   return _supabaseAdmin;
 }
-
-// Keep backward compat export
-export const supabaseAdmin = {
-  from: (table: string) => getSupabaseAdmin().from(table),
-};

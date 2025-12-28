@@ -1,5 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { supabaseAdmin } from "../lib/supabase";
+import { getSupabaseAdmin } from "../lib/supabase";
 import { createCard, addCardToUserState } from "../lib/cards";
 
 /**
@@ -47,7 +47,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   const card = createCard(title.trim(), column, source);
-  const result = await addCardToUserState(supabaseAdmin, userId, card);
+  const result = await addCardToUserState(getSupabaseAdmin(), userId, card);
 
   if (!result.success) {
     console.error("Failed to add card:", result.error);

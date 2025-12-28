@@ -1,6 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { verifySlackRequest } from "../lib/slack";
-import { supabaseAdmin } from "../lib/supabase";
+import { getSupabaseAdmin } from "../lib/supabase";
 import { createCard, addCardToUserState } from "../lib/cards";
 
 type SlackEvent = {
@@ -119,7 +119,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Create and add the card
     const card = createCard(cleanText, "backlog", "Slack");
-    const result = await addCardToUserState(supabaseAdmin, userId, card);
+    const result = await addCardToUserState(getSupabaseAdmin(), userId, card);
 
     if (!result.success) {
       console.error("Failed to add card:", result.error);
