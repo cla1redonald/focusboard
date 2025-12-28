@@ -50,17 +50,15 @@ export function CardItem({
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={reducedMotion ? undefined : { opacity: 0, scale: 0.95 }}
       transition={{ duration: reducedMotion ? 0 : 0.2, ease: "easeOut" }}
-      className={`group rounded-xl border bg-white px-3 py-2 text-sm text-emerald-950 shadow-[0_10px_30px_rgba(0,0,0,0.08)] transition hover:-translate-y-0.5 hover:border-emerald-700/20 hover:bg-emerald-50/50 ${
+      onClick={() => onOpen(card)}
+      className={`group cursor-pointer rounded-xl border bg-white px-3 py-2 text-sm text-emerald-950 shadow-[0_10px_30px_rgba(0,0,0,0.08)] transition hover:-translate-y-0.5 hover:border-emerald-700/20 hover:bg-emerald-50/50 ${
         focused
           ? "border-emerald-500 ring-2 ring-emerald-400/50"
           : "border-emerald-700/10"
       }`}
     >
       <div className="flex items-start justify-between gap-2">
-        <button
-          onClick={() => onOpen(card)}
-          className="text-left font-medium leading-snug text-emerald-950 hover:text-emerald-900"
-        >
+        <div className="text-left font-medium leading-snug text-emerald-950">
           <span className="inline-flex items-center gap-2">
             {card.icon && <span className="text-base">{card.icon}</span>}
             <span>{card.title}</span>
@@ -81,10 +79,11 @@ export function CardItem({
               );
             })()}
           </span>
-        </button>
+        </div>
         <div
           className="cursor-grab select-none text-emerald-900/40 group-hover:text-emerald-900/70"
           title="Drag"
+          onClick={(e) => e.stopPropagation()}
           {...listeners}
           {...attributes}
         >
