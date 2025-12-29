@@ -1,7 +1,7 @@
 import React from "react";
 import { nanoid } from "nanoid";
 import type { AppState, Card, CardRelation, CardTemplate, Column, ColumnId, ColumnTransition, RelationType, Settings, SwimlaneId, Tag, TagCategory } from "./types";
-import { loadState, saveState } from "./storage";
+import { loadState, saveState, setStorageUserId } from "./storage";
 import { nowIso, suggestEmojiForTitle, suggestTagsForTitle } from "./utils";
 import { calculateAutoPriority } from "./urgency";
 import { loadStateFromSupabase, debouncedSaveToSupabase, subscribeToStateChanges } from "./sync";
@@ -564,7 +564,13 @@ function initHistory(initialState: AppState): HistoryState {
   };
 }
 
-export function useAppState() {
+export function useAppState(userId?: string | null) {
+  // Set storage userId BEFORE loading state to ensure user-scoped keys
+  // This fixes the race condition where loadState ran before userId was set
+  if (userId !== undefined) {
+    setStorageUserId(userId);
+  }
+
   const [historyState, dispatch] = React.useReducer(
     historyReducer,
     undefined,
