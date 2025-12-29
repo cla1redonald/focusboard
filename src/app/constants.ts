@@ -46,13 +46,17 @@ export const CONFETTI_COLORS = ["#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#a7
 export const DEFAULT_COLUMN_ICONS = ["🗂️", "🎨", "📝", "⚡", "⛔", "✅", "🧠", "🔥", "💡", "🎯", "📦", "🚀"];
 
 export const DEFAULT_TAG_CATEGORIES: TagCategory[] = [
-  { id: "priority", name: "Priority", order: 0 },
-  { id: "type", name: "Type", order: 1 },
-  { id: "effort", name: "Effort", order: 2 },
-  { id: "custom", name: "Custom", order: 3 },
+  { id: "goals", name: "Goals", order: 0 },
+  { id: "priority", name: "Priority", order: 1 },
+  { id: "type", name: "Type", order: 2 },
+  { id: "effort", name: "Effort", order: 3 },
+  { id: "custom", name: "Custom", order: 4 },
 ];
 
 export const DEFAULT_TAGS: Tag[] = [
+  // Goals (examples - customize these!)
+  { id: "goal-launch", name: "Launch MVP", color: "#8B5CF6", categoryId: "goals" },
+  { id: "goal-q1", name: "Q1 Planning", color: "#3B82F6", categoryId: "goals" },
   // Priority
   { id: "high", name: "High", color: "#EF4444", categoryId: "priority" },
   { id: "medium", name: "Medium", color: "#F59E0B", categoryId: "priority" },
