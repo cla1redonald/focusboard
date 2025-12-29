@@ -1,6 +1,7 @@
 import React from "react";
 import type { User, Session } from "@supabase/supabase-js";
 import { supabase, isSupabaseConfigured } from "./supabase";
+import { setStorageUserId } from "./storage";
 
 type AuthState = {
   user: User | null;
@@ -30,6 +31,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
+      // Set user ID for scoped localStorage
+      setStorageUserId(session?.user?.id ?? null);
       setLoading(false);
     });
 
@@ -39,6 +42,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
+      // Update user ID for scoped localStorage
+      setStorageUserId(session?.user?.id ?? null);
       setLoading(false);
     });
 

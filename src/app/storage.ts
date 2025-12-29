@@ -1,6 +1,25 @@
 import type { AppState, Card, Column, Tag, TagCategory } from "./types";
 import { DEFAULT_SETTINGS, DEFAULT_COLUMNS, DEFAULT_TAG_CATEGORIES, DEFAULT_TAGS } from "./constants";
 
+// Current user ID for scoped storage (set when user logs in)
+let currentUserId: string | null = null;
+
+export function setStorageUserId(userId: string | null): void {
+  currentUserId = userId;
+}
+
+export function getStorageUserId(): string | null {
+  return currentUserId;
+}
+
+// Storage key helper - scopes by user ID when available
+function getStorageKey(baseKey: string): string {
+  if (currentUserId) {
+    return `${baseKey}:${currentUserId}`;
+  }
+  return baseKey;
+}
+
 const KEY_V1 = "focusboard:v1";
 
 // Map emoji icons to Lucide icon names for migration
@@ -217,8 +236,14 @@ function getDefaultState(): AppState {
 
 export function loadState(): AppState {
   try {
-    // Try v4 first
-    const rawV4 = localStorage.getItem(KEY_V4);
+    // Try user-scoped v4 first (if logged in)
+    const scopedKey = getStorageKey(KEY_V4);
+    let rawV4 = localStorage.getItem(scopedKey);
+
+    // Fall back to global key for migration (when user first logs in)
+    if (!rawV4) {
+      rawV4 = localStorage.getItem(KEY_V4);
+    }
     if (rawV4) {
       const parsed = JSON.parse(rawV4) as AppState;
       // Ensure "custom" category exists
@@ -317,15 +342,39 @@ export function loadState(): AppState {
 }
 
 export function saveState(state: AppState) {
-  localStorage.setItem(KEY_V4, JSON.stringify(state));
+  // Save to user-scoped key (or global if not logged in)
+  const scopedKey = getStorageKey(KEY_V4);
+  localStorage.setItem(scopedKey, JSON.stringify(state));
 }
 
 const KEY_ONBOARDING = "focusboard:onboarding_seen";
 
 export function hasSeenOnboarding(): boolean {
-  return localStorage.getItem(KEY_ONBOARDING) === "true";
+  // Check user-scoped key first, then global
+  const scopedKey = getStorageKey(KEY_ONBOARDING);
+  return localStorage.getItem(scopedKey) === "true" ||
+         localStorage.getItem(KEY_ONBOARDING) === "true";
 }
 
 export function markOnboardingSeen(): void {
-  localStorage.setItem(KEY_ONBOARDING, "true");
+  // Save to user-scoped key
+  const scopedKey = getStorageKey(KEY_ONBOARDING);
+  localStorage.setItem(scopedKey, "true");
+}
+
+// Clear user-scoped storage on logout
+export function clearUserStorage(): void {
+  if (!currentUserId) return;
+
+  const userSuffix = `:${currentUserId}`;
+  const keysToRemove: string[] = [];
+
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key?.includes(userSuffix)) {
+      keysToRemove.push(key);
+    }
+  }
+
+  keysToRemove.forEach((key) => localStorage.removeItem(key));
 }

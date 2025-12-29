@@ -206,3 +206,16 @@ export type FilterState = {
   dueDate: DueDateFilter;
   hasBlocker: boolean | null; // null = any, true = only blocked, false = only unblocked
 };
+
+// Auth types for multi-user support
+export type User = {
+  id: string;
+  email: string;
+  created_at: string;
+};
+
+export type AuthState = {
+  user: User | null;
+  loading: boolean;
+  initialized: boolean;
+};
