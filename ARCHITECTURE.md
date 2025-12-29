@@ -394,9 +394,57 @@ The `/api/webhook/add-card` endpoint allows external tools to add cards.
 
 See [docs/API.md](docs/API.md) for full API documentation.
 
-## Future Considerations
+## Strengths
 
-- Real-time collaboration (Supabase Realtime)
-- Offline-first with conflict resolution
-- Card virtualization for large boards
-- WebSocket sync for multi-device
+| Strength | Why It Matters |
+|----------|----------------|
+| **Offline-first** | Works without internet. localStorage is instant, Supabase syncs in background. |
+| **Simple state management** | Single `useReducer` with undo/redo. Easy to understand, debug, and extend. |
+| **Type safety** | Full TypeScript coverage catches bugs at compile time, not runtime. |
+| **Zero backend code** | Supabase handles auth, DB, and real-time. Vercel hosts static files. No servers to maintain. |
+| **Migration system** | Storage versions (v1→v4) let you evolve the data model without breaking existing users. |
+| **User isolation** | RLS + scoped localStorage = bulletproof multi-user separation. |
+| **Fast builds** | Vite is 10-100x faster than Webpack. Sub-second hot reload. |
+| **Portable data** | JSON/CSV export means users own their data. No lock-in. |
+| **High test coverage** | 357 tests = confidence to refactor and add features. |
+| **Low cost** | Supabase free tier + Vercel free tier = $0/month for small scale. |
+
+## Limitations
+
+| Limitation | Impact | Potential Fix |
+|------------|--------|---------------|
+| **Last-write-wins sync** | Simultaneous edits on two devices = one change lost | Implement CRDT or operational transforms |
+| **Full state replacement** | Every save sends entire state (~50KB) | Switch to granular updates (patch individual cards) |
+| **No virtualization** | 1000+ cards will slow down rendering | Add `react-window` or `@tanstack/virtual` |
+| **Fixed swimlanes** | Only Work/Personal, can't add custom | Make swimlanes dynamic like columns |
+| **No real-time collaboration** | Can't see other users editing live | Add Supabase Realtime presence |
+| **localStorage limits** | ~5MB per origin | Compress state or move more to Supabase |
+| **Single-tenant webhook** | Webhook adds cards for one hardcoded user | Add user identification to webhook |
+| **Undo history in memory** | Refresh = lose undo stack | Persist history to localStorage |
+
+## Scale Limits
+
+```
+Current architecture works well for:
+├── Users: 1-100 (Supabase free tier)
+├── Cards per user: <1,000 (no virtualization)
+├── State size: <5MB (localStorage limit)
+└── Concurrent editors: 1 per board (no collaboration)
+
+Would need changes for:
+├── Users: 1,000+ → Supabase paid tier
+├── Cards: 10,000+ → Virtualization + pagination
+├── Real-time collab → Presence + conflict resolution
+└── Mobile → Native app or better PWA
+```
+
+## Architecture Trade-offs
+
+| Choice | Alternative | Trade-off |
+|--------|-------------|-----------|
+| Client-side state | Server-side | Faster UX, but sync complexity |
+| Full state sync | Granular patches | Simpler code, but more bandwidth |
+| localStorage first | Cloud first | Works offline, but potential conflicts |
+| useReducer | Redux/Zustand | Less boilerplate, but no middleware |
+| Tailwind | CSS Modules | Faster styling, but larger HTML |
+| Supabase | Firebase/AWS | Better DX + SQL, but smaller ecosystem |
