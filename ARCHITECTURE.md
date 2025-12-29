@@ -186,14 +186,17 @@ dispatch({ type, payload })
 
 ### Local Storage
 
-Data is persisted to localStorage with versioned keys:
+Data is persisted to localStorage with versioned, user-scoped keys:
 
-| Version | Key | Description |
-|---------|-----|-------------|
+| Version | Key Pattern | Description |
+|---------|-------------|-------------|
 | v1 | `focusboard:v1` | Original format (legacy) |
 | v2 | `focusboard:v2` | Added dynamic columns |
 | v3 | `focusboard:v3` | Added tag categories and tags |
-| v4 | `focusboard:v4` | Added swimlanes, card ordering |
+| v4 | `focusboard:v4:{userId}` | Added swimlanes, user-scoped keys |
+
+When a user is logged in, storage keys include their user ID to ensure data isolation.
+Local-only mode (no auth) uses global keys without userId suffix.
 
 ### Migration System
 
@@ -211,16 +214,24 @@ loadState() {
 
 When Supabase is configured:
 
-1. **Authentication** - Email/password or magic link
-2. **Storage** - State stored in `user_data` table keyed by user ID
-3. **Sync Strategy** - Full state replacement (last-write-wins)
+1. **Authentication** - Email/password or magic link via Supabase Auth
+2. **Storage** - State stored in `app_state` table, metrics in `metrics` table
+3. **Data Isolation** - Row Level Security (RLS) ensures users only access their own data
+4. **Sync Strategy** - Full state replacement (last-write-wins), debounced saves
 
 ```
 ┌──────────┐     ┌──────────┐     ┌──────────┐
 │  Local   │ ◄─► │  React   │ ◄─► │ Supabase │
 │ Storage  │     │  State   │     │    DB    │
+│ (scoped) │     │          │     │  (RLS)   │
 └──────────┘     └──────────┘     └──────────┘
 ```
+
+**Multi-User Architecture:**
+- Each user has isolated localStorage (`focusboard:v4:{userId}`)
+- Supabase RLS policies enforce `user_id = auth.uid()` on all queries
+- New users start with empty state (no data leakage between users)
+- Real-time subscriptions sync changes across devices
 
 ## Component Architecture
 
@@ -352,8 +363,9 @@ filterCards(cards, filter) {
 
 - No sensitive data stored (except optional Supabase credentials in env)
 - XSS protection via React's default escaping
-- localStorage data is user-controlled
-- Supabase RLS policies protect user data
+- localStorage data is user-scoped when authenticated
+- Supabase RLS policies enforce complete user data isolation
+- User ID set synchronously before state initialization (prevents race conditions)
 
 ## Webhook API
 

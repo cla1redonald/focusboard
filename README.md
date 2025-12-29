@@ -11,7 +11,8 @@ A focused Kanban-style board with WIP limits, colored tags, and cloud sync.
 - **WIP Limits** - Set work-in-progress limits per column with visual warnings
 - **Smart Card Creation** - Auto-suggest emojis and tags based on card title keywords
 - **Colored Tags** - Organize cards with predefined tag categories (Priority, Type, Effort) and custom colors
-- **Cloud Sync** - Optional Supabase authentication for syncing across devices
+- **Multi-User Support** - Each user gets their own private board with Supabase authentication
+- **Cloud Sync** - Sync your board across devices when logged in
 - **Undo/Redo** - Full history support with keyboard shortcuts (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z)
 - **Card Relationships** - Link related cards with "blocks", "blocked by", and "related to" relationships
 - **Keyboard Navigation** - Navigate and manage cards without leaving the keyboard
@@ -49,14 +50,17 @@ Open `http://localhost:5173/`
 | `npm run test:coverage` | Run tests with coverage report |
 | `npm run preview` | Preview the production build |
 
-## Cloud Sync Setup (Optional)
+## Multi-User Setup (Optional)
 
-To enable cloud sync with Supabase:
+To enable authentication and multi-user support:
 
 1. Create a Supabase project at [supabase.com](https://supabase.com)
 2. Copy `.env.example` to `.env.local`
 3. Fill in your Supabase URL and anon key
 4. Run the SQL setup in your Supabase dashboard (see [docs/SUPABASE.md](docs/SUPABASE.md))
+5. Enable Email auth in Supabase Authentication settings
+
+Each user will have their own private board with isolated data.
 
 ## Webhook API
 
