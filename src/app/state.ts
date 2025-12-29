@@ -566,6 +566,9 @@ function initHistory(initialState: AppState): HistoryState {
 }
 
 export function useAppState(userId?: string | null) {
+  // DEBUG: Log userId being used
+  console.log("[useAppState] userId:", userId);
+
   // Set storage userId BEFORE loading state to ensure user-scoped keys
   // This fixes the race condition where loadState ran before userId was set
   if (userId !== undefined) {
@@ -579,6 +582,7 @@ export function useAppState(userId?: string | null) {
       // If userId is null (logged in but no ID yet), return empty state
       // This prevents loading global localStorage data for wrong user
       if (userId === null) {
+        console.log("[useAppState] userId is null, returning empty state");
         return initHistory({
           cards: [],
           columns: DEFAULT_COLUMNS,
@@ -588,7 +592,9 @@ export function useAppState(userId?: string | null) {
           tags: DEFAULT_TAGS,
         });
       }
-      return initHistory(loadState());
+      const state = loadState();
+      console.log("[useAppState] loadState returned", state.cards.length, "cards");
+      return initHistory(state);
     }
   );
 
@@ -605,7 +611,9 @@ export function useAppState(userId?: string | null) {
 
     const loadFromCloud = async () => {
       const cloudState = await loadStateFromSupabase();
+      console.log("[useAppState] Cloud state:", cloudState ? `${cloudState.cards.length} cards` : "null");
       if (cloudState && !hasLoadedFromCloud.current) {
+        console.log("[useAppState] IMPORTING cloud state with", cloudState.cards.length, "cards");
         hasLoadedFromCloud.current = true;
         isExternalUpdate.current = true;
         dispatch({ type: "IMPORT_STATE", state: cloudState });
