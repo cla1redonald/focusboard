@@ -230,10 +230,7 @@ export function SettingsPanel({
                     const IconComponent = ICON_MAP[col.icon];
                     if (IconComponent) {
                       return (
-                        <div
-                          className="flex h-7 w-7 items-center justify-center rounded-md"
-                          style={{ backgroundColor: `${col.color}15`, color: col.color }}
-                        >
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-100 text-emerald-600">
                           <IconComponent size={14} />
                         </div>
                       );

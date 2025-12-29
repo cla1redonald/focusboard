@@ -106,10 +106,7 @@ export function Column({
               const IconComponent = ICON_MAP[icon];
               if (IconComponent) {
                 return (
-                  <div
-                    className="flex h-6 w-6 items-center justify-center rounded-md"
-                    style={{ backgroundColor: `${accentColor}15`, color: accentColor }}
-                  >
+                  <div className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-100 text-emerald-600">
                     <IconComponent size={14} />
                   </div>
                 );
