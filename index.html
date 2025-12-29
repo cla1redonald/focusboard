@@ -7,23 +7,6 @@
     <meta name="description" content="A focused Kanban board with WIP limits, swimlanes, and smart card creation" />
     <meta name="theme-color" content="#10B981" />
     <title>Focusboard</title>
-    <script>
-      // Prevent flash of wrong theme (FOUC) by setting theme before render
-      (function() {
-        try {
-          var stored = localStorage.getItem('focusboard:v4');
-          var theme = stored ? JSON.parse(stored).settings?.theme : null;
-          var isDark = theme === 'dark' ||
-            (theme !== 'light' && window.matchMedia('(prefers-color-scheme: dark)').matches);
-          if (isDark) {
-            document.documentElement.classList.add('dark');
-          } else {
-            document.documentElement.classList.remove('dark');
-            document.documentElement.classList.add('light');
-          }
-        } catch (e) {}
-      })();
-    </script>
   </head>
   <body>
     <div id="root"></div>

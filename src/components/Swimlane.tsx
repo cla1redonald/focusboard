@@ -55,11 +55,11 @@ export function Swimlane({
   const cardCount = Object.values(cardsByColumn).flat().length;
 
   return (
-    <div className="swimlane mb-6 border-b border-gray-200 pb-6 last:border-b-0 last:pb-0 dark:border-gray-700">
+    <div className="swimlane mb-6 border-b border-gray-200 pb-6 last:border-b-0 last:pb-0">
       {/* Swimlane Header - Always visible */}
       <button
         onClick={onToggleCollapse}
-        className="flex items-center gap-3 mb-3 w-full text-left group hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20 rounded-lg px-2 py-1.5 -mx-2 transition"
+        className="flex items-center gap-3 mb-3 w-full text-left group hover:bg-emerald-50/50 rounded-lg px-2 py-1.5 -mx-2 transition"
       >
         <span
           className="flex items-center justify-center w-8 h-8 rounded-lg text-lg shadow-sm"
@@ -67,9 +67,9 @@ export function Swimlane({
         >
           {icon}
         </span>
-        <span className="text-lg font-semibold text-gray-900 dark:text-gray-100">{title}</span>
-        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">{cardCount} cards</span>
-        <span className="ml-auto text-gray-400 transition group-hover:text-emerald-600 dark:group-hover:text-emerald-400 text-sm font-medium">
+        <span className="text-lg font-semibold text-gray-900">{title}</span>
+        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">{cardCount} cards</span>
+        <span className="ml-auto text-gray-400 transition group-hover:text-emerald-600 text-sm font-medium">
           {collapsed ? "+" : "−"}
         </span>
       </button>

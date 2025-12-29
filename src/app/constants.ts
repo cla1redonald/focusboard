@@ -39,7 +39,6 @@ export const DEFAULT_SETTINGS: Settings = {
   autoPriorityFromDueDate: false,
   staleBacklogThreshold: 7,
   collapsedSwimlanes: [],
-  theme: "system",
 };
 
 export const CONFETTI_COLORS = ["#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#a78bfa"];

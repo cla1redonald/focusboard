@@ -524,7 +524,6 @@ describe("state reducer", () => {
         autoPriorityFromDueDate: true,
         staleBacklogThreshold: 7,
         collapsedSwimlanes: [],
-        theme: "dark",
       };
 
       act(() => {

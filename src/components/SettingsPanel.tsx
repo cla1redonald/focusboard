@@ -13,12 +13,9 @@ import {
   Package,
   Brain,
   Flame,
-  Sun,
-  Moon,
-  Monitor,
   type LucideIcon,
 } from "lucide-react";
-import type { AppState, Column, Settings, Tag, TagCategory, ThemeMode } from "../app/types";
+import type { AppState, Column, Settings, Tag, TagCategory } from "../app/types";
 import { COLUMN_COLORS, DEFAULT_COLUMN_ICONS, TAG_COLOR_PALETTE } from "../app/constants";
 import { ExportImportPanel } from "./ExportImportPanel";
 import type { ImportMode } from "../app/exportImport";
@@ -114,45 +111,16 @@ export function SettingsPanel({
 
   return (
     <div className="fixed inset-0 z-[1200] flex items-center justify-center">
-      <div className="absolute inset-0 bg-gray-900/30 backdrop-blur-sm dark:bg-black/50" onClick={onClose} />
-      <div className="relative max-h-[90vh] w-[560px] max-w-[92vw] overflow-y-auto rounded-xl border border-gray-200 bg-white p-6 shadow-xl dark:border-gray-700 dark:bg-gray-900">
+      <div className="absolute inset-0 bg-gray-900/30 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative max-h-[90vh] w-[560px] max-w-[92vw] overflow-y-auto rounded-xl border border-gray-200 bg-white p-6 shadow-xl">
         <div className="flex items-center justify-between">
-          <div className="text-xl font-semibold text-gray-900 dark:text-gray-100">Settings</div>
-          <button onClick={onClose} className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300" aria-label="Close">
+          <div className="text-xl font-semibold text-gray-900">Settings</div>
+          <button onClick={onClose} className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600" aria-label="Close">
             <X size={20} />
           </button>
         </div>
 
         <div className="mt-5 space-y-5">
-          {/* Appearance Section */}
-          <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4 dark:border-gray-700 dark:bg-gray-800/50">
-            <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">Appearance</div>
-            <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-              Choose your preferred color theme.
-            </div>
-            <div className="mt-3 flex rounded-lg border border-gray-200 bg-white p-1 dark:border-gray-700 dark:bg-gray-800">
-              {(["light", "dark", "system"] as ThemeMode[]).map((mode) => {
-                const isActive = settings.theme === mode;
-                const Icon = mode === "light" ? Sun : mode === "dark" ? Moon : Monitor;
-                const label = mode.charAt(0).toUpperCase() + mode.slice(1);
-                return (
-                  <button
-                    key={mode}
-                    onClick={() => set({ theme: mode })}
-                    className={`flex flex-1 items-center justify-center gap-2 rounded-md px-4 py-2 text-sm transition ${
-                      isActive
-                        ? "bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
-                        : "text-gray-600 hover:bg-gray-50 dark:text-gray-400 dark:hover:bg-gray-700"
-                    }`}
-                  >
-                    <Icon size={16} />
-                    {label}
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-
           {/* Background Section */}
           <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4">
             <div className="text-sm font-semibold text-gray-900">Background</div>

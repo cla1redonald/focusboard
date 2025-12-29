@@ -84,14 +84,14 @@ export function Column({
 
   const headerClass =
     headerState === "full"
-      ? "border-red-200 bg-red-50 dark:border-red-800 dark:bg-red-900/30"
+      ? "border-red-200 bg-red-50"
       : headerState === "near"
-      ? "border-gray-300 bg-gray-50 dark:border-gray-600 dark:bg-gray-700/50"
-      : "border-gray-200 bg-white dark:border-gray-700 dark:bg-gray-800";
+      ? "border-gray-300 bg-gray-50"
+      : "border-gray-200 bg-white";
 
   const headerFocusClass =
     columnFocused && focusedCardIndex === null
-      ? "ring-2 ring-emerald-500/20 dark:ring-emerald-400/30"
+      ? "ring-2 ring-emerald-500/20"
       : "";
 
   return (
@@ -106,7 +106,7 @@ export function Column({
               const IconComponent = ICON_MAP[icon];
               if (IconComponent) {
                 return (
-                  <div className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-100 text-emerald-600 dark:bg-emerald-900/50 dark:text-emerald-400">
+                  <div className="flex h-6 w-6 items-center justify-center rounded-md bg-emerald-100 text-emerald-600">
                     <IconComponent size={14} />
                   </div>
                 );
@@ -114,11 +114,11 @@ export function Column({
               // Fallback to emoji for backwards compatibility
               return <span className="text-base">{icon}</span>;
             })()}
-            <div className="text-sm font-semibold text-gray-900 dark:text-gray-100">
+            <div className="text-sm font-semibold text-gray-900">
               {title}
             </div>
           </div>
-          <div className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600 dark:bg-gray-700 dark:text-gray-300">
+          <div className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
             {countLabel}
           </div>
         </div>
@@ -126,8 +126,8 @@ export function Column({
 
       <div
         ref={setNodeRef}
-        className={`mt-2 min-h-[260px] space-y-2 rounded-xl border border-gray-200 bg-white p-2 shadow-sm dark:border-gray-700 dark:bg-gray-800/50 ${
-          isOver ? "ring-2 ring-emerald-500/20 dark:ring-emerald-400/30" : ""
+        className={`mt-2 min-h-[260px] space-y-2 rounded-xl border border-gray-200 bg-white p-2 shadow-sm ${
+          isOver ? "ring-2 ring-emerald-500/20" : ""
         }`}
       >
         <SortableContext
@@ -171,7 +171,7 @@ export function Column({
             onChange={(e) => setText(e.target.value)}
             placeholder="Add a card…"
             data-column-input={id}
-            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-100 dark:placeholder:text-gray-500 dark:focus:border-emerald-400 dark:focus:bg-gray-800 dark:focus:ring-emerald-400/30"
+            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20"
           />
         </form>
       </div>
