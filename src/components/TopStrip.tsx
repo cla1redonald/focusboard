@@ -1,5 +1,6 @@
 import type { Card, MetricsState } from "../app/types";
 import { MetricsWidget } from "./MetricsWidget";
+import { PomodoroTimer } from "./PomodoroTimer";
 
 export function TopStrip({
   doingCard,
@@ -73,6 +74,8 @@ export function TopStrip({
         </div>
       )}
       <div className="ml-auto h-4 w-px bg-amber-700/20" />
+      <PomodoroTimer />
+      <div className="h-4 w-px bg-amber-700/20" />
       <button
         onClick={onOpenTimeline}
         className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-amber-700 transition hover:bg-amber-600/10"
