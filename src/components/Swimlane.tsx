@@ -55,11 +55,11 @@ export function Swimlane({
   const cardCount = Object.values(cardsByColumn).flat().length;
 
   return (
-    <div className="swimlane mb-6 border-b border-amber-200 pb-6 last:border-b-0 last:pb-0">
+    <div className="swimlane mb-6 border-b border-zinc-200 pb-6 last:border-b-0 last:pb-0">
       {/* Swimlane Header - Always visible */}
       <button
         onClick={onToggleCollapse}
-        className="flex items-center gap-3 mb-3 w-full text-left group hover:bg-amber-50/50 rounded-lg px-2 py-1.5 -mx-2 transition"
+        className="flex items-center gap-3 mb-3 w-full text-left group hover:bg-zinc-50 rounded-lg px-2 py-1.5 -mx-2 transition"
       >
         <span
           className="flex items-center justify-center w-8 h-8 rounded-lg text-lg"
@@ -67,9 +67,9 @@ export function Swimlane({
         >
           {icon}
         </span>
-        <span className="text-lg font-semibold text-amber-950">{title}</span>
-        <span className="text-sm text-amber-900/60">({cardCount} cards)</span>
-        <span className="ml-auto text-amber-900/40 transition group-hover:text-amber-900/70 text-sm">
+        <span className="text-lg font-semibold text-zinc-900">{title}</span>
+        <span className="text-sm text-zinc-500">({cardCount} cards)</span>
+        <span className="ml-auto text-zinc-400 transition group-hover:text-zinc-600 text-sm">
           {collapsed ? "+" : "-"}
         </span>
       </button>

@@ -321,8 +321,8 @@ describe("CardModal", () => {
 
       render(<CardModal {...defaultProps} onClose={onClose} />);
 
-      // Find the ✕ close button in header
-      await user.click(screen.getAllByRole("button", { name: "✕" })[0]);
+      // Find the close button in header
+      await user.click(screen.getByRole("button", { name: "Close" }));
 
       expect(onClose).toHaveBeenCalledTimes(1);
     });

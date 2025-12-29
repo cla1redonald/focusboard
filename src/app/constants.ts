@@ -13,21 +13,21 @@ export const DEFAULT_SWIMLANES: Swimlane[] = [
 ];
 
 export const DEFAULT_COLUMNS: Column[] = [
-  { id: "backlog", title: "Backlog", icon: "🗂️", color: "#F59E0B", wipLimit: null, isTerminal: false, order: 0 },
-  { id: "design", title: "Design & Planning", icon: "🎨", color: "#FBBF24", wipLimit: 5, isTerminal: false, order: 1 },
-  { id: "todo", title: "To Do", icon: "📝", color: "#FCD34D", wipLimit: 12, isTerminal: false, order: 2 },
-  { id: "doing", title: "Doing", icon: "⚡", color: "#FB923C", wipLimit: null, isTerminal: false, order: 3 },
-  { id: "blocked", title: "Blocked", icon: "⛔", color: "#F87171", wipLimit: 5, isTerminal: false, order: 4 },
-  { id: "done", title: "Done", icon: "✅", color: "#34D399", wipLimit: null, isTerminal: true, order: 5 },
+  { id: "backlog", title: "Backlog", icon: "🗂️", color: "#64748b", wipLimit: null, isTerminal: false, order: 0 },
+  { id: "design", title: "Design & Planning", icon: "🎨", color: "#8b5cf6", wipLimit: 5, isTerminal: false, order: 1 },
+  { id: "todo", title: "To Do", icon: "📝", color: "#3b82f6", wipLimit: 12, isTerminal: false, order: 2 },
+  { id: "doing", title: "Doing", icon: "⚡", color: "#f59e0b", wipLimit: null, isTerminal: false, order: 3 },
+  { id: "blocked", title: "Blocked", icon: "⛔", color: "#ef4444", wipLimit: 5, isTerminal: false, order: 4 },
+  { id: "done", title: "Done", icon: "✅", color: "#10b981", wipLimit: null, isTerminal: true, order: 5 },
 ];
 
-export const MOO_COLUMN_COLORS: Record<string, string> = {
-  backlog: "#F59E0B",
-  design: "#FBBF24",
-  todo: "#FCD34D",
-  doing: "#FB923C",
-  blocked: "#F87171",
-  done: "#34D399",
+export const COLUMN_COLORS: Record<string, string> = {
+  backlog: "#64748b",
+  design: "#8b5cf6",
+  todo: "#3b82f6",
+  doing: "#f59e0b",
+  blocked: "#ef4444",
+  done: "#10b981",
 };
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -41,7 +41,7 @@ export const DEFAULT_SETTINGS: Settings = {
   collapsedSwimlanes: [],
 };
 
-export const CONFETTI_COLORS = ["#FBBF24", "#FB923C", "#F59E0B", "#FCD34D", "#34D399"];
+export const CONFETTI_COLORS = ["#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#a78bfa"];
 
 export const DEFAULT_COLUMN_ICONS = ["🗂️", "🎨", "📝", "⚡", "⛔", "✅", "🧠", "🔥", "💡", "🎯", "📦", "🚀"];
 

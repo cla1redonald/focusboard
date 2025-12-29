@@ -1,4 +1,5 @@
 import React from "react";
+import { X, Trash2 } from "lucide-react";
 import type { Card, RelationType, SwimlaneId, Tag, TagCategory } from "../app/types";
 import { nanoid } from "nanoid";
 import { RelationshipPicker, RelationshipBadge } from "./RelationshipPicker";
@@ -109,64 +110,66 @@ export function CardModal({
 
   return (
     <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-amber-950/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative flex max-h-[90vh] w-full max-w-[720px] flex-col rounded-2xl border border-amber-700/15 bg-white/95 shadow-[0_30px_90px_rgba(0,0,0,0.2)]">
+      <div className="absolute inset-0 bg-zinc-900/30 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative flex max-h-[90vh] w-full max-w-[720px] flex-col rounded-xl border border-zinc-200 bg-white shadow-xl">
         {/* Fixed Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-amber-700/10 px-4 py-3 sm:px-6 sm:py-4">
-          <div className="display-font text-lg text-amber-950 sm:text-xl">Edit card</div>
-          <button onClick={onClose} className="rounded-full p-1 text-amber-900/60 hover:bg-amber-100 hover:text-amber-900">✕</button>
+        <div className="flex shrink-0 items-center justify-between border-b border-zinc-100 px-4 py-3 sm:px-6 sm:py-4">
+          <div className="text-lg font-semibold text-zinc-900 sm:text-xl">Edit card</div>
+          <button onClick={onClose} className="rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600" aria-label="Close">
+            <X size={20} />
+          </button>
         </div>
 
         {/* Scrollable Content */}
         <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
         <div className="space-y-4">
           <div>
-            <label className="text-xs text-amber-900/60">Title</label>
+            <label className="text-xs font-medium text-zinc-500">Title</label>
             <input
               value={draft.title}
               onChange={(e) => update({ title: e.target.value })}
-              className="mt-2 w-full rounded-xl border border-amber-700/15 bg-white px-3 py-2 text-sm text-amber-950 outline-none focus:border-amber-700/30"
+              className="mt-1.5 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20"
             />
           </div>
 
           <div>
-            <label className="text-xs text-amber-900/60">Icon (emoji)</label>
-            <div className="mt-2 space-y-2">
+            <label className="text-xs font-medium text-zinc-500">Icon (emoji)</label>
+            <div className="mt-1.5 space-y-2">
               <div className="flex items-center gap-2">
                 <input
                   ref={emojiInputRef}
                   value={draft.icon ?? ""}
                   onChange={(e) => update({ icon: e.target.value })}
                   placeholder="Type or paste emoji"
-                  className="w-32 rounded-xl border border-amber-700/15 bg-white px-3 py-2 text-center text-lg text-amber-950 outline-none focus:border-amber-700/30"
+                  className="w-32 rounded-md border border-zinc-200 bg-white px-3 py-2 text-center text-lg text-zinc-900 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20"
                 />
                 {draft.icon && (
                   <button
                     type="button"
                     onClick={() => update({ icon: undefined })}
-                    className="rounded-lg border border-amber-700/15 bg-amber-50/70 px-3 py-2 text-xs text-amber-900 hover:border-amber-700/30"
+                    className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600 hover:bg-zinc-100"
                   >
                     Clear
                   </button>
                 )}
-                <span className="text-[10px] text-amber-900/50">
+                <span className="text-[10px] text-zinc-400">
                   Tip: Press {navigator.platform.includes("Mac") ? "⌘+Ctrl+Space" : "Win+."} for full emoji keyboard
                 </span>
               </div>
               {/* Recent emojis */}
               {recentEmojis.length > 0 && (
                 <div>
-                  <div className="text-[10px] text-amber-900/40 mb-1">Recently used</div>
+                  <div className="text-[10px] text-zinc-400 mb-1">Recently used</div>
                   <div className="flex flex-wrap gap-1">
                     {recentEmojis.map((emoji) => (
                       <button
                         key={`recent-${emoji}`}
                         type="button"
                         onClick={() => selectEmoji(emoji)}
-                        className={`rounded-lg border px-2 py-1 text-base transition ${
+                        className={`rounded-md border px-2 py-1 text-base transition ${
                           draft.icon === emoji
-                            ? "border-amber-500 bg-amber-100"
-                            : "border-amber-700/15 bg-amber-100/80 hover:border-amber-700/30"
+                            ? "border-violet-500 bg-violet-50"
+                            : "border-zinc-200 bg-zinc-50 hover:border-zinc-300"
                         }`}
                       >
                         {emoji}
@@ -182,10 +185,10 @@ export function CardModal({
                     key={emoji}
                     type="button"
                     onClick={() => selectEmoji(emoji)}
-                    className={`rounded-lg border px-2 py-1 text-base transition ${
+                    className={`rounded-md border px-2 py-1 text-base transition ${
                       draft.icon === emoji
-                        ? "border-amber-500 bg-amber-100"
-                        : "border-amber-700/15 bg-amber-50/70 hover:border-amber-700/30"
+                        ? "border-violet-500 bg-violet-50"
+                        : "border-zinc-200 bg-zinc-50 hover:border-zinc-300"
                     }`}
                   >
                     {emoji}
@@ -196,48 +199,48 @@ export function CardModal({
           </div>
 
           <div>
-            <label className="text-xs text-amber-900/60">Notes</label>
+            <label className="text-xs font-medium text-zinc-500">Notes</label>
             <textarea
               value={draft.notes ?? ""}
               onChange={(e) => update({ notes: e.target.value })}
-              className="mt-2 w-full min-h-[90px] rounded-xl border border-amber-700/15 bg-white px-3 py-2 text-sm text-amber-950 outline-none focus:border-amber-700/30"
+              className="mt-1.5 w-full min-h-[90px] rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20"
             />
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="text-xs text-amber-900/60">Link</label>
+              <label className="text-xs font-medium text-zinc-500">Link</label>
               <input
                 value={draft.link ?? ""}
                 onChange={(e) => update({ link: e.target.value })}
-                className="mt-2 w-full rounded-xl border border-amber-700/15 bg-white px-3 py-2 text-sm text-amber-950 outline-none focus:border-amber-700/30"
+                className="mt-1.5 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20"
               />
             </div>
             <div>
-              <label className="text-xs text-amber-900/60">Due date</label>
+              <label className="text-xs font-medium text-zinc-500">Due date</label>
               <input
                 type="date"
                 value={draft.dueDate ? draft.dueDate.slice(0, 10) : ""}
                 onChange={(e) =>
                   update({ dueDate: e.target.value ? new Date(e.target.value).toISOString() : undefined })
                 }
-                className="mt-2 w-full rounded-xl border border-amber-700/15 bg-white px-3 py-2 text-sm text-amber-950 outline-none focus:border-amber-700/30"
+                className="mt-1.5 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-xs text-amber-900/60">Swimlane</label>
-            <div className="mt-2 flex gap-2">
+            <label className="text-xs font-medium text-zinc-500">Swimlane</label>
+            <div className="mt-1.5 flex gap-2">
               {DEFAULT_SWIMLANES.map((s) => (
                 <button
                   key={s.id}
                   type="button"
                   onClick={() => update({ swimlane: s.id as SwimlaneId })}
-                  className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+                  className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition ${
                     (draft.swimlane ?? "work") === s.id
-                      ? "border-amber-500 bg-amber-100/80"
-                      : "border-amber-700/15 bg-white hover:border-amber-700/30"
+                      ? "border-violet-500 bg-violet-50"
+                      : "border-zinc-200 bg-white hover:border-zinc-300"
                   }`}
                   style={{
                     borderColor: (draft.swimlane ?? "work") === s.id ? s.color : undefined,
@@ -245,7 +248,7 @@ export function CardModal({
                   }}
                 >
                   <span className="text-base">{s.icon}</span>
-                  <span className="text-amber-950">{s.title}</span>
+                  <span className="text-zinc-900">{s.title}</span>
                 </button>
               ))}
             </div>
@@ -712,24 +715,25 @@ export function CardModal({
         </div>
 
         {/* Fixed Footer */}
-        <div className="flex shrink-0 flex-col gap-3 border-t border-amber-700/10 px-4 py-3 sm:flex-row sm:justify-between sm:px-6 sm:py-4">
+        <div className="flex shrink-0 flex-col gap-3 border-t border-zinc-100 px-4 py-3 sm:flex-row sm:justify-between sm:px-6 sm:py-4">
           <button
             onClick={() => onDelete(draft.id)}
-            className="order-2 rounded-full border border-rose-400/30 bg-rose-100 px-4 py-2 text-sm text-rose-700 hover:border-rose-400/50 sm:order-1"
+            className="order-2 flex items-center justify-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-600 hover:bg-red-100 sm:order-1"
           >
+            <Trash2 size={16} />
             Delete
           </button>
 
           <div className="order-1 flex gap-2 sm:order-2">
             <button
               onClick={onClose}
-              className="flex-1 rounded-full border border-amber-700/15 bg-amber-50/70 px-4 py-2 text-sm text-amber-900 hover:border-amber-700/30 hover:bg-amber-100/70 sm:flex-none"
+              className="flex-1 rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 sm:flex-none"
             >
               Cancel
             </button>
             <button
               onClick={() => onSave(draft)}
-              className="flex-1 rounded-full bg-amber-600 px-4 py-2 text-sm font-semibold text-white shadow-[0_10px_30px_rgba(245,158,11,0.2)] transition hover:-translate-y-0.5 hover:bg-amber-700 sm:flex-none"
+              className="flex-1 rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 sm:flex-none"
             >
               Save
             </button>

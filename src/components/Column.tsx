@@ -53,33 +53,30 @@ export function Column({
 
   const headerClass =
     headerState === "full"
-      ? "border-rose-400/60 bg-rose-200/30"
+      ? "border-red-200 bg-red-50"
       : headerState === "near"
-      ? "border-amber-300/50 bg-amber-100/40"
-      : "border-amber-700/10 bg-white/70";
+      ? "border-amber-200 bg-amber-50"
+      : "border-zinc-200 bg-zinc-50";
 
   const headerFocusClass =
     columnFocused && focusedCardIndex === null
-      ? "ring-2 ring-amber-400/50"
+      ? "ring-2 ring-violet-500/20"
       : "";
 
   return (
     <div className="flex-1 min-w-[220px] max-w-[400px]">
       <div
-        className={`rounded-2xl border ${headerClass} ${headerFocusClass} px-4 py-3`}
+        className={`rounded-lg border-l-4 border ${headerClass} ${headerFocusClass} px-3 py-2.5`}
+        style={{ borderLeftColor: accentColor }}
       >
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <span
-              className="h-2.5 w-2.5 rounded-full"
-              style={{ backgroundColor: accentColor }}
-            />
-            <div className="display-font text-sm font-semibold text-amber-950">
+            <div className="text-sm font-semibold text-zinc-900">
               {icon && <span className="mr-1.5">{icon}</span>}
               {title}
             </div>
           </div>
-          <div className="rounded-full border border-amber-700/15 bg-white/80 px-2.5 py-0.5 text-xs text-amber-900/70">
+          <div className="rounded-full bg-white px-2 py-0.5 text-xs font-medium text-zinc-600 shadow-sm">
             {countLabel}
           </div>
         </div>
@@ -87,8 +84,8 @@ export function Column({
 
       <div
         ref={setNodeRef}
-        className={`mt-3 min-h-[260px] space-y-3 rounded-2xl border border-amber-700/10 bg-white/70 p-3 backdrop-blur ${
-          isOver ? "ring-2 ring-amber-300/40" : ""
+        className={`mt-2 min-h-[260px] space-y-2 rounded-lg border border-zinc-200 bg-zinc-50/50 p-2 ${
+          isOver ? "ring-2 ring-violet-500/20" : ""
         }`}
       >
         <SortableContext
@@ -132,7 +129,7 @@ export function Column({
             onChange={(e) => setText(e.target.value)}
             placeholder="Add a card…"
             data-column-input={id}
-            className="w-full rounded-xl border border-amber-700/15 bg-white px-3 py-2 text-sm text-amber-900 outline-none transition focus:border-amber-700/30 focus:bg-amber-50/40"
+            className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20"
           />
         </form>
       </div>

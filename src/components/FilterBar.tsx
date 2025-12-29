@@ -1,4 +1,5 @@
 import React from "react";
+import { Search, X, Filter } from "lucide-react";
 import type { Column, DueDateFilter, FilterState, Tag } from "../app/types";
 import { isFilterActive } from "../app/filters";
 
@@ -78,42 +79,15 @@ export function FilterBar({
             placeholder="Search cards... (⌘K)"
             value={filter.search}
             onChange={(e) => onChange({ ...filter, search: e.target.value })}
-            className="w-full rounded-xl border border-amber-700/20 bg-white/80 px-4 py-2 pl-10 text-sm text-amber-950 placeholder:text-amber-900/40 focus:border-amber-600/40 focus:outline-none focus:ring-2 focus:ring-amber-600/20"
+            className="w-full rounded-md border border-zinc-200 bg-white px-4 py-2 pl-10 text-sm text-zinc-900 placeholder:text-zinc-400 focus:border-violet-500 focus:outline-none focus:ring-2 focus:ring-violet-500/20"
           />
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            className="absolute left-3 top-1/2 -translate-y-1/2 text-amber-600/60"
-          >
-            <circle cx="11" cy="11" r="8" />
-            <path d="m21 21-4.3-4.3" />
-          </svg>
+          <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-400" />
           {filter.search && (
             <button
               onClick={() => onChange({ ...filter, search: "" })}
-              className="absolute right-3 top-1/2 -translate-y-1/2 text-amber-600/60 hover:text-amber-700"
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-zinc-400 hover:text-zinc-600"
             >
-              <svg
-                xmlns="http://www.w3.org/2000/svg"
-                width="14"
-                height="14"
-                viewBox="0 0 24 24"
-                fill="none"
-                stroke="currentColor"
-                strokeWidth="2"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              >
-                <path d="M18 6 6 18" />
-                <path d="m6 6 12 12" />
-              </svg>
+              <X size={14} />
             </button>
           )}
         </div>
@@ -121,28 +95,16 @@ export function FilterBar({
         {/* Filter toggle button */}
         <button
           onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+          className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition ${
             showFilters || hasActiveFilters
-              ? "border-amber-600/40 bg-amber-600/10 text-amber-700"
-              : "border-amber-700/20 bg-white/80 text-amber-900 hover:border-amber-700/40"
+              ? "border-violet-500 bg-violet-50 text-violet-700"
+              : "border-zinc-200 bg-white text-zinc-700 hover:border-zinc-300"
           }`}
         >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-          </svg>
+          <Filter size={14} />
           Filters
           {hasActiveFilters && !filter.search && (
-            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-600 text-xs text-white">
+            <span className="flex h-5 w-5 items-center justify-center rounded-full bg-violet-600 text-xs text-white">
               {(filter.columns.length > 0 ? 1 : 0) +
                 (filter.tags.length > 0 ? 1 : 0) +
                 (filter.dueDate !== "all" ? 1 : 0) +
@@ -153,14 +115,14 @@ export function FilterBar({
 
         {/* Result count */}
         {isFiltered && (
-          <div className="flex items-center gap-2 text-sm text-amber-900/70">
+          <div className="flex items-center gap-2 text-sm text-zinc-600">
             <span>
-              Showing <span className="font-medium text-amber-950">{resultCount}</span> of{" "}
+              Showing <span className="font-medium text-zinc-900">{resultCount}</span> of{" "}
               {totalCount} cards
             </span>
             <button
               onClick={clearAllFilters}
-              className="text-amber-600 hover:text-amber-700 hover:underline"
+              className="text-violet-600 hover:text-violet-700 hover:underline"
             >
               Clear all
             </button>
@@ -170,20 +132,20 @@ export function FilterBar({
 
       {/* Expanded filters */}
       {showFilters && (
-        <div className="rounded-xl border border-amber-700/15 bg-white/80 p-4 shadow-sm">
+        <div className="rounded-lg border border-zinc-200 bg-white p-4 shadow-sm">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {/* Column filter */}
             <div>
-              <div className="mb-2 text-xs font-medium text-amber-900/70">Columns</div>
+              <div className="mb-2 text-xs font-medium text-zinc-500">Columns</div>
               <div className="flex flex-wrap gap-1">
                 {columns.map((col) => (
                   <button
                     key={col.id}
                     onClick={() => toggleColumn(col.id)}
-                    className={`rounded-lg px-2 py-1 text-xs transition ${
+                    className={`rounded-md px-2 py-1 text-xs transition ${
                       filter.columns.includes(col.id)
-                        ? "bg-amber-600 text-white"
-                        : "bg-amber-100/50 text-amber-800 hover:bg-amber-100"
+                        ? "bg-violet-600 text-white"
+                        : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
                     }`}
                   >
                     {col.icon} {col.title}
@@ -194,7 +156,7 @@ export function FilterBar({
 
             {/* Tag filter */}
             <div>
-              <div className="mb-2 text-xs font-medium text-amber-900/70">Tags</div>
+              <div className="mb-2 text-xs font-medium text-zinc-500">Tags</div>
               {allTags.length > 0 ? (
                 <div className="flex flex-wrap gap-1">
                   {allTags.map((tagId) => {
@@ -205,7 +167,7 @@ export function FilterBar({
                         <button
                           key={tagId}
                           onClick={() => toggleTag(tagId)}
-                          className={`inline-flex items-center gap-1 rounded-lg px-2 py-1 text-xs font-medium transition ${
+                          className={`inline-flex items-center gap-1 rounded-md px-2 py-1 text-xs font-medium transition ${
                             isSelected ? "ring-2 ring-offset-1" : "opacity-70 hover:opacity-100"
                           }`}
                           style={{
@@ -227,10 +189,10 @@ export function FilterBar({
                       <button
                         key={tagId}
                         onClick={() => toggleTag(tagId)}
-                        className={`rounded-lg px-2 py-1 text-xs transition ${
+                        className={`rounded-md px-2 py-1 text-xs transition ${
                           isSelected
-                            ? "bg-amber-600 text-white"
-                            : "bg-amber-100/50 text-amber-800 hover:bg-amber-100"
+                            ? "bg-violet-600 text-white"
+                            : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
                         }`}
                       >
                         {tagId}
@@ -239,13 +201,13 @@ export function FilterBar({
                   })}
                 </div>
               ) : (
-                <div className="text-xs text-amber-900/50">No tags found</div>
+                <div className="text-xs text-zinc-400">No tags found</div>
               )}
             </div>
 
             {/* Due date filter */}
             <div>
-              <div className="mb-2 text-xs font-medium text-amber-900/70">Due Date</div>
+              <div className="mb-2 text-xs font-medium text-zinc-500">Due Date</div>
               <div className="flex flex-wrap gap-1">
                 {(
                   [
@@ -259,10 +221,10 @@ export function FilterBar({
                   <button
                     key={option.value}
                     onClick={() => onChange({ ...filter, dueDate: option.value })}
-                    className={`rounded-lg px-2 py-1 text-xs transition ${
+                    className={`rounded-md px-2 py-1 text-xs transition ${
                       filter.dueDate === option.value
-                        ? "bg-amber-600 text-white"
-                        : "bg-amber-100/50 text-amber-800 hover:bg-amber-100"
+                        ? "bg-violet-600 text-white"
+                        : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
                     }`}
                   >
                     {option.label}
@@ -273,7 +235,7 @@ export function FilterBar({
 
             {/* Blocker filter */}
             <div>
-              <div className="mb-2 text-xs font-medium text-amber-900/70">Blockers</div>
+              <div className="mb-2 text-xs font-medium text-zinc-500">Blockers</div>
               <div className="flex flex-wrap gap-1">
                 {(
                   [
@@ -285,10 +247,10 @@ export function FilterBar({
                   <button
                     key={String(option.value)}
                     onClick={() => onChange({ ...filter, hasBlocker: option.value })}
-                    className={`rounded-lg px-2 py-1 text-xs transition ${
+                    className={`rounded-md px-2 py-1 text-xs transition ${
                       filter.hasBlocker === option.value
-                        ? "bg-amber-600 text-white"
-                        : "bg-amber-100/50 text-amber-800 hover:bg-amber-100"
+                        ? "bg-violet-600 text-white"
+                        : "bg-zinc-100 text-zinc-700 hover:bg-zinc-200"
                     }`}
                   >
                     {option.label}

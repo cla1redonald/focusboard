@@ -74,7 +74,8 @@ describe("SettingsPanel", () => {
     it("renders close button", () => {
       render(<SettingsPanel {...defaultProps} />);
 
-      expect(screen.getByRole("button", { name: /close/i })).toBeInTheDocument();
+      const closeButtons = screen.getAllByRole("button", { name: /close/i });
+      expect(closeButtons.length).toBeGreaterThanOrEqual(1);
     });
 
     it("renders all default columns", () => {
@@ -96,7 +97,9 @@ describe("SettingsPanel", () => {
 
       render(<SettingsPanel {...defaultProps} onClose={onClose} />);
 
-      await user.click(screen.getByRole("button", { name: /close/i }));
+      // Click the footer close button (last one)
+      const closeButtons = screen.getAllByRole("button", { name: /close/i });
+      await user.click(closeButtons[closeButtons.length - 1]);
 
       expect(onClose).toHaveBeenCalledTimes(1);
     });
@@ -107,7 +110,9 @@ describe("SettingsPanel", () => {
 
       render(<SettingsPanel {...defaultProps} onClose={onClose} />);
 
-      await user.click(screen.getByRole("button", { name: "✕" }));
+      // Click the header X button (first close button)
+      const closeButtons = screen.getAllByRole("button", { name: /close/i });
+      await user.click(closeButtons[0]);
 
       expect(onClose).toHaveBeenCalledTimes(1);
     });
@@ -190,10 +195,10 @@ describe("SettingsPanel", () => {
   });
 
   describe("columns management", () => {
-    it("renders Use Moo palette button", () => {
+    it("renders Reset colors button", () => {
       render(<SettingsPanel {...defaultProps} />);
 
-      expect(screen.getByRole("button", { name: /use moo palette/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /reset colors/i })).toBeInTheDocument();
     });
 
     it("renders Add column button", () => {

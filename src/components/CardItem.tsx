@@ -2,6 +2,7 @@ import React from "react";
 import { motion } from "framer-motion";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
+import { GripVertical, Calendar, ExternalLink } from "lucide-react";
 import type { Card } from "../app/types";
 import { RelationshipIndicators } from "./RelationshipPicker";
 import { getCardAgeLevel, getCardAgeDays } from "../app/metrics";
@@ -65,11 +66,11 @@ export function CardItem({
       onClick={() => onOpen(card)}
       {...listeners}
       {...attributes}
-      className={`group relative cursor-grab overflow-hidden rounded-xl border shadow-[0_10px_30px_rgba(0,0,0,0.08)] transition hover:-translate-y-0.5 hover:border-amber-700/20 active:cursor-grabbing ${
+      className={`group relative cursor-grab overflow-hidden rounded-lg border shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md active:cursor-grabbing ${
         focused
-          ? "border-amber-500 ring-2 ring-amber-400/50"
-          : "border-amber-700/10"
-      } ${hasBackground ? "" : urgencyBgColor ? "hover:brightness-95" : "bg-white hover:bg-amber-50/50"}`}
+          ? "border-violet-500 ring-2 ring-violet-500/20"
+          : "border-zinc-200 hover:border-zinc-300"
+      } ${hasBackground ? "" : urgencyBgColor ? "hover:brightness-95" : "bg-white"}`}
     >
       {/* Background Image */}
       {hasBackground && (
@@ -83,9 +84,9 @@ export function CardItem({
       )}
 
       {/* Card Content */}
-      <div className={`relative px-3 py-2 text-sm ${hasBackground ? "text-white" : "text-amber-950"}`}>
+      <div className={`relative px-3 py-2.5 text-sm ${hasBackground ? "text-white" : "text-zinc-900"}`}>
         <div className="flex items-start justify-between gap-2">
-          <div className={`text-left font-medium leading-snug ${hasBackground ? "text-white" : "text-amber-950"}`}>
+          <div className={`text-left font-medium leading-snug ${hasBackground ? "text-white" : "text-zinc-900"}`}>
             <span className="inline-flex items-center gap-2">
               {card.icon && <span className="text-base">{card.icon}</span>}
               <span>{card.title}</span>
@@ -108,16 +109,16 @@ export function CardItem({
             </span>
           </div>
           <div
-            className={`select-none ${hasBackground ? "text-white/40" : "text-amber-900/30"}`}
+            className={`select-none opacity-0 transition-opacity group-hover:opacity-100 ${hasBackground ? "text-white/50" : "text-zinc-400"}`}
             title="Drag to move"
           >
-            ⋮⋮
+            <GripVertical size={16} />
           </div>
         </div>
 
         {/* Due date display */}
         {card.dueDate && (() => {
-          const urgencyColor = urgencyLevel !== "none" ? getUrgencyColor(urgencyLevel) : (hasBackground ? "white" : "#78716c");
+          const urgencyColor = urgencyLevel !== "none" ? getUrgencyColor(urgencyLevel) : (hasBackground ? "white" : "#71717a");
           const dueDate = new Date(card.dueDate);
           const today = new Date();
           const isThisYear = dueDate.getFullYear() === today.getFullYear();
@@ -128,16 +129,10 @@ export function CardItem({
           });
           return (
             <div className="mt-2 flex items-center gap-1.5">
-              <svg
-                className="h-3 w-3"
-                fill="none"
-                viewBox="0 0 24 24"
-                stroke="currentColor"
-                strokeWidth={2}
+              <Calendar
+                size={12}
                 style={{ color: urgencyColor }}
-              >
-                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
-              </svg>
+              />
               <span
                 className="text-[11px] font-medium"
                 style={{ color: hasBackground ? "white" : urgencyColor }}
@@ -164,7 +159,7 @@ export function CardItem({
         )}
 
         {card.blockedReason && (
-          <div className={`mt-2 text-[11px] ${hasBackground ? "text-rose-300" : "text-rose-700/80"}`}>
+          <div className={`mt-2 text-[11px] ${hasBackground ? "text-rose-300" : "text-red-600"}`}>
             Blocked: {card.blockedReason}
           </div>
         )}
@@ -201,18 +196,16 @@ export function CardItem({
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
-              className={`mt-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium transition hover:scale-105 hover:underline ${
+              className={`mt-2 inline-flex items-center gap-1.5 rounded-md px-2 py-1 text-[11px] font-medium transition hover:underline ${
                 hasBackground
                   ? "bg-white/20 text-white hover:bg-white/30"
-                  : "bg-blue-50 text-blue-700 hover:bg-blue-100"
+                  : "bg-violet-50 text-violet-700 hover:bg-violet-100"
               }`}
               title={card.link}
             >
               <span>{icon}</span>
               <span className="max-w-[120px] truncate">{label}</span>
-              <svg className="h-3 w-3 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
-              </svg>
+              <ExternalLink size={10} className="opacity-60" />
             </a>
           );
         })()}

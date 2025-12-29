@@ -382,8 +382,8 @@ export function Board({
         <div className="flex items-center gap-3">
           <img src="/logo.svg" alt="Focusboard" className="h-10 w-10 sm:h-12 sm:w-12" />
           <div>
-            <div className="display-font text-2xl text-amber-950 sm:text-3xl">Focusboard</div>
-            <div className="hidden text-sm text-amber-900/70 sm:block">
+            <div className="text-2xl font-semibold tracking-tight text-zinc-900 sm:text-3xl">Focusboard</div>
+            <div className="hidden text-sm text-zinc-500 sm:block">
               Plan with intent. Keep flow sacred.
             </div>
           </div>
@@ -391,7 +391,7 @@ export function Board({
         <button
           onClick={onSettings}
           aria-label="Settings"
-          className="rounded-full border border-amber-700/20 bg-amber-600/10 px-3 py-1.5 text-sm text-amber-900 shadow-[0_8px_24px_rgba(0,0,0,0.12)] transition hover:-translate-y-0.5 hover:border-amber-700/40 hover:bg-amber-600/15 sm:px-4 sm:py-2"
+          className="rounded-lg border border-zinc-200 bg-white px-3 py-1.5 text-sm font-medium text-zinc-700 shadow-sm transition hover:bg-zinc-50 hover:border-zinc-300 sm:px-4 sm:py-2"
         >
           Settings
         </button>
@@ -444,7 +444,7 @@ export function Board({
         {/* Scroll indicator - shows when there's more content below */}
         {canScrollDown && (
           <div className="pointer-events-none sticky bottom-0 left-0 right-0 flex justify-center pb-2">
-            <div className="flex flex-col items-center gap-1 rounded-full bg-amber-900/80 px-4 py-2 text-white shadow-lg animate-bounce">
+            <div className="flex flex-col items-center gap-1 rounded-full bg-zinc-900/90 px-4 py-2 text-white shadow-lg animate-bounce">
               <span className="text-xs font-medium">Scroll for more</span>
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
@@ -456,8 +456,8 @@ export function Board({
         {/* Drag overlay shows a preview of the card being dragged */}
         <DragOverlay>
           {activeCard && (
-            <div className="w-[280px] rounded-xl border border-amber-500 bg-white px-3 py-2 shadow-[0_20px_50px_rgba(0,0,0,0.25)] rotate-2">
-              <div className="flex items-center gap-2 text-sm font-medium text-amber-950">
+            <div className="w-[280px] rounded-lg border border-violet-500 bg-white px-3 py-2.5 shadow-xl rotate-2">
+              <div className="flex items-center gap-2 text-sm font-medium text-zinc-900">
                 {activeCard.icon && <span className="text-base">{activeCard.icon}</span>}
                 <span className="truncate">{activeCard.title}</span>
               </div>
