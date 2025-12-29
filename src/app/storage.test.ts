@@ -306,6 +306,7 @@ describe("storage", () => {
           autoPriorityFromDueDate: false,
           staleBacklogThreshold: 7,
           collapsedSwimlanes: [],
+          theme: "system",
         },
         tagCategories: DEFAULT_TAG_CATEGORIES,
         tags: DEFAULT_TAGS,

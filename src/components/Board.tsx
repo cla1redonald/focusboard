@@ -8,6 +8,7 @@ import { groupBySwimlaneAndColumn, isToday, nowIso } from "../app/utils";
 import { DEFAULT_FILTER, filterCards, getAllTags } from "../app/filters";
 import { getStaleBacklogCards } from "../app/metrics";
 import { useKeyboardNav } from "../app/useKeyboardNav";
+import { useTheme } from "../app/theme";
 import { Swimlane } from "./Swimlane";
 import { TopStrip } from "./TopStrip";
 import { FilterBar } from "./FilterBar";
@@ -66,6 +67,10 @@ export function Board({
   onToggleSwimlaneCollapse: (swimlaneId: SwimlaneId) => void;
 }) {
   const reducedMotion = usePrefersReducedMotion() || settings.reducedMotionOverride;
+
+  // Apply theme to document root
+  useTheme(settings.theme);
+
   const [filter, setFilter] = React.useState<FilterState>(DEFAULT_FILTER);
 
   // Configure sensors with distance constraint to prevent accidental drags
@@ -383,10 +388,10 @@ export function Board({
           <div className="flex items-center gap-3">
             <img src="/logo.svg" alt="FocusBoard" className="h-10 w-10 sm:h-12 sm:w-12" />
             <div>
-              <div className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+              <div className="text-2xl font-bold tracking-tight text-gray-900 dark:text-gray-100 sm:text-3xl">
                 FocusBoard
               </div>
-              <div className="text-sm text-gray-500">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
                 {cards.filter(c => !columns.find(col => col.id === c.column)?.isTerminal).length === 0
                   ? "No tasks pending. Time to plan your next goal!"
                   : `${cards.filter(c => !columns.find(col => col.id === c.column)?.isTerminal).length} tasks in progress`}
@@ -397,7 +402,7 @@ export function Board({
         <button
           onClick={onSettings}
           aria-label="Settings"
-          className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 hover:border-emerald-300 hover:text-emerald-700"
+          className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 hover:border-emerald-300 hover:text-emerald-700 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 dark:hover:border-emerald-600 dark:hover:text-emerald-400"
         >
           Settings
         </button>
@@ -462,8 +467,8 @@ export function Board({
         {/* Drag overlay shows a preview of the card being dragged */}
         <DragOverlay>
           {activeCard && (
-            <div className="w-[280px] rounded-xl border border-emerald-500 bg-white px-3 py-2.5 shadow-xl rotate-2">
-              <div className="flex items-center gap-2 text-sm font-medium text-gray-900">
+            <div className="w-[280px] rounded-xl border border-emerald-500 bg-white px-3 py-2.5 shadow-xl rotate-2 dark:bg-gray-800 dark:border-emerald-400">
+              <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-gray-100">
                 {activeCard.icon && <span className="text-base">{activeCard.icon}</span>}
                 <span className="truncate">{activeCard.title}</span>
               </div>

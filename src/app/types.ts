@@ -111,6 +111,8 @@ export type CardTemplate = {
   checklist?: { text: string; done: boolean }[];
 };
 
+export type ThemeMode = "light" | "dark" | "system";
+
 export type Settings = {
   celebrations: boolean;
   reducedMotionOverride: boolean; // if true, treat as reduced motion
@@ -120,6 +122,7 @@ export type Settings = {
   autoPriorityFromDueDate: boolean; // Auto-assign priority tags based on due dates
   staleBacklogThreshold: 3 | 7 | 14; // Days before backlog cards without due dates show warning
   collapsedSwimlanes: SwimlaneId[]; // Which swimlanes are collapsed
+  theme: ThemeMode; // User's preferred color theme
 };
 
 // Analytics types

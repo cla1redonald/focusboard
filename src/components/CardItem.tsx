@@ -66,11 +66,11 @@ export function CardItem({
       onClick={() => onOpen(card)}
       {...listeners}
       {...attributes}
-      className={`group relative cursor-grab overflow-hidden rounded-xl border shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md hover:shadow-emerald-100 active:cursor-grabbing ${
+      className={`group relative cursor-grab overflow-hidden rounded-xl border shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md hover:shadow-emerald-100 active:cursor-grabbing dark:hover:shadow-emerald-900/30 ${
         focused
-          ? "border-emerald-500 ring-2 ring-emerald-500/20"
-          : "border-gray-200 hover:border-emerald-200"
-      } ${hasBackground ? "" : urgencyBgColor ? "hover:brightness-95" : "bg-white"}`}
+          ? "border-emerald-500 ring-2 ring-emerald-500/20 dark:border-emerald-400 dark:ring-emerald-400/30"
+          : "border-gray-200 hover:border-emerald-200 dark:border-gray-700 dark:hover:border-emerald-700"
+      } ${hasBackground ? "" : urgencyBgColor ? "hover:brightness-95" : "bg-white dark:bg-gray-800"}`}
     >
       {/* Background Image */}
       {hasBackground && (
@@ -84,9 +84,9 @@ export function CardItem({
       )}
 
       {/* Card Content */}
-      <div className={`relative px-3 py-2.5 text-sm ${hasBackground ? "text-white" : "text-gray-900"}`}>
+      <div className={`relative px-3 py-2.5 text-sm ${hasBackground ? "text-white" : "text-gray-900 dark:text-gray-100"}`}>
         <div className="flex items-start justify-between gap-2">
-          <div className={`text-left font-medium leading-snug ${hasBackground ? "text-white" : "text-gray-900"}`}>
+          <div className={`text-left font-medium leading-snug ${hasBackground ? "text-white" : "text-gray-900 dark:text-gray-100"}`}>
             <span className="inline-flex items-center gap-2">
               {card.icon && <span className="text-base">{card.icon}</span>}
               <span>{card.title}</span>
@@ -109,7 +109,7 @@ export function CardItem({
             </span>
           </div>
           <div
-            className={`select-none opacity-0 transition-opacity group-hover:opacity-100 ${hasBackground ? "text-white/50" : "text-gray-400"}`}
+            className={`select-none opacity-0 transition-opacity group-hover:opacity-100 ${hasBackground ? "text-white/50" : "text-gray-400 dark:text-gray-500"}`}
             title="Drag to move"
           >
             <GripVertical size={16} />
@@ -151,7 +151,7 @@ export function CardItem({
         {/* Stale backlog warning */}
         {isStaleBacklog && (
           <div className={`mt-2 flex items-center gap-1.5 text-[11px] ${
-            hasBackground ? "text-gray-300" : "text-gray-600"
+            hasBackground ? "text-gray-300" : "text-gray-600 dark:text-gray-400"
           }`}>
             <span>⚠️</span>
             <span>Stale ({staleBacklogDays} days)</span>
@@ -199,7 +199,7 @@ export function CardItem({
               className={`mt-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium transition hover:underline ${
                 hasBackground
                   ? "bg-white/20 text-white hover:bg-white/30"
-                  : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100"
+                  : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50"
               }`}
               title={card.link}
             >

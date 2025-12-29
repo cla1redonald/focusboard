@@ -37,6 +37,44 @@
   color: var(--neutral-900);
 }
 
+/* Dark theme */
+.dark {
+  color-scheme: dark;
+
+  --neutral-50: #111827;
+  --neutral-100: #1f2937;
+  --neutral-200: #374151;
+  --neutral-300: #4b5563;
+  --neutral-400: #6b7280;
+  --neutral-500: #9ca3af;
+  --neutral-600: #d1d5db;
+  --neutral-700: #e5e7eb;
+  --neutral-800: #f3f4f6;
+  --neutral-900: #f9fafb;
+
+  /* Accent - slightly brighter for dark mode */
+  --accent-400: #6ee7b7;
+  --accent-500: #34d399;
+  --accent-600: #10b981;
+
+  /* Shadows (more visible on dark) */
+  --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.4);
+  --shadow-lg: 0 10px 20px rgba(0,0,0,0.5);
+  --shadow-xl: 0 20px 40px rgba(0,0,0,0.6);
+
+  background-color: #111827;
+  color: #f9fafb;
+}
+
+/* Smooth theme transition (respects reduced motion) */
+@media (prefers-reduced-motion: no-preference) {
+  html,
+  html * {
+    transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+  }
+}
+
 html,
 body,
 #root {
@@ -46,6 +84,10 @@ body,
 body {
   margin: 0;
   background: #f3f4f6;
+}
+
+.dark body {
+  background: #111827;
 }
 
 .app-bg {

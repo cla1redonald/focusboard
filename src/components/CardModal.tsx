@@ -110,12 +110,12 @@ export function CardModal({
 
   return (
     <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-gray-900/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative flex max-h-[90vh] w-full max-w-[720px] flex-col rounded-xl border border-gray-200 bg-white shadow-xl">
+      <div className="absolute inset-0 bg-gray-900/30 backdrop-blur-sm dark:bg-black/50" onClick={onClose} />
+      <div className="relative flex max-h-[90vh] w-full max-w-[720px] flex-col rounded-xl border border-gray-200 bg-white shadow-xl dark:border-gray-700 dark:bg-gray-900">
         {/* Fixed Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 py-3 sm:px-6 sm:py-4">
-          <div className="text-lg font-semibold text-gray-900 sm:text-xl">Edit card</div>
-          <button onClick={onClose} className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600" aria-label="Close">
+        <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 py-3 sm:px-6 sm:py-4 dark:border-gray-800">
+          <div className="text-lg font-semibold text-gray-900 sm:text-xl dark:text-gray-100">Edit card</div>
+          <button onClick={onClose} className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300" aria-label="Close">
             <X size={20} />
           </button>
         </div>
@@ -124,16 +124,16 @@ export function CardModal({
         <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-medium text-gray-500">Title</label>
+            <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Title</label>
             <input
               value={draft.title}
               onChange={(e) => update({ title: e.target.value })}
-              className="mt-1.5 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+              className="mt-1.5 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:border-emerald-400 dark:focus:ring-emerald-400/30"
             />
           </div>
 
           <div>
-            <label className="text-xs font-medium text-gray-500">Icon (emoji)</label>
+            <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Icon (emoji)</label>
             <div className="mt-1.5 space-y-2">
               <div className="flex items-center gap-2">
                 <input
@@ -141,13 +141,13 @@ export function CardModal({
                   value={draft.icon ?? ""}
                   onChange={(e) => update({ icon: e.target.value })}
                   placeholder="Type or paste emoji"
-                  className="w-32 rounded-md border border-gray-200 bg-white px-3 py-2 text-center text-lg text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  className="w-32 rounded-md border border-gray-200 bg-white px-3 py-2 text-center text-lg text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:focus:border-emerald-400 dark:focus:ring-emerald-400/30"
                 />
                 {draft.icon && (
                   <button
                     type="button"
                     onClick={() => update({ icon: undefined })}
-                    className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 hover:bg-gray-100"
+                    className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 hover:bg-gray-100 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                   >
                     Clear
                   </button>
