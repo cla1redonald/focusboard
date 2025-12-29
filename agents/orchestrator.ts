@@ -11,8 +11,18 @@
  * - TechAuthor: Documentation updates
  *
  * Usage:
- *   ANTHROPIC_API_KEY=your_key npx tsx orchestrator.ts "Add dark mode toggle"
+ *   npx tsx orchestrator.ts "Add dark mode toggle"
+ *
+ * Note: Set ANTHROPIC_API_KEY in ../.env.local or export it in your shell
  */
+
+import * as dotenv from "dotenv";
+import * as path from "path";
+import { fileURLToPath } from "url";
+
+// Load .env.local from project root
+const __dirname = path.dirname(fileURLToPath(import.meta.url));
+dotenv.config({ path: path.resolve(__dirname, "../.env.local") });
 
 import Anthropic from "@anthropic-ai/sdk";
 import { agents, AgentDefinition } from "./definitions.js";

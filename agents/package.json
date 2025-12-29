@@ -10,7 +10,8 @@
     "review": "tsx workflows/review.ts"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.32.0"
+    "@anthropic-ai/sdk": "^0.32.0",
+    "dotenv": "^17.2.3"
   },
   "devDependencies": {
     "tsx": "^4.7.0",
