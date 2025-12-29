@@ -380,10 +380,13 @@ export function Board({
 
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3 sm:mb-6">
         <div>
-          <div className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-            {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"}
+          <div className="flex items-center gap-3">
+            <div className="h-8 w-1 rounded-full bg-gradient-to-b from-emerald-400 to-teal-500" />
+            <div className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+              {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"}
+            </div>
           </div>
-          <div className="mt-1 text-sm text-gray-500 sm:text-base">
+          <div className="mt-1 ml-4 text-sm text-gray-500 sm:text-base">
             {cards.filter(c => !columns.find(col => col.id === c.column)?.isTerminal).length === 0
               ? "No tasks pending. Time to plan your next goal!"
               : `${cards.filter(c => !columns.find(col => col.id === c.column)?.isTerminal).length} tasks in progress`}
@@ -392,7 +395,7 @@ export function Board({
         <button
           onClick={onSettings}
           aria-label="Settings"
-          className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 hover:border-gray-300"
+          className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 shadow-sm transition hover:bg-gray-50 hover:border-emerald-300 hover:text-emerald-700"
         >
           Settings
         </button>

@@ -1,10 +1,41 @@
 import React from "react";
-import { X } from "lucide-react";
+import {
+  X,
+  Archive,
+  Palette,
+  ListTodo,
+  Zap,
+  Ban,
+  CheckCircle,
+  Lightbulb,
+  Rocket,
+  Target,
+  Package,
+  Brain,
+  Flame,
+  type LucideIcon,
+} from "lucide-react";
 import type { AppState, Column, Settings, Tag, TagCategory } from "../app/types";
 import { COLUMN_COLORS, DEFAULT_COLUMN_ICONS, TAG_COLOR_PALETTE } from "../app/constants";
 import { ExportImportPanel } from "./ExportImportPanel";
 import type { ImportMode } from "../app/exportImport";
 import { isSupabaseConfigured } from "../app/supabase";
+
+// Map icon names to Lucide components
+const ICON_MAP: Record<string, LucideIcon> = {
+  archive: Archive,
+  palette: Palette,
+  "list-todo": ListTodo,
+  zap: Zap,
+  ban: Ban,
+  "check-circle": CheckCircle,
+  lightbulb: Lightbulb,
+  rocket: Rocket,
+  target: Target,
+  package: Package,
+  brain: Brain,
+  flame: Flame,
+};
 
 export function SettingsPanel({
   open,
@@ -195,12 +226,21 @@ export function SettingsPanel({
                     </button>
                   </div>
 
-                  <div
-                    className="h-6 w-6 rounded-full border border-gray-200"
-                    style={{ backgroundColor: col.color }}
-                  />
-
-                  <span className="text-base">{col.icon}</span>
+                  {(() => {
+                    const IconComponent = ICON_MAP[col.icon];
+                    if (IconComponent) {
+                      return (
+                        <div
+                          className="flex h-7 w-7 items-center justify-center rounded-md"
+                          style={{ backgroundColor: `${col.color}15`, color: col.color }}
+                        >
+                          <IconComponent size={14} />
+                        </div>
+                      );
+                    }
+                    // Fallback for emoji icons
+                    return <span className="text-base">{col.icon}</span>;
+                  })()}
 
                   <div className="flex-1">
                     <span className="text-sm text-gray-900">{col.title}</span>
@@ -512,16 +552,25 @@ export function SettingsPanel({
                     className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                   />
                   <div className="mt-2 flex flex-wrap gap-1">
-                    {DEFAULT_COLUMN_ICONS.map((emoji) => (
-                      <button
-                        key={emoji}
-                        type="button"
-                        onClick={() => setEditingColumn({ ...editingColumn, icon: emoji })}
-                        className="rounded-md border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-sm hover:border-gray-300 hover:bg-gray-100"
-                      >
-                        {emoji}
-                      </button>
-                    ))}
+                    {DEFAULT_COLUMN_ICONS.map((iconName) => {
+                      const IconComponent = ICON_MAP[iconName];
+                      if (!IconComponent) return null;
+                      const isSelected = editingColumn.icon === iconName;
+                      return (
+                        <button
+                          key={iconName}
+                          type="button"
+                          onClick={() => setEditingColumn({ ...editingColumn, icon: iconName })}
+                          className={`flex h-8 w-8 items-center justify-center rounded-md border transition ${
+                            isSelected
+                              ? "border-emerald-500 bg-emerald-50 text-emerald-600"
+                              : "border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300 hover:bg-gray-100"
+                          }`}
+                        >
+                          <IconComponent size={16} />
+                        </button>
+                      );
+                    })}
                   </div>
                 </div>
 

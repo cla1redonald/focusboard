@@ -51,13 +51,15 @@ export function TopStrip({
       <div className="h-4 w-px bg-gray-200" />
       <div className="text-sm text-gray-700">
         <span className="text-gray-500">Doing:</span>{" "}
-        <span className="font-medium text-gray-900">{doingCard ? doingCard.title : "None"}</span>
+        <span className="font-medium text-emerald-700">{doingCard ? doingCard.title : "None"}</span>
       </div>
       <div className="text-sm text-gray-700">
-        <span className="text-gray-500">Blocked:</span> {blockedCount}
+        <span className="text-gray-500">Blocked:</span>{" "}
+        <span className={blockedCount > 0 ? "font-medium text-red-600" : ""}>{blockedCount}</span>
       </div>
       <div className="text-sm text-gray-700">
-        <span className="text-gray-500">Due today:</span> {dueTodayCount}
+        <span className="text-gray-500">Due today:</span>{" "}
+        <span className={dueTodayCount > 0 ? "font-medium text-amber-600" : ""}>{dueTodayCount}</span>
       </div>
       {metrics.currentStreak > 0 && (
         <div

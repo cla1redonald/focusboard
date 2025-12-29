@@ -66,10 +66,10 @@ export function CardItem({
       onClick={() => onOpen(card)}
       {...listeners}
       {...attributes}
-      className={`group relative cursor-grab overflow-hidden rounded-xl border shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md active:cursor-grabbing ${
+      className={`group relative cursor-grab overflow-hidden rounded-xl border shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md hover:shadow-emerald-100 active:cursor-grabbing ${
         focused
           ? "border-emerald-500 ring-2 ring-emerald-500/20"
-          : "border-gray-200 hover:border-gray-300"
+          : "border-gray-200 hover:border-emerald-200"
       } ${hasBackground ? "" : urgencyBgColor ? "hover:brightness-95" : "bg-white"}`}
     >
       {/* Background Image */}

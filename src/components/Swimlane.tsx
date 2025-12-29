@@ -59,18 +59,18 @@ export function Swimlane({
       {/* Swimlane Header - Always visible */}
       <button
         onClick={onToggleCollapse}
-        className="flex items-center gap-3 mb-3 w-full text-left group hover:bg-gray-50 rounded-lg px-2 py-1.5 -mx-2 transition"
+        className="flex items-center gap-3 mb-3 w-full text-left group hover:bg-emerald-50/50 rounded-lg px-2 py-1.5 -mx-2 transition"
       >
         <span
-          className="flex items-center justify-center w-8 h-8 rounded-lg text-lg"
-          style={{ backgroundColor: `${color}20` }}
+          className="flex items-center justify-center w-8 h-8 rounded-lg text-lg shadow-sm"
+          style={{ backgroundColor: `${color}20`, border: `1px solid ${color}30` }}
         >
           {icon}
         </span>
         <span className="text-lg font-semibold text-gray-900">{title}</span>
-        <span className="text-sm text-gray-500">({cardCount} cards)</span>
-        <span className="ml-auto text-gray-400 transition group-hover:text-gray-600 text-sm">
-          {collapsed ? "+" : "-"}
+        <span className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">{cardCount} cards</span>
+        <span className="ml-auto text-gray-400 transition group-hover:text-emerald-600 text-sm font-medium">
+          {collapsed ? "+" : "−"}
         </span>
       </button>
 

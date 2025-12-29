@@ -2,9 +2,40 @@ import React from "react";
 import { AnimatePresence } from "framer-motion";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
+import {
+  Archive,
+  Palette,
+  ListTodo,
+  Zap,
+  Ban,
+  CheckCircle,
+  Lightbulb,
+  Rocket,
+  Target,
+  Package,
+  Brain,
+  Flame,
+  type LucideIcon,
+} from "lucide-react";
 import type { Card, ColumnId, SwimlaneId } from "../app/types";
 import { CardItem } from "./CardItem";
 import { EmptyColumnState } from "./EmptyColumnState";
+
+// Map icon names to Lucide components
+const ICON_MAP: Record<string, LucideIcon> = {
+  archive: Archive,
+  palette: Palette,
+  "list-todo": ListTodo,
+  zap: Zap,
+  ban: Ban,
+  "check-circle": CheckCircle,
+  lightbulb: Lightbulb,
+  rocket: Rocket,
+  target: Target,
+  package: Package,
+  brain: Brain,
+  flame: Flame,
+};
 
 export function Column({
   id,
@@ -71,8 +102,22 @@ export function Column({
       >
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
+            {icon && (() => {
+              const IconComponent = ICON_MAP[icon];
+              if (IconComponent) {
+                return (
+                  <div
+                    className="flex h-6 w-6 items-center justify-center rounded-md"
+                    style={{ backgroundColor: `${accentColor}15`, color: accentColor }}
+                  >
+                    <IconComponent size={14} />
+                  </div>
+                );
+              }
+              // Fallback to emoji for backwards compatibility
+              return <span className="text-base">{icon}</span>;
+            })()}
             <div className="text-sm font-semibold text-gray-900">
-              {icon && <span className="mr-1.5">{icon}</span>}
               {title}
             </div>
           </div>
