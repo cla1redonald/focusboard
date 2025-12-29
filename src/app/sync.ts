@@ -6,7 +6,6 @@ export async function loadStateFromSupabase(): Promise<AppState | null> {
   if (!supabase) return null;
 
   const { data: { user } } = await supabase.auth.getUser();
-  console.log("[Supabase] Loading state for user:", user?.id);
   if (!user) return null;
 
   const { data, error } = await supabase
@@ -18,16 +17,13 @@ export async function loadStateFromSupabase(): Promise<AppState | null> {
   if (error) {
     if (error.code === "PGRST116") {
       // No row found - new user
-      console.log("[Supabase] No row found for user - new user");
       return null;
     }
     console.error("Failed to load state from Supabase:", error);
     return null;
   }
 
-  const state = data?.state as AppState | null;
-  console.log("[Supabase] Loaded", state?.cards?.length ?? 0, "cards from Supabase");
-  return state;
+  return data?.state as AppState | null;
 }
 
 // Save app state to Supabase
