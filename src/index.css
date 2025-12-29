@@ -112,6 +112,10 @@ body {
   z-index: 1;
 }
 
+.dark .bg-scrim {
+  background: rgba(17, 24, 39, 0.95);
+}
+
 .app-shell {
   position: relative;
   z-index: 3;
