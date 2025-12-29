@@ -2,12 +2,13 @@
 /**
  * FocusBoard Agent Orchestrator
  *
- * Runs a multi-agent workflow with 5 specialized agents:
+ * Runs a multi-agent workflow with 6 specialized agents:
  * - Architect: System design and technical decisions
  * - Engineer: Code implementation
  * - UX/UI: Design consistency and accessibility
  * - Researcher: Technical research and evaluation
  * - Tester: Quality assurance and testing
+ * - TechAuthor: Documentation updates
  *
  * Usage:
  *   ANTHROPIC_API_KEY=your_key npx tsx orchestrator.ts "Add dark mode toggle"
@@ -38,6 +39,7 @@ const agentColors: Record<string, string> = {
   uxui: colors.magenta,
   researcher: colors.cyan,
   tester: colors.yellow,
+  techAuthor: colors.bright + colors.cyan,
 };
 
 function log(agent: string, message: string) {
@@ -48,6 +50,7 @@ function log(agent: string, message: string) {
     uxui: "🎨",
     researcher: "🔍",
     tester: "🧪",
+    techAuthor: "📝",
   }[agent] || "🤖";
 
   console.log(`${color}${colors.bright}[${icon} ${agent.toUpperCase()}]${colors.reset}`);
@@ -187,10 +190,20 @@ export async function runWorkflow(task: string, autoApprove: boolean = false) {
 
   // Step 5: Tester recommendations
   console.log(`${colors.dim}─── Step 5: Testing Plan ───${colors.reset}\n`);
-  await runAgent(
+  const testerResult = await runAgent(
     "tester",
     agents.tester,
     `Create a testing plan for: ${task}\n\nInclude:\n1. Test cases to add\n2. Existing tests to update\n3. Manual testing steps`,
+    context
+  );
+  context += `\n## Tester Plan:\n${testerResult}\n`;
+
+  // Step 6: Technical Author (documentation updates)
+  console.log(`${colors.dim}─── Step 6: Documentation ───${colors.reset}\n`);
+  await runAgent(
+    "techAuthor",
+    agents.techAuthor,
+    `Identify documentation updates needed for: ${task}\n\nReview the implementation plan above and specify:\n1. README.md changes (features, usage)\n2. ARCHITECTURE.md changes (new files, patterns)\n3. Any code comments needed`,
     context
   );
 
