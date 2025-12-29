@@ -283,59 +283,63 @@ export function loadState(): AppState {
       };
     }
 
-    // Try v3 and migrate to v4
-    const rawV3 = localStorage.getItem(KEY_V3);
-    if (rawV3) {
-      const parsed = JSON.parse(rawV3) as V3State;
-      const v3State: V3State = {
-        cards: parsed.cards ?? [],
-        columns: parsed.columns?.length ? parsed.columns : DEFAULT_COLUMNS,
-        templates: parsed.templates ?? [],
-        settings: {
-          ...DEFAULT_SETTINGS,
-          ...(parsed.settings ?? {}),
-        },
-        tagCategories: parsed.tagCategories?.length ? parsed.tagCategories : DEFAULT_TAG_CATEGORIES,
-        tags: parsed.tags?.length ? parsed.tags : DEFAULT_TAGS,
-      };
-      const migrated = migrateV3ToV4(v3State);
-      saveState(migrated);
-      return migrated;
+    // Only try old version migrations if NOT logged in (local-only mode)
+    // Logged-in users should get fresh state, not other users' migrated data
+    if (!currentUserId) {
+      // Try v3 and migrate to v4
+      const rawV3 = localStorage.getItem(KEY_V3);
+      if (rawV3) {
+        const parsed = JSON.parse(rawV3) as V3State;
+        const v3State: V3State = {
+          cards: parsed.cards ?? [],
+          columns: parsed.columns?.length ? parsed.columns : DEFAULT_COLUMNS,
+          templates: parsed.templates ?? [],
+          settings: {
+            ...DEFAULT_SETTINGS,
+            ...(parsed.settings ?? {}),
+          },
+          tagCategories: parsed.tagCategories?.length ? parsed.tagCategories : DEFAULT_TAG_CATEGORIES,
+          tags: parsed.tags?.length ? parsed.tags : DEFAULT_TAGS,
+        };
+        const migrated = migrateV3ToV4(v3State);
+        saveState(migrated);
+        return migrated;
+      }
+
+      // Try v2 and migrate through v3 to v4
+      const rawV2 = localStorage.getItem(KEY_V2);
+      if (rawV2) {
+        const parsed = JSON.parse(rawV2) as V2State;
+        const v2State: V2State = {
+          cards: parsed.cards ?? [],
+          columns: parsed.columns?.length ? parsed.columns : DEFAULT_COLUMNS,
+          templates: parsed.templates ?? [],
+          settings: {
+            ...DEFAULT_SETTINGS,
+            ...(parsed.settings ?? {}),
+          },
+          tagCategories: parsed.tagCategories,
+          tags: parsed.tags,
+        };
+        const v3State = migrateV2ToV3(v2State);
+        const migrated = migrateV3ToV4(v3State);
+        saveState(migrated);
+        return migrated;
+      }
+
+      // Try v1 and migrate through v2, v3 to v4
+      const rawV1 = localStorage.getItem(KEY_V1);
+      if (rawV1) {
+        const parsed = JSON.parse(rawV1) as V1State;
+        const v2State = migrateV1ToV2(parsed);
+        const v3State = migrateV2ToV3(v2State);
+        const migrated = migrateV3ToV4(v3State);
+        saveState(migrated);
+        return migrated;
+      }
     }
 
-    // Try v2 and migrate through v3 to v4
-    const rawV2 = localStorage.getItem(KEY_V2);
-    if (rawV2) {
-      const parsed = JSON.parse(rawV2) as V2State;
-      const v2State: V2State = {
-        cards: parsed.cards ?? [],
-        columns: parsed.columns?.length ? parsed.columns : DEFAULT_COLUMNS,
-        templates: parsed.templates ?? [],
-        settings: {
-          ...DEFAULT_SETTINGS,
-          ...(parsed.settings ?? {}),
-        },
-        tagCategories: parsed.tagCategories,
-        tags: parsed.tags,
-      };
-      const v3State = migrateV2ToV3(v2State);
-      const migrated = migrateV3ToV4(v3State);
-      saveState(migrated);
-      return migrated;
-    }
-
-    // Try v1 and migrate through v2, v3 to v4
-    const rawV1 = localStorage.getItem(KEY_V1);
-    if (rawV1) {
-      const parsed = JSON.parse(rawV1) as V1State;
-      const v2State = migrateV1ToV2(parsed);
-      const v3State = migrateV2ToV3(v2State);
-      const migrated = migrateV3ToV4(v3State);
-      saveState(migrated);
-      return migrated;
-    }
-
-    // Fresh start
+    // Fresh start (new user or no data)
     return getDefaultState();
   } catch {
     return getDefaultState();
