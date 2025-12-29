@@ -14,6 +14,7 @@ type Card = {
   checklist?: Array<{ id: string; text: string; done: boolean }>;
   notes?: string;
   columnHistory?: Array<{ from: string | null; to: string; at: string }>;
+  swimlane?: "work" | "personal";
 };
 
 type AppState = {
@@ -25,7 +26,7 @@ type AppState = {
   tags: Array<{ id: string; name: string; color: string; categoryId: string }>;
 };
 
-function createCard(title: string, column = "backlog", source?: string): Card {
+function createCard(title: string, column = "backlog", source?: string, swimlane: "work" | "personal" = "work"): Card {
   const now = new Date().toISOString();
   return {
     id: nanoid(),
@@ -38,6 +39,7 @@ function createCard(title: string, column = "backlog", source?: string): Card {
     checklist: [],
     notes: source ? `Added from ${source}` : undefined,
     columnHistory: [{ from: null, to: column, at: now }],
+    swimlane,
   };
 }
 
@@ -83,7 +85,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { title, secret, column = "backlog", source = "Webhook" } = req.body || {};
+    const { title, secret, column = "backlog", source = "Webhook", swimlane = "work" } = req.body || {};
 
     // Validate secret
     const expectedSecret = process.env.WEBHOOK_SECRET;
@@ -127,7 +129,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const state: AppState = data?.state ?? getDefaultState();
 
     // Create and add card
-    const card = createCard(title.trim(), column, source);
+    const card = createCard(title.trim(), column, source, swimlane);
     state.cards = state.cards.map((c) =>
       c.column === card.column ? { ...c, order: c.order + 1 } : c
     );
