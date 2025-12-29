@@ -2,6 +2,7 @@ import React from "react";
 import { nanoid } from "nanoid";
 import type { AppState, Card, CardRelation, CardTemplate, Column, ColumnId, ColumnTransition, RelationType, Settings, SwimlaneId, Tag, TagCategory } from "./types";
 import { loadState, saveState, setStorageUserId } from "./storage";
+import { DEFAULT_COLUMNS, DEFAULT_SETTINGS, DEFAULT_TAG_CATEGORIES, DEFAULT_TAGS } from "./constants";
 import { nowIso, suggestEmojiForTitle, suggestTagsForTitle } from "./utils";
 import { calculateAutoPriority } from "./urgency";
 import { loadStateFromSupabase, debouncedSaveToSupabase, subscribeToStateChanges } from "./sync";
@@ -574,7 +575,21 @@ export function useAppState(userId?: string | null) {
   const [historyState, dispatch] = React.useReducer(
     historyReducer,
     undefined,
-    () => initHistory(loadState())
+    () => {
+      // If userId is null (logged in but no ID yet), return empty state
+      // This prevents loading global localStorage data for wrong user
+      if (userId === null) {
+        return initHistory({
+          cards: [],
+          columns: DEFAULT_COLUMNS,
+          templates: [],
+          settings: DEFAULT_SETTINGS,
+          tagCategories: DEFAULT_TAG_CATEGORIES,
+          tags: DEFAULT_TAGS,
+        });
+      }
+      return initHistory(loadState());
+    }
   );
 
   const { present: state, past, future } = historyState;
