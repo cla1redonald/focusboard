@@ -2,29 +2,13 @@ import React from "react";
 import { AnimatePresence } from "framer-motion";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import type { Card, ColumnId, Tag } from "../app/types";
+import type { Card, ColumnId, SwimlaneId } from "../app/types";
 import { CardItem } from "./CardItem";
 import { EmptyColumnState } from "./EmptyColumnState";
 
-const hexToRgb = (hex: string) => {
-  const cleaned = hex.replace("#", "").trim();
-  const normalized =
-    cleaned.length === 3
-      ? cleaned
-          .split("")
-          .map((c) => c + c)
-          .join("")
-      : cleaned;
-  if (normalized.length !== 6) return null;
-  const r = Number.parseInt(normalized.slice(0, 2), 16);
-  const g = Number.parseInt(normalized.slice(2, 4), 16);
-  const b = Number.parseInt(normalized.slice(4, 6), 16);
-  if (Number.isNaN(r) || Number.isNaN(g) || Number.isNaN(b)) return null;
-  return { r, g, b };
-};
-
 export function Column({
   id,
+  swimlaneId,
   title,
   cards,
   accentColor,
@@ -36,7 +20,6 @@ export function Column({
   cardRefSetter,
   columnFocused = false,
   focusedCardIndex = null,
-  allTags = [],
   showAgingIndicators = false,
   showUrgencyIndicators = false,
   staleCardIds = new Set(),
@@ -44,6 +27,7 @@ export function Column({
   reducedMotion = false,
 }: {
   id: ColumnId;
+  swimlaneId?: SwimlaneId;
   title: string;
   cards: Card[];
   accentColor: string;
@@ -55,21 +39,15 @@ export function Column({
   cardRefSetter?: (id: string, el: HTMLElement | null) => void;
   columnFocused?: boolean;
   focusedCardIndex?: number | null;
-  allTags?: Tag[];
   showAgingIndicators?: boolean;
   showUrgencyIndicators?: boolean;
   staleCardIds?: Set<string>;
   staleCardDays?: Record<string, number>;
   reducedMotion?: boolean;
 }) {
-  const { setNodeRef, isOver } = useDroppable({ id });
-  const accentRgb = hexToRgb(accentColor);
-  const accentGlow = accentRgb
-    ? `0 0 26px rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.28)`
-    : undefined;
-  const accentGradient = accentRgb
-    ? `linear-gradient(135deg, rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.35), rgba(${accentRgb.r}, ${accentRgb.g}, ${accentRgb.b}, 0.12) 45%, transparent 85%)`
-    : undefined;
+  // Use composite droppable ID when in a swimlane context
+  const droppableId = swimlaneId ? `${swimlaneId}:${id}` : id;
+  const { setNodeRef, isOver } = useDroppable({ id: droppableId });
 
   const [text, setText] = React.useState("");
 
@@ -88,11 +66,9 @@ export function Column({
   return (
     <div className="w-[280px] shrink-0 sm:w-[320px]">
       <div
-        className={`relative overflow-hidden rounded-2xl border ${headerClass} ${headerFocusClass} px-4 py-3`}
-        style={{ boxShadow: accentGlow }}
+        className={`rounded-2xl border ${headerClass} ${headerFocusClass} px-4 py-3`}
       >
-        <div className="absolute inset-0" style={{ backgroundImage: accentGradient }} />
-        <div className="relative flex items-center justify-between gap-2">
+        <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
             <span
               className="h-2.5 w-2.5 rounded-full"
@@ -130,7 +106,6 @@ export function Column({
                   onOpen={onOpenCard}
                   cardRefSetter={cardRefSetter}
                   focused={columnFocused && focusedCardIndex === idx}
-                  allTags={allTags}
                   showAgingIndicator={showAgingIndicators}
                   showUrgencyIndicator={showUrgencyIndicators}
                   isStaleBacklog={staleCardIds.has(c.id)}

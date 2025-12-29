@@ -31,6 +31,7 @@ describe("Board", () => {
     onUndo: vi.fn(),
     onRedo: vi.fn(),
     onReorderCards: vi.fn(),
+    onToggleSwimlaneCollapse: vi.fn(),
   };
 
   beforeEach(() => {
@@ -41,12 +42,13 @@ describe("Board", () => {
     it("renders all default columns", () => {
       render(<Board {...defaultProps} />);
 
-      expect(screen.getByText("Backlog")).toBeInTheDocument();
-      expect(screen.getByText("Design & Planning")).toBeInTheDocument();
-      expect(screen.getByText("To Do")).toBeInTheDocument();
-      expect(screen.getByText("Doing")).toBeInTheDocument();
-      expect(screen.getByText("Blocked")).toBeInTheDocument();
-      expect(screen.getByText("Done")).toBeInTheDocument();
+      // With swimlanes, each column appears twice (once per swimlane)
+      expect(screen.getAllByText("Backlog")).toHaveLength(2);
+      expect(screen.getAllByText("Design & Planning")).toHaveLength(2);
+      expect(screen.getAllByText("To Do")).toHaveLength(2);
+      expect(screen.getAllByText("Doing")).toHaveLength(2);
+      expect(screen.getAllByText("Blocked")).toHaveLength(2);
+      expect(screen.getAllByText("Done")).toHaveLength(2);
     });
 
     it("renders title and tagline", () => {
@@ -162,8 +164,9 @@ describe("Board", () => {
 
       render(<Board {...defaultProps} columns={customColumns} />);
 
-      expect(screen.getByText("Inbox")).toBeInTheDocument();
-      expect(screen.getByText("Complete")).toBeInTheDocument();
+      // With swimlanes, each custom column appears twice
+      expect(screen.getAllByText("Inbox")).toHaveLength(2);
+      expect(screen.getAllByText("Complete")).toHaveLength(2);
     });
 
     it("respects column order", () => {
@@ -174,9 +177,9 @@ describe("Board", () => {
 
       render(<Board {...defaultProps} columns={reorderedColumns} />);
 
-      // Get all column titles
-      expect(screen.getByText("Done")).toBeInTheDocument();
-      expect(screen.getByText("Backlog")).toBeInTheDocument();
+      // With swimlanes, each column appears twice
+      expect(screen.getAllByText("Done")).toHaveLength(2);
+      expect(screen.getAllByText("Backlog")).toHaveLength(2);
     });
   });
 

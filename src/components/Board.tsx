@@ -1,14 +1,14 @@
 import React from "react";
-import { DndContext, PointerSensor, useSensors, useSensor } from "@dnd-kit/core";
-import type { DragEndEvent } from "@dnd-kit/core";
+import { DndContext, DragOverlay, PointerSensor, useSensors, useSensor } from "@dnd-kit/core";
+import type { DragEndEvent, DragStartEvent } from "@dnd-kit/core";
 import { arrayMove } from "@dnd-kit/sortable";
-import type { Card, Column as ColumnType, ColumnId, FilterState, MetricsState, Settings, Tag } from "../app/types";
-import { CONFETTI_COLORS } from "../app/constants";
-import { groupByColumn, isToday, nowIso } from "../app/utils";
+import type { Card, Column as ColumnType, ColumnId, FilterState, MetricsState, Settings, SwimlaneId, Tag } from "../app/types";
+import { CONFETTI_COLORS, DEFAULT_SWIMLANES } from "../app/constants";
+import { groupBySwimlaneAndColumn, isToday, nowIso } from "../app/utils";
 import { DEFAULT_FILTER, filterCards, getAllTags } from "../app/filters";
 import { getStaleBacklogCards } from "../app/metrics";
 import { useKeyboardNav } from "../app/useKeyboardNav";
-import { Column } from "./Column";
+import { Swimlane } from "./Swimlane";
 import { TopStrip } from "./TopStrip";
 import { FilterBar } from "./FilterBar";
 import { WipModal } from "./WipModal";
@@ -44,14 +44,15 @@ export function Board({
   onUndo,
   onRedo,
   onReorderCards,
+  onToggleSwimlaneCollapse,
 }: {
   cards: Card[];
   columns: ColumnType[];
   settings: Settings;
   metrics: MetricsState;
   tagDefinitions?: Tag[];
-  onAdd: (column: ColumnId, title: string) => void;
-  onMove: (id: string, to: ColumnId, patch?: Partial<Card>) => void;
+  onAdd: (column: ColumnId, title: string, swimlane?: SwimlaneId) => void;
+  onMove: (id: string, to: ColumnId, toSwimlane?: SwimlaneId, patch?: Partial<Card>) => void;
   onDelete: (id: string) => void;
   onOpenCard: (card: Card) => void;
   onSettings: () => void;
@@ -61,7 +62,8 @@ export function Board({
   canRedo: boolean;
   onUndo: () => void;
   onRedo: () => void;
-  onReorderCards: (columnId: ColumnId, cardIds: string[]) => void;
+  onReorderCards: (columnId: ColumnId, cardIds: string[], swimlane?: SwimlaneId) => void;
+  onToggleSwimlaneCollapse: (swimlaneId: SwimlaneId) => void;
 }) {
   const reducedMotion = usePrefersReducedMotion() || settings.reducedMotionOverride;
   const [filter, setFilter] = React.useState<FilterState>(DEFAULT_FILTER);
@@ -87,13 +89,25 @@ export function Board({
       }
   >(null);
 
+  // Active dragging card for DragOverlay
+  const [activeCard, setActiveCard] = React.useState<Card | null>(null);
+
   // Sort columns by order
   const sortedColumns = [...columns].sort((a, b) => a.order - b.order);
 
   // Apply filters
   const filteredCards = filterCards(cards, filter);
   const allTags = getAllTags(cards);
-  const byCol = groupByColumn(filteredCards, columns);
+  const bySwimlaneAndCol = groupBySwimlaneAndColumn(filteredCards, columns);
+
+  // Flat byCol for WIP calculations (counts all cards regardless of swimlane)
+  const byCol: Record<ColumnId, Card[]> = {};
+  for (const col of columns) {
+    byCol[col.id] = [
+      ...(bySwimlaneAndCol.work[col.id] ?? []),
+      ...(bySwimlaneAndCol.personal[col.id] ?? []),
+    ];
+  }
 
   // Keyboard navigation
   const { focusPosition, isNavigating } = useKeyboardNav({
@@ -142,9 +156,18 @@ export function Board({
   };
 
   const headerState = (colId: ColumnId): "normal" | "near" | "full" => {
+    const count = byCol[colId]?.length ?? 0;
+
+    // Special handling for "doing" column - warn at 3+
+    if (colId === "doing") {
+      if (count >= 3) return "full";
+      if (count >= 2) return "near";
+      return "normal";
+    }
+
+    // Standard WIP limit logic for other columns
     const limit = wipLimit(colId);
     if (!limit) return "normal";
-    const count = byCol[colId]?.length ?? 0;
     if (count >= limit) return "full";
     if (count / limit >= 0.8) return "near";
     return "normal";
@@ -165,7 +188,7 @@ export function Board({
   });
   const lastCelebrateRef = React.useRef<number>(0);
 
-  const pendingRef = React.useRef<{ id: string; from: ColumnId; to: ColumnId } | null>(null);
+  const pendingRef = React.useRef<{ id: string; from: ColumnId; to: ColumnId; fromSwimlane?: SwimlaneId; toSwimlane?: SwimlaneId } | null>(null);
 
   const openWipModal = (cardId: string, from: ColumnId, to: ColumnId, allowOverride: boolean) => {
     setModal({ kind: "wip", cardId, from, to, allowOverride });
@@ -223,6 +246,21 @@ export function Board({
     return (byCol[to]?.length ?? 0) + 1 > limit;
   };
 
+  // Parse composite droppable ID (format: "swimlaneId:columnId" or just "columnId")
+  const parseDroppableId = (id: string): { swimlaneId?: SwimlaneId; columnId: ColumnId } => {
+    if (id.includes(":")) {
+      const [swimlaneId, columnId] = id.split(":") as [SwimlaneId, ColumnId];
+      return { swimlaneId, columnId };
+    }
+    return { columnId: id as ColumnId };
+  };
+
+  const onDragStart = (e: DragStartEvent) => {
+    const cardId = String(e.active.id);
+    const card = cards.find((c) => c.id === cardId);
+    setActiveCard(card ?? null);
+  };
+
   const onDragEnd = (e: DragEndEvent) => {
     const cardId = String(e.active.id);
     const overId = e.over?.id as string | undefined;
@@ -231,60 +269,69 @@ export function Board({
     const card = cards.find((c) => c.id === cardId);
     if (!card) return;
     const from = card.column;
+    const fromSwimlane = card.swimlane ?? "work";
 
     // Check if we're dropping on another card (reorder) or on a column (move)
     const overCard = cards.find((c) => c.id === overId);
-    const overColumn = columns.find((c) => c.id === overId);
 
-    // If dropping on a card in the same column, it's a reorder
-    if (overCard && overCard.column === from) {
-      const columnCards = byCol[from] ?? [];
+    // Parse the overId to get swimlane and column info
+    const { swimlaneId: toSwimlane, columnId: toColumn } = parseDroppableId(overId);
+
+    // If dropping on a card in the same column and same swimlane, it's a reorder
+    if (overCard && overCard.column === from && (overCard.swimlane ?? "work") === fromSwimlane) {
+      const columnCards = bySwimlaneAndCol[fromSwimlane][from] ?? [];
       const oldIndex = columnCards.findIndex((c) => c.id === cardId);
       const newIndex = columnCards.findIndex((c) => c.id === overId);
       if (oldIndex !== -1 && newIndex !== -1 && oldIndex !== newIndex) {
         const newOrder = arrayMove(columnCards, oldIndex, newIndex);
-        onReorderCards(from, newOrder.map((c) => c.id));
+        onReorderCards(from, newOrder.map((c) => c.id), fromSwimlane);
       }
       return;
     }
 
-    // Determine target column
-    const to: ColumnId = overColumn ? overColumn.id : overCard ? overCard.column : overId as ColumnId;
+    // Determine target column and swimlane
+    const to: ColumnId = overCard ? overCard.column : toColumn;
+    const targetSwimlane: SwimlaneId = overCard ? (overCard.swimlane ?? "work") : (toSwimlane ?? fromSwimlane);
 
-    // If it's a no-op (same column drop on empty area), return
-    if (from === to) return;
+    // If it's a no-op (same column AND same swimlane), return
+    if (from === to && fromSwimlane === targetSwimlane) return;
 
     // guardrail: Design -> Doing disallowed
     if (!canMoveDirect(from, to)) {
       openWipModal(cardId, from, to, false);
       pendingRef.current = null;
+      setActiveCard(null);
       return;
     }
 
     // blocked reason required
     if (to === "blocked") {
-      pendingRef.current = { id: cardId, from, to };
+      pendingRef.current = { id: cardId, from, to, fromSwimlane, toSwimlane: targetSwimlane };
       openBlockedReasonModal(cardId, from, to);
+      setActiveCard(null);
       return;
     }
 
-    // WIP checks
+    // WIP checks (allow override for all columns)
     if (wouldExceedWip(to)) {
-      const toCol = getColumn(to);
-      // Hard limit for "doing" column (WIP limit of 1)
-      const allowOverride = !(toCol?.wipLimit === 1);
-      pendingRef.current = { id: cardId, from, to };
-      openWipModal(cardId, from, to, allowOverride);
+      pendingRef.current = { id: cardId, from, to, fromSwimlane, toSwimlane: targetSwimlane };
+      openWipModal(cardId, from, to, true);
+      setActiveCard(null);
       return;
     }
 
-    // apply move
-    onMove(cardId, to);
+    // apply move (include swimlane if changed)
+    onMove(cardId, to, targetSwimlane);
     if (reducedMotion) {
       if (isTerminalColumn(to)) pulseDoneHeader();
     } else {
       fireCelebrationIfNeeded(cardId, from, to);
     }
+    setActiveCard(null);
+  };
+
+  const onDragCancel = () => {
+    setActiveCard(null);
   };
 
   return (
@@ -328,41 +375,51 @@ export function Board({
         totalCount={cards.length}
       />
 
-      <DndContext sensors={sensors} onDragEnd={onDragEnd}>
-        <div className="flex gap-3 overflow-x-auto pb-6 sm:gap-5">
-          {sortedColumns.map((col, colIdx) => {
-            const isColumnFocused = isNavigating && focusPosition?.columnIndex === colIdx;
+      <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={onDragCancel}>
+        <div className="flex-1 overflow-y-auto pb-6">
+          {DEFAULT_SWIMLANES.map((swimlane, swimlaneIdx) => {
+            const isSwimlaneFocused = isNavigating && swimlaneIdx === 0; // TODO: multi-swimlane keyboard nav
             return (
-              <div key={col.id} data-column-id={col.id}>
-                <div
-                  id={col.isTerminal ? `${col.id}-header` : undefined}
-                  className="rounded-xl"
-                >
-                  <Column
-                    id={col.id}
-                    title={col.title}
-                    cards={byCol[col.id] ?? []}
-                    accentColor={col.color}
-                    icon={col.icon}
-                    countLabel={countLabel(col.id)}
-                    headerState={headerState(col.id)}
-                    onAdd={onAdd}
-                    onOpenCard={onOpenCard}
-                    cardRefSetter={setCardEl}
-                    columnFocused={isColumnFocused}
-                    focusedCardIndex={isColumnFocused ? focusPosition?.cardIndex ?? null : null}
-                    allTags={tagDefinitions}
-                    showAgingIndicators={settings.showAgingIndicators}
-                    showUrgencyIndicators={true}
-                    staleCardIds={staleData.staleCardIds}
-                    staleCardDays={staleData.staleCardDays}
-                    reducedMotion={reducedMotion}
-                  />
-                </div>
-              </div>
+              <Swimlane
+                key={swimlane.id}
+                swimlaneId={swimlane.id}
+                title={swimlane.title}
+                icon={swimlane.icon}
+                color={swimlane.color}
+                columns={sortedColumns}
+                cardsByColumn={bySwimlaneAndCol[swimlane.id]}
+                collapsed={settings.collapsedSwimlanes?.includes(swimlane.id) ?? false}
+                onToggleCollapse={() => onToggleSwimlaneCollapse(swimlane.id)}
+                onAdd={onAdd}
+                onOpenCard={onOpenCard}
+                cardRefSetter={setCardEl}
+                columnFocused={isSwimlaneFocused}
+                focusedColumnIndex={isSwimlaneFocused ? focusPosition?.columnIndex ?? null : null}
+                focusedCardIndex={isSwimlaneFocused ? focusPosition?.cardIndex ?? null : null}
+                showAgingIndicators={settings.showAgingIndicators}
+                showUrgencyIndicators={true}
+                staleCardIds={staleData.staleCardIds}
+                staleCardDays={staleData.staleCardDays}
+                reducedMotion={reducedMotion}
+                countLabel={countLabel}
+                headerState={headerState}
+                onReorderCards={onReorderCards}
+              />
             );
           })}
         </div>
+
+        {/* Drag overlay shows a preview of the card being dragged */}
+        <DragOverlay>
+          {activeCard && (
+            <div className="w-[280px] rounded-xl border border-amber-500 bg-white px-3 py-2 shadow-[0_20px_50px_rgba(0,0,0,0.25)] rotate-2">
+              <div className="flex items-center gap-2 text-sm font-medium text-amber-950">
+                {activeCard.icon && <span className="text-base">{activeCard.icon}</span>}
+                <span className="truncate">{activeCard.title}</span>
+              </div>
+            </div>
+          )}
+        </DragOverlay>
       </DndContext>
 
       <ConfettiBurst x={confetti.x} y={confetti.y} colors={CONFETTI_COLORS} active={confetti.active} />
@@ -377,8 +434,6 @@ export function Board({
         message={
           modal?.from === "design" && modal?.to === "doing"
             ? "Cards must pass through To Do before moving into Doing."
-            : getColumn(modal?.to ?? "")?.wipLimit === 1
-            ? "Doing is hard-limited to 1. Move the current Doing item out first."
             : "This column is at its WIP limit. Move something out first, or override with a reason."
         }
         askReason={!!modal && modal.kind === "wip" && modal.allowOverride}
@@ -394,14 +449,8 @@ export function Board({
             return;
           }
 
-          if (getColumn(modal.to)?.wipLimit === 1) {
-            setModal(null);
-            pendingRef.current = null;
-            return;
-          }
-
           // override move
-          onMove(pending.id, pending.to, {
+          onMove(pending.id, pending.to, pending.toSwimlane, {
             lastOverrideReason: reason,
             lastOverrideAt: nowIso(),
           });
@@ -428,7 +477,7 @@ export function Board({
         onConfirm={(reason) => {
           const pending = pendingRef.current;
           if (!pending) return;
-          onMove(pending.id, "blocked", { blockedReason: reason });
+          onMove(pending.id, "blocked", pending.toSwimlane, { blockedReason: reason });
           setModal(null);
           pendingRef.current = null;
         }}

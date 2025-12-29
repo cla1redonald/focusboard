@@ -491,6 +491,9 @@ function validateSettings(obj: Record<string, unknown>): Settings {
       obj.staleBacklogThreshold === 3 || obj.staleBacklogThreshold === 7 || obj.staleBacklogThreshold === 14
         ? obj.staleBacklogThreshold
         : DEFAULT_SETTINGS.staleBacklogThreshold,
+    collapsedSwimlanes: Array.isArray(obj.collapsedSwimlanes)
+      ? obj.collapsedSwimlanes.filter((s): s is "work" | "personal" => s === "work" || s === "personal")
+      : DEFAULT_SETTINGS.collapsedSwimlanes,
   };
 }
 

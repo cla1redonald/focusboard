@@ -1,10 +1,22 @@
-import type { Column, Settings, Tag, TagCategory } from "./types";
+import type { Column, Settings, SwimlaneId, Tag, TagCategory } from "./types";
+
+export type Swimlane = {
+  id: SwimlaneId;
+  title: string;
+  icon: string;
+  color: string;
+};
+
+export const DEFAULT_SWIMLANES: Swimlane[] = [
+  { id: "work", title: "Work", icon: "💼", color: "#3B82F6" },
+  { id: "personal", title: "Personal", icon: "🏠", color: "#10B981" },
+];
 
 export const DEFAULT_COLUMNS: Column[] = [
   { id: "backlog", title: "Backlog", icon: "🗂️", color: "#F59E0B", wipLimit: null, isTerminal: false, order: 0 },
   { id: "design", title: "Design & Planning", icon: "🎨", color: "#FBBF24", wipLimit: 5, isTerminal: false, order: 1 },
   { id: "todo", title: "To Do", icon: "📝", color: "#FCD34D", wipLimit: 12, isTerminal: false, order: 2 },
-  { id: "doing", title: "Doing", icon: "⚡", color: "#FB923C", wipLimit: 1, isTerminal: false, order: 3 },
+  { id: "doing", title: "Doing", icon: "⚡", color: "#FB923C", wipLimit: null, isTerminal: false, order: 3 },
   { id: "blocked", title: "Blocked", icon: "⛔", color: "#F87171", wipLimit: 5, isTerminal: false, order: 4 },
   { id: "done", title: "Done", icon: "✅", color: "#34D399", wipLimit: null, isTerminal: true, order: 5 },
 ];
@@ -26,6 +38,7 @@ export const DEFAULT_SETTINGS: Settings = {
   staleCardThreshold: 7,
   autoPriorityFromDueDate: false,
   staleBacklogThreshold: 7,
+  collapsedSwimlanes: [],
 };
 
 export const CONFETTI_COLORS = ["#FBBF24", "#FB923C", "#F59E0B", "#FCD34D", "#34D399"];

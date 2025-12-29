@@ -523,6 +523,7 @@ describe("state reducer", () => {
         staleCardThreshold: 14,
         autoPriorityFromDueDate: true,
         staleBacklogThreshold: 7,
+        collapsedSwimlanes: [],
       };
 
       act(() => {

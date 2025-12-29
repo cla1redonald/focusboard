@@ -16,11 +16,7 @@ body,
 
 body {
   margin: 0;
-  background:
-    radial-gradient(1100px 520px at 8% -10%, rgba(251, 191, 36, 0.25), transparent 60%),
-    radial-gradient(900px 480px at 92% 0%, rgba(253, 224, 71, 0.2), transparent 58%),
-    radial-gradient(700px 380px at 10% 90%, rgba(251, 146, 60, 0.18), transparent 60%),
-    #fffbf5;
+  background: #fffbf5;
 }
 
 .app-bg {
@@ -41,7 +37,7 @@ body {
 .bg-scrim {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(255, 251, 245, 0.7), rgba(255, 251, 245, 0.9));
+  background: rgba(255, 251, 245, 0.85);
   z-index: 1;
 }
 
@@ -51,35 +47,13 @@ body {
 }
 
 .orb {
-  position: absolute;
-  border-radius: 999px;
-  filter: blur(40px);
-  opacity: 0.6;
-  transform: translateZ(0);
+  display: none;
 }
 
-.orb-1 {
-  width: 520px;
-  height: 520px;
-  left: -160px;
-  top: 120px;
-  background: radial-gradient(circle at 30% 30%, rgba(251, 191, 36, 0.5), transparent 65%);
-}
-
-.orb-2 {
-  width: 420px;
-  height: 420px;
-  right: -120px;
-  top: 40px;
-  background: radial-gradient(circle at 30% 30%, rgba(253, 224, 71, 0.5), transparent 65%);
-}
-
+.orb-1,
+.orb-2,
 .orb-3 {
-  width: 360px;
-  height: 360px;
-  right: 20%;
-  bottom: -120px;
-  background: radial-gradient(circle at 30% 30%, rgba(251, 146, 60, 0.4), transparent 65%);
+  display: none;
 }
 
 .noise {

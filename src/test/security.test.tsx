@@ -76,6 +76,7 @@ describe("Security Tests", () => {
           onUndo={vi.fn()}
           onRedo={vi.fn()}
           onReorderCards={vi.fn()}
+          onToggleSwimlaneCollapse={vi.fn()}
         />
       );
 

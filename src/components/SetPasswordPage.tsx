@@ -67,7 +67,7 @@ export function SetPasswordPage({ onComplete }: Props) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-white to-amber-100">
+    <div className="min-h-screen flex items-center justify-center bg-[#fffbf5]">
       <div className="w-full max-w-md px-6">
         <div className="rounded-2xl border border-amber-700/10 bg-white/90 p-8 shadow-[0_20px_60px_rgba(0,0,0,0.1)] backdrop-blur">
           <div className="text-center mb-8">

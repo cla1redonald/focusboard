@@ -305,6 +305,7 @@ describe("storage", () => {
           staleCardThreshold: 7,
           autoPriorityFromDueDate: false,
           staleBacklogThreshold: 7,
+          collapsedSwimlanes: [],
         },
         tagCategories: DEFAULT_TAG_CATEGORIES,
         tags: DEFAULT_TAGS,

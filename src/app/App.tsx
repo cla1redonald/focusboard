@@ -152,14 +152,14 @@ function AppContent() {
             settings={state.settings}
             metrics={metrics}
             tagDefinitions={state.tags}
-            onAdd={(column, title) => {
-              dispatch({ type: "ADD_CARD", column, title });
+            onAdd={(column, title, swimlane) => {
+              dispatch({ type: "ADD_CARD", column, title, swimlane });
               showToast({ type: "success", message: `Card "${title}" added` });
             }}
-            onMove={(id, to, patch) => {
+            onMove={(id, to, toSwimlane, patch) => {
               const card = state.cards.find((c) => c.id === id);
               const toColumn = state.columns.find((c) => c.id === to);
-              dispatch({ type: "MOVE_CARD", id, to, patch });
+              dispatch({ type: "MOVE_CARD", id, to, toSwimlane, patch });
               if (card && toColumn) {
                 showToast({
                   type: "info",
@@ -187,7 +187,8 @@ function AppContent() {
             canRedo={canRedo}
             onUndo={() => dispatch({ type: "UNDO" })}
             onRedo={() => dispatch({ type: "REDO" })}
-            onReorderCards={(columnId, cardIds) => dispatch({ type: "REORDER_CARDS", columnId, cardIds })}
+            onReorderCards={(columnId, cardIds, swimlane) => dispatch({ type: "REORDER_CARDS", columnId, cardIds, swimlane })}
+            onToggleSwimlaneCollapse={(swimlaneId) => dispatch({ type: "TOGGLE_SWIMLANE_COLLAPSE", swimlaneId })}
           />
         </div>
       </div>
@@ -322,7 +323,7 @@ function AuthenticatedApp() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-amber-50 via-white to-amber-100">
+      <div className="min-h-screen flex items-center justify-center bg-[#fffbf5]">
         <div className="text-amber-900/70">Loading...</div>
       </div>
     );

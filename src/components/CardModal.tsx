@@ -1,8 +1,8 @@
 import React from "react";
-import type { Card, RelationType, Tag, TagCategory } from "../app/types";
+import type { Card, RelationType, SwimlaneId, Tag, TagCategory } from "../app/types";
 import { nanoid } from "nanoid";
 import { RelationshipPicker, RelationshipBadge } from "./RelationshipPicker";
-import { TAG_COLOR_PALETTE } from "../app/constants";
+import { TAG_COLOR_PALETTE, DEFAULT_SWIMLANES } from "../app/constants";
 import { UnsplashPicker } from "./UnsplashPicker";
 
 // Extended emoji palette organized by category
@@ -16,6 +16,25 @@ const EMOJI_CHOICES = [
   // Nature & Fun
   "⭐", "💎", "🌟", "🏆", "🎉", "💪", "🚀", "🌈",
 ];
+
+const RECENT_EMOJIS_KEY = "focusboard:recent_emojis";
+const MAX_RECENT_EMOJIS = 8;
+
+function loadRecentEmojis(): string[] {
+  try {
+    const stored = localStorage.getItem(RECENT_EMOJIS_KEY);
+    return stored ? JSON.parse(stored) : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveRecentEmoji(emoji: string): string[] {
+  const recent = loadRecentEmojis();
+  const updated = [emoji, ...recent.filter((e) => e !== emoji)].slice(0, MAX_RECENT_EMOJIS);
+  localStorage.setItem(RECENT_EMOJIS_KEY, JSON.stringify(updated));
+  return updated;
+}
 
 type Props = {
   open: boolean;
@@ -52,7 +71,13 @@ export function CardModal({
   const [showUnsplashPicker, setShowUnsplashPicker] = React.useState(false);
   const [showUrlInput, setShowUrlInput] = React.useState(false);
   const [customUrl, setCustomUrl] = React.useState("");
+  const [recentEmojis, setRecentEmojis] = React.useState<string[]>(() => loadRecentEmojis());
   const emojiInputRef = React.useRef<HTMLInputElement>(null);
+
+  const selectEmoji = (emoji: string) => {
+    update({ icon: emoji });
+    setRecentEmojis(saveRecentEmoji(emoji));
+  };
 
   React.useEffect(() => {
     setDraft(card);
@@ -128,12 +153,35 @@ export function CardModal({
                   Tip: Press {navigator.platform.includes("Mac") ? "⌘+Ctrl+Space" : "Win+."} for full emoji keyboard
                 </span>
               </div>
+              {/* Recent emojis */}
+              {recentEmojis.length > 0 && (
+                <div>
+                  <div className="text-[10px] text-amber-900/40 mb-1">Recently used</div>
+                  <div className="flex flex-wrap gap-1">
+                    {recentEmojis.map((emoji) => (
+                      <button
+                        key={`recent-${emoji}`}
+                        type="button"
+                        onClick={() => selectEmoji(emoji)}
+                        className={`rounded-lg border px-2 py-1 text-base transition ${
+                          draft.icon === emoji
+                            ? "border-amber-500 bg-amber-100"
+                            : "border-amber-700/15 bg-amber-100/80 hover:border-amber-700/30"
+                        }`}
+                      >
+                        {emoji}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+              {/* All emojis */}
               <div className="flex flex-wrap gap-1">
-                {EMOJI_CHOICES.map((emoji) => (
+                {EMOJI_CHOICES.filter((e) => !recentEmojis.includes(e)).map((emoji) => (
                   <button
                     key={emoji}
                     type="button"
-                    onClick={() => update({ icon: emoji })}
+                    onClick={() => selectEmoji(emoji)}
                     className={`rounded-lg border px-2 py-1 text-base transition ${
                       draft.icon === emoji
                         ? "border-amber-500 bg-amber-100"
@@ -175,6 +223,31 @@ export function CardModal({
                 }
                 className="mt-2 w-full rounded-xl border border-amber-700/15 bg-white px-3 py-2 text-sm text-amber-950 outline-none focus:border-amber-700/30"
               />
+            </div>
+          </div>
+
+          <div>
+            <label className="text-xs text-amber-900/60">Swimlane</label>
+            <div className="mt-2 flex gap-2">
+              {DEFAULT_SWIMLANES.map((s) => (
+                <button
+                  key={s.id}
+                  type="button"
+                  onClick={() => update({ swimlane: s.id as SwimlaneId })}
+                  className={`flex items-center gap-2 rounded-xl border px-3 py-2 text-sm transition ${
+                    (draft.swimlane ?? "work") === s.id
+                      ? "border-amber-500 bg-amber-100/80"
+                      : "border-amber-700/15 bg-white hover:border-amber-700/30"
+                  }`}
+                  style={{
+                    borderColor: (draft.swimlane ?? "work") === s.id ? s.color : undefined,
+                    backgroundColor: (draft.swimlane ?? "work") === s.id ? `${s.color}15` : undefined,
+                  }}
+                >
+                  <span className="text-base">{s.icon}</span>
+                  <span className="text-amber-950">{s.title}</span>
+                </button>
+              ))}
             </div>
           </div>
 
@@ -471,22 +544,10 @@ export function CardModal({
           <div>
             <div className="flex items-center justify-between">
             <label className="text-xs text-amber-900/60">Checklist</label>
-              <button
-                onClick={() =>
-                  update({
-                    checklist: [
-                      ...(draft.checklist ?? []),
-                      { id: nanoid(), text: "New item", done: false },
-                    ],
-                  })
-                }
-                className="text-xs text-amber-900/60 hover:text-amber-900"
-              >
-                + Add item
-              </button>
+              <span className="text-[10px] text-amber-900/40">Press Enter to add item</span>
             </div>
             <div className="mt-2 space-y-2">
-              {(draft.checklist ?? []).map((it) => (
+              {(draft.checklist ?? []).map((it, idx) => (
                 <div key={it.id} className="flex items-center gap-2">
                   <input
                     type="checkbox"
@@ -509,6 +570,37 @@ export function CardModal({
                         ),
                       })
                     }
+                    onKeyDown={(e) => {
+                      if (e.key === "Enter") {
+                        e.preventDefault();
+                        const newId = nanoid();
+                        const currentChecklist = draft.checklist ?? [];
+                        const newChecklist = [
+                          ...currentChecklist.slice(0, idx + 1),
+                          { id: newId, text: "", done: false },
+                          ...currentChecklist.slice(idx + 1),
+                        ];
+                        update({ checklist: newChecklist });
+                        // Focus the new input after render
+                        setTimeout(() => {
+                          const inputs = document.querySelectorAll<HTMLInputElement>('[data-checklist-input]');
+                          inputs[idx + 1]?.focus();
+                        }, 0);
+                      } else if (e.key === "Backspace" && it.text === "") {
+                        e.preventDefault();
+                        const currentChecklist = draft.checklist ?? [];
+                        if (currentChecklist.length > 1) {
+                          update({ checklist: currentChecklist.filter((x) => x.id !== it.id) });
+                          // Focus previous input
+                          setTimeout(() => {
+                            const inputs = document.querySelectorAll<HTMLInputElement>('[data-checklist-input]');
+                            inputs[Math.max(0, idx - 1)]?.focus();
+                          }, 0);
+                        }
+                      }
+                    }}
+                    data-checklist-input
+                    placeholder="Type here..."
                     className="flex-1 rounded-xl border border-amber-700/15 bg-white px-3 py-2 text-sm text-amber-950 outline-none focus:border-amber-700/30"
                   />
                   <button
@@ -523,6 +615,42 @@ export function CardModal({
                   </button>
                 </div>
               ))}
+              {/* Add new item input */}
+              <div className="flex items-center gap-2 pt-1">
+                <div className="h-4 w-4" /> {/* Spacer for checkbox alignment */}
+                <input
+                  placeholder="+ Add item..."
+                  className="flex-1 rounded-xl border border-dashed border-amber-700/15 bg-amber-50/30 px-3 py-2 text-sm text-amber-950 outline-none focus:border-amber-700/30 focus:bg-white focus:border-solid"
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      const input = e.target as HTMLInputElement;
+                      const text = input.value.trim();
+                      if (text) {
+                        update({
+                          checklist: [
+                            ...(draft.checklist ?? []),
+                            { id: nanoid(), text, done: false },
+                          ],
+                        });
+                        input.value = "";
+                      }
+                    }
+                  }}
+                  onBlur={(e) => {
+                    const text = e.target.value.trim();
+                    if (text) {
+                      update({
+                        checklist: [
+                          ...(draft.checklist ?? []),
+                          { id: nanoid(), text, done: false },
+                        ],
+                      });
+                      e.target.value = "";
+                    }
+                  }}
+                />
+              </div>
             </div>
           </div>
 

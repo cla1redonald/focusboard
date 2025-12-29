@@ -23,7 +23,8 @@ src/
 │   ├── supabase.ts        # Supabase client initialization
 │   └── useKeyboardNav.ts  # Keyboard navigation hook
 ├── components/            # React components
-│   ├── Board.tsx          # Main board with columns and drag-drop
+│   ├── Board.tsx          # Main board with swimlanes and drag-drop
+│   ├── Swimlane.tsx       # Work/Personal swimlane row
 │   ├── Column.tsx         # Single column with cards
 │   ├── CardItem.tsx       # Card display in column
 │   ├── CardModal.tsx      # Card edit modal
@@ -53,16 +54,21 @@ docs/                       # Documentation
 ### Core Types
 
 ```typescript
+// Swimlane - Work vs Personal separation
+type SwimlaneId = "work" | "personal";
+
 // Card - The primary data unit
 type Card = {
   id: string;
   column: ColumnId;
+  swimlane: SwimlaneId;       // Work or Personal
   title: string;
+  order: number;              // Position within column/swimlane
   icon?: string;
   notes?: string;
   link?: string;
   dueDate?: string;
-  tags?: string[];           // Array of Tag IDs
+  tags?: string[];            // Array of Tag IDs
   checklist?: ChecklistItem[];
   relations?: CardRelation[];
   blockedReason?: string;
@@ -105,6 +111,7 @@ type Settings = {
   staleCardThreshold: 3 | 7 | 14;
   autoPriorityFromDueDate: boolean;
   staleBacklogThreshold: 3 | 7 | 14;
+  collapsedSwimlanes: SwimlaneId[];  // Track collapsed swimlanes
 };
 
 // UrgencyLevel - Due date proximity
@@ -141,14 +148,15 @@ The app uses React's `useReducer` with a custom wrapper for undo/redo support:
 
 | Category | Actions |
 |----------|---------|
-| Cards | `ADD_CARD`, `UPDATE_CARD`, `DELETE_CARD`, `MOVE_CARD` |
+| Cards | `ADD_CARD`, `UPDATE_CARD`, `DELETE_CARD`, `MOVE_CARD`, `REORDER_CARDS` |
 | Columns | `ADD_COLUMN`, `UPDATE_COLUMN`, `DELETE_COLUMN`, `REORDER_COLUMNS` |
 | Tags | `ADD_TAG`, `UPDATE_TAG`, `DELETE_TAG` |
 | Tag Categories | `ADD_TAG_CATEGORY`, `UPDATE_TAG_CATEGORY`, `DELETE_TAG_CATEGORY` |
 | Relations | `ADD_RELATION`, `REMOVE_RELATION` |
+| Swimlanes | `TOGGLE_SWIMLANE_COLLAPSE` |
 | Settings | `SET_SETTINGS` |
 | History | `UNDO`, `REDO` |
-| Bulk | `IMPORT_STATE` |
+| Bulk | `IMPORT_STATE`, `APPLY_AUTO_PRIORITIES` |
 
 ### State Flow
 
@@ -180,14 +188,16 @@ Data is persisted to localStorage with versioned keys:
 | v1 | `focusboard:v1` | Original format (legacy) |
 | v2 | `focusboard:v2` | Added dynamic columns |
 | v3 | `focusboard:v3` | Added tag categories and tags |
+| v4 | `focusboard:v4` | Added swimlanes, card ordering |
 
 ### Migration System
 
 ```typescript
 loadState() {
-  // Try v3 first (current)
-  // Fall back to v2, migrate to v3
-  // Fall back to v1, migrate through v2 to v3
+  // Try v4 first (current)
+  // Fall back to v3, migrate to v4
+  // Fall back to v2, migrate through v3 to v4
+  // Fall back to v1, migrate through v2, v3 to v4
   // Return default state if nothing found
 }
 ```
@@ -218,14 +228,16 @@ App
     ├── Board
     │   ├── TopStrip
     │   ├── FilterBar
-    │   ├── Column (×n)
-    │   │   └── CardItem (×n)
+    │   ├── Swimlane (Work, Personal)
+    │   │   └── Column (×n)
+    │   │       └── CardItem (×n)
     │   ├── WipModal
     │   └── ConfettiBurst
     ├── CardModal
     ├── SettingsPanel
     │   └── ExportImportPanel
-    └── MetricsDashboard
+    ├── MetricsDashboard
+    └── TimelinePanel
 ```
 
 ### Props Flow
@@ -299,6 +311,20 @@ filterCards(cards, filter) {
 - Cards in backlog without due dates tracked for staleness
 - Configurable threshold (3, 7, or 14 days since last update)
 - Warning indicator shown on stale cards
+
+### Smart Card Creation
+
+- `suggestEmojiForTitle()` in `utils.ts` maps keywords to emojis
+- `suggestTagsForTitle()` auto-assigns tags based on title keywords
+- Applied automatically in `ADD_CARD` reducer action
+- Examples: "Fix bug" → 🐛 + bug tag, "Meeting" → 📞, "Deploy" → 🚀
+
+### Swimlanes
+
+- Two fixed swimlanes: Work (💼) and Personal (🏠)
+- Cards grouped by swimlane, then by column
+- Each swimlane is independently collapsible
+- Drag-and-drop between swimlanes supported
 
 ## Performance Considerations
 

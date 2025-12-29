@@ -1,5 +1,7 @@
 export type ColumnId = string;
 
+export type SwimlaneId = "work" | "personal";
+
 export type Column = {
   id: ColumnId;
   title: string;
@@ -47,6 +49,7 @@ export type TagCategory = {
 export type Card = {
   id: string;
   column: ColumnId;
+  swimlane?: SwimlaneId; // "work" or "personal" - defaults to "work"
   title: string;
   order: number; // Position within column (lower = higher in list)
   icon?: string;
@@ -116,6 +119,7 @@ export type Settings = {
   staleCardThreshold: 3 | 7 | 14;
   autoPriorityFromDueDate: boolean; // Auto-assign priority tags based on due dates
   staleBacklogThreshold: 3 | 7 | 14; // Days before backlog cards without due dates show warning
+  collapsedSwimlanes: SwimlaneId[]; // Which swimlanes are collapsed
 };
 
 // Analytics types

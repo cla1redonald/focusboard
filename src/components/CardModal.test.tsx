@@ -182,10 +182,10 @@ describe("CardModal", () => {
       expect(checkboxes[1]).toBeChecked();
     });
 
-    it("renders add item button", () => {
+    it("renders add item input with placeholder", () => {
       render(<CardModal {...defaultProps} />);
 
-      expect(screen.getByText(/\+ add item/i)).toBeInTheDocument();
+      expect(screen.getByPlaceholderText(/add item/i)).toBeInTheDocument();
     });
   });
 
@@ -235,14 +235,24 @@ describe("CardModal", () => {
       expect(screen.queryByDisplayValue("🎯")).not.toBeInTheDocument();
     });
 
-    it("adds new checklist item when add button is clicked", async () => {
+    it("adds new checklist item when Enter is pressed on existing item", async () => {
       const user = userEvent.setup();
+      const card = createCard({
+        checklist: [{ id: "c1", text: "First task", done: false }],
+      });
 
-      render(<CardModal {...defaultProps} />);
+      render(<CardModal {...defaultProps} card={card} />);
 
-      await user.click(screen.getByText(/\+ add item/i));
+      const input = screen.getByDisplayValue("First task");
+      await user.click(input);
+      await user.keyboard("{Enter}");
 
-      expect(screen.getByDisplayValue("New item")).toBeInTheDocument();
+      // Should now have two checklist inputs (original + new empty one)
+      const allInputs = screen.getAllByRole("textbox");
+      const checklistInputs = allInputs.filter((i) =>
+        i.hasAttribute("data-checklist-input")
+      );
+      expect(checklistInputs.length).toBe(2);
     });
 
     it("toggles checklist item done state", async () => {

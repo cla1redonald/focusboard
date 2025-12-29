@@ -62,6 +62,24 @@ export function getUrgencyColor(level: UrgencyLevel): string {
 }
 
 /**
+ * Get subtle background color for card based on urgency
+ */
+export function getUrgencyBackgroundColor(level: UrgencyLevel): string | undefined {
+  switch (level) {
+    case "critical":
+      return "rgba(220, 38, 38, 0.08)"; // Very subtle red
+    case "high":
+      return "rgba(249, 115, 22, 0.08)"; // Very subtle orange
+    case "medium":
+      return "rgba(245, 158, 11, 0.06)"; // Very subtle amber
+    case "low":
+      return "rgba(59, 130, 246, 0.05)"; // Very subtle blue
+    default:
+      return undefined;
+  }
+}
+
+/**
  * Get urgency label for display
  */
 export function getUrgencyLabel(level: UrgencyLevel): string {

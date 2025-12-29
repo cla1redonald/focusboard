@@ -1,8 +1,8 @@
 import React from "react";
 import { nanoid } from "nanoid";
-import type { AppState, Card, CardRelation, CardTemplate, Column, ColumnId, ColumnTransition, RelationType, Settings, Tag, TagCategory } from "./types";
+import type { AppState, Card, CardRelation, CardTemplate, Column, ColumnId, ColumnTransition, RelationType, Settings, SwimlaneId, Tag, TagCategory } from "./types";
 import { loadState, saveState } from "./storage";
-import { nowIso } from "./utils";
+import { nowIso, suggestEmojiForTitle, suggestTagsForTitle } from "./utils";
 import { calculateAutoPriority } from "./urgency";
 import { loadStateFromSupabase, debouncedSaveToSupabase, subscribeToStateChanges } from "./sync";
 import { supabase } from "./supabase";
@@ -25,13 +25,14 @@ function getReciprocalType(type: RelationType): RelationType {
 }
 
 type Action =
-  | { type: "ADD_CARD"; column: ColumnId; title: string }
-  | { type: "ADD_CARD_FROM_TEMPLATE"; templateId: string }
+  | { type: "ADD_CARD"; column: ColumnId; title: string; swimlane?: SwimlaneId }
+  | { type: "ADD_CARD_FROM_TEMPLATE"; templateId: string; swimlane?: SwimlaneId }
   | { type: "UPDATE_CARD"; card: Card }
   | { type: "DELETE_CARD"; id: string }
-  | { type: "MOVE_CARD"; id: string; to: ColumnId; patch?: Partial<Card> }
-  | { type: "REORDER_CARDS"; columnId: ColumnId; cardIds: string[] }
+  | { type: "MOVE_CARD"; id: string; to: ColumnId; toSwimlane?: SwimlaneId; patch?: Partial<Card> }
+  | { type: "REORDER_CARDS"; columnId: ColumnId; cardIds: string[]; swimlane?: SwimlaneId }
   | { type: "SET_SETTINGS"; settings: Settings }
+  | { type: "TOGGLE_SWIMLANE_COLLAPSE"; swimlaneId: SwimlaneId }
   | { type: "ADD_COLUMN"; column: Omit<Column, "id" | "order"> }
   | { type: "UPDATE_COLUMN"; column: Column }
   | { type: "DELETE_COLUMN"; id: ColumnId; migrateCardsTo?: ColumnId }
@@ -63,23 +64,34 @@ function appReducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case "ADD_CARD": {
       const now = nowIso();
+      const swimlane = action.swimlane ?? "work";
       const initialTransition: ColumnTransition = {
         from: null,
         to: action.column,
         at: now,
       };
-      // New cards go to top (order 0), shift existing cards in column
+      // New cards go to top (order 0), shift existing cards in same column AND swimlane
       const shiftedCards = state.cards.map((c) =>
-        c.column === action.column ? { ...c, order: (c.order ?? 0) + 1 } : c
+        c.column === action.column && (c.swimlane ?? "work") === swimlane
+          ? { ...c, order: (c.order ?? 0) + 1 }
+          : c
       );
+
+      // Smart suggestions based on title keywords
+      const suggestedEmoji = suggestEmojiForTitle(action.title);
+      const availableTagIds = state.tags.map((t) => t.id);
+      const suggestedTags = suggestTagsForTitle(action.title, availableTagIds);
+
       const card: Card = {
         id: nanoid(),
         column: action.column,
+        swimlane,
         title: action.title.trim(),
         order: 0,
         createdAt: now,
         updatedAt: now,
-        tags: [],
+        icon: suggestedEmoji,
+        tags: suggestedTags,
         checklist: [],
         columnHistory: [initialTransition],
       };
@@ -119,11 +131,13 @@ function appReducer(state: AppState, action: Action): AppState {
       const isTerminal = toColumn?.isTerminal ?? false;
       const movingCard = state.cards.find((c) => c.id === action.id);
       const fromColumn = movingCard?.column;
+      const fromSwimlane = movingCard?.swimlane ?? "work";
+      const toSwimlane = action.toSwimlane ?? fromSwimlane;
 
-      // Shift cards in destination column to make room at top
+      // Shift cards in destination column AND swimlane to make room at top
       const shiftedCards = state.cards.map((c) => {
         if (c.id === action.id) return c; // Will be updated below
-        if (c.column === action.to) {
+        if (c.column === action.to && (c.swimlane ?? "work") === toSwimlane) {
           return { ...c, order: (c.order ?? 0) + 1 };
         }
         return c;
@@ -144,6 +158,7 @@ function appReducer(state: AppState, action: Action): AppState {
           return {
             ...c,
             column: action.to,
+            swimlane: toSwimlane,
             order: 0, // Move to top of new column
             ...action.patch,
             updatedAt: now,
@@ -154,12 +169,14 @@ function appReducer(state: AppState, action: Action): AppState {
       };
     }
     case "REORDER_CARDS": {
-      const { columnId, cardIds } = action;
+      const { columnId, cardIds, swimlane } = action;
+      const targetSwimlane = swimlane ?? "work";
       const now = nowIso();
       return {
         ...state,
         cards: state.cards.map((c) => {
-          if (c.column !== columnId) return c;
+          // Only reorder cards in the same column AND swimlane
+          if (c.column !== columnId || (c.swimlane ?? "work") !== targetSwimlane) return c;
           const newOrder = cardIds.indexOf(c.id);
           if (newOrder === -1) return c;
           return { ...c, order: newOrder, updatedAt: now };
@@ -168,6 +185,21 @@ function appReducer(state: AppState, action: Action): AppState {
     }
     case "SET_SETTINGS":
       return { ...state, settings: action.settings };
+
+    case "TOGGLE_SWIMLANE_COLLAPSE": {
+      const { swimlaneId } = action;
+      const collapsed = state.settings.collapsedSwimlanes ?? [];
+      const isCollapsed = collapsed.includes(swimlaneId);
+      return {
+        ...state,
+        settings: {
+          ...state.settings,
+          collapsedSwimlanes: isCollapsed
+            ? collapsed.filter((id) => id !== swimlaneId)
+            : [...collapsed, swimlaneId],
+        },
+      };
+    }
 
     case "ADD_COLUMN": {
       const newColumn: Column = {
@@ -239,20 +271,24 @@ function appReducer(state: AppState, action: Action): AppState {
       if (!template) return state;
 
       const now = nowIso();
+      const swimlane = action.swimlane ?? "work";
       const initialTransition: ColumnTransition = {
         from: null,
         to: template.defaultColumn,
         at: now,
       };
 
-      // Shift existing cards in column
+      // Shift existing cards in same column AND swimlane
       const shiftedCards = state.cards.map((c) =>
-        c.column === template.defaultColumn ? { ...c, order: (c.order ?? 0) + 1 } : c
+        c.column === template.defaultColumn && (c.swimlane ?? "work") === swimlane
+          ? { ...c, order: (c.order ?? 0) + 1 }
+          : c
       );
 
       const card: Card = {
         id: nanoid(),
         column: template.defaultColumn,
+        swimlane,
         title: template.title,
         order: 0,
         icon: template.icon,

@@ -59,6 +59,7 @@ function migrateV1ToV2(v1State: V1State): Omit<AppState, "tagCategories" | "tags
       staleCardThreshold: DEFAULT_SETTINGS.staleCardThreshold,
       autoPriorityFromDueDate: DEFAULT_SETTINGS.autoPriorityFromDueDate,
       staleBacklogThreshold: DEFAULT_SETTINGS.staleBacklogThreshold,
+      collapsedSwimlanes: DEFAULT_SETTINGS.collapsedSwimlanes,
     },
   };
 }
@@ -166,19 +167,24 @@ function migrateV3ToV4(v3State: V3State): AppState {
     cardsByColumn[card.column].push(card);
   }
 
-  // Assign order to cards within each column
+  // Assign order to cards within each column, and add swimlane
   const migratedCards: Card[] = v3State.cards.map((card) => {
     const columnCards = cardsByColumn[card.column] ?? [];
     const orderInColumn = columnCards.indexOf(card);
     return {
       ...card,
       order: card.order ?? orderInColumn,
+      swimlane: "work", // Default all migrated cards to work swimlane
     };
   });
 
   return {
     ...v3State,
     cards: migratedCards,
+    settings: {
+      ...DEFAULT_SETTINGS,
+      ...v3State.settings,
+    },
   };
 }
 
@@ -204,9 +210,21 @@ export function loadState(): AppState {
       if (!tagCategories.some((c) => c.id === "custom")) {
         tagCategories = [...tagCategories, { id: "custom", name: "Custom", order: tagCategories.length }];
       }
+      // Ensure all cards have a swimlane (migrate existing cards to "work")
+      const cards = (parsed.cards ?? []).map((card) => ({
+        ...card,
+        swimlane: card.swimlane ?? "work",
+      })) as Card[];
+      // Migrate doing column: remove hard WIP limit of 1 (now soft warning at 3+)
+      const columns = (parsed.columns?.length ? parsed.columns : DEFAULT_COLUMNS).map((col) => {
+        if (col.id === "doing" && col.wipLimit === 1) {
+          return { ...col, wipLimit: null };
+        }
+        return col;
+      });
       return {
-        cards: parsed.cards ?? [],
-        columns: parsed.columns?.length ? parsed.columns : DEFAULT_COLUMNS,
+        cards,
+        columns,
         templates: parsed.templates ?? [],
         settings: {
           ...DEFAULT_SETTINGS,

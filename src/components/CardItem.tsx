@@ -2,17 +2,16 @@ import React from "react";
 import { motion } from "framer-motion";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import type { Card, Tag } from "../app/types";
+import type { Card } from "../app/types";
 import { RelationshipIndicators } from "./RelationshipPicker";
 import { getCardAgeLevel, getCardAgeDays } from "../app/metrics";
-import { getUrgencyLevel, getUrgencyColor, getUrgencyLabel } from "../app/urgency";
+import { getUrgencyLevel, getUrgencyColor, getUrgencyLabel, getUrgencyBackgroundColor } from "../app/urgency";
 
 export function CardItem({
   card,
   onOpen,
   cardRefSetter,
   focused = false,
-  allTags = [],
   showAgingIndicator = false,
   showUrgencyIndicator = false,
   isStaleBacklog = false,
@@ -23,7 +22,6 @@ export function CardItem({
   onOpen: (card: Card) => void;
   cardRefSetter?: (id: string, el: HTMLElement | null) => void;
   focused?: boolean;
-  allTags?: Tag[];
   showAgingIndicator?: boolean;
   showUrgencyIndicator?: boolean;
   isStaleBacklog?: boolean;
@@ -49,22 +47,29 @@ export function CardItem({
   };
 
   const hasBackground = !!card.backgroundImage;
+  const urgencyLevel = getUrgencyLevel(card);
+  const urgencyBgColor = getUrgencyBackgroundColor(urgencyLevel);
 
   return (
     <motion.div
       ref={refFn}
-      style={style}
+      style={{
+        ...style,
+        ...(urgencyBgColor && !hasBackground ? { backgroundColor: urgencyBgColor } : {}),
+      }}
       layout={!reducedMotion}
       initial={reducedMotion ? false : { opacity: 0, y: -10, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={reducedMotion ? undefined : { opacity: 0, scale: 0.95 }}
       transition={{ duration: reducedMotion ? 0 : 0.2, ease: "easeOut" }}
       onClick={() => onOpen(card)}
-      className={`group relative cursor-pointer overflow-hidden rounded-xl border shadow-[0_10px_30px_rgba(0,0,0,0.08)] transition hover:-translate-y-0.5 hover:border-amber-700/20 ${
+      {...listeners}
+      {...attributes}
+      className={`group relative cursor-grab overflow-hidden rounded-xl border shadow-[0_10px_30px_rgba(0,0,0,0.08)] transition hover:-translate-y-0.5 hover:border-amber-700/20 active:cursor-grabbing ${
         focused
           ? "border-amber-500 ring-2 ring-amber-400/50"
           : "border-amber-700/10"
-      } ${hasBackground ? "" : "bg-white hover:bg-amber-50/50"}`}
+      } ${hasBackground ? "" : urgencyBgColor ? "hover:brightness-95" : "bg-white hover:bg-amber-50/50"}`}
     >
       {/* Background Image */}
       {hasBackground && (
@@ -103,79 +108,46 @@ export function CardItem({
             </span>
           </div>
           <div
-            className={`cursor-grab select-none ${hasBackground ? "text-white/60 group-hover:text-white" : "text-amber-900/40 group-hover:text-amber-900/70"}`}
-            title="Drag"
-            onClick={(e) => e.stopPropagation()}
-            {...listeners}
-            {...attributes}
+            className={`select-none ${hasBackground ? "text-white/40" : "text-amber-900/30"}`}
+            title="Drag to move"
           >
             ⋮⋮
           </div>
         </div>
 
-        {(card.tags?.length ?? 0) > 0 && (
-          <div className="mt-2 flex flex-wrap gap-1">
-            {card.tags!.slice(0, 3).map((tagId) => {
-              const tag = allTags.find((t) => t.id === tagId);
-              if (tag) {
-                return (
-                  <span
-                    key={tagId}
-                    className="inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-medium"
-                    style={{
-                      backgroundColor: hasBackground ? "rgba(255,255,255,0.25)" : `${tag.color}20`,
-                      color: hasBackground ? "white" : tag.color,
-                    }}
-                  >
-                    <span
-                      className="h-1.5 w-1.5 rounded-full"
-                      style={{ backgroundColor: hasBackground ? "white" : tag.color }}
-                    />
-                    {tag.name}
-                  </span>
-                );
-              }
-              // Fallback for tags not in the system (e.g., old string tags)
-              return (
-                <span
-                  key={tagId}
-                  className={`rounded-full px-2 py-0.5 text-[11px] ${
-                    hasBackground
-                      ? "bg-white/20 text-white"
-                      : "border border-amber-700/10 bg-amber-50/60 text-amber-900"
-                  }`}
-                >
-                  {tagId}
-                </span>
-              );
-            })}
-            {(card.tags?.length ?? 0) > 3 && (
-              <span className={`rounded-full px-2 py-0.5 text-[11px] ${
-                hasBackground ? "bg-white/20 text-white" : "bg-amber-100 text-amber-700"
-              }`}>
-                +{card.tags!.length - 3}
-              </span>
-            )}
-          </div>
-        )}
-
-        {/* Urgency indicator */}
-        {showUrgencyIndicator && card.dueDate && (() => {
-          const urgencyLevel = getUrgencyLevel(card);
-          if (urgencyLevel === "none") return null;
-          const urgencyColor = getUrgencyColor(urgencyLevel);
-          const urgencyLabel = getUrgencyLabel(urgencyLevel);
+        {/* Due date display */}
+        {card.dueDate && (() => {
+          const urgencyColor = urgencyLevel !== "none" ? getUrgencyColor(urgencyLevel) : (hasBackground ? "white" : "#78716c");
+          const dueDate = new Date(card.dueDate);
+          const today = new Date();
+          const isThisYear = dueDate.getFullYear() === today.getFullYear();
+          const dateStr = dueDate.toLocaleDateString(undefined, {
+            month: "short",
+            day: "numeric",
+            ...(isThisYear ? {} : { year: "numeric" }),
+          });
           return (
             <div className="mt-2 flex items-center gap-1.5">
-              <span
-                className="h-2 w-2 rounded-full"
-                style={{ backgroundColor: urgencyColor }}
-              />
+              <svg
+                className="h-3 w-3"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                strokeWidth={2}
+                style={{ color: urgencyColor }}
+              >
+                <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+              </svg>
               <span
                 className="text-[11px] font-medium"
                 style={{ color: hasBackground ? "white" : urgencyColor }}
               >
-                {urgencyLabel}
+                {dateStr}
+                {urgencyLevel !== "none" && showUrgencyIndicator && (
+                  <span className="ml-1 opacity-80">
+                    ({getUrgencyLabel(urgencyLevel)})
+                  </span>
+                )}
               </span>
             </div>
           );
@@ -203,32 +175,47 @@ export function CardItem({
           </div>
         )}
 
-        {/* Quick link button */}
-        {card.link && (
-          <a
-            href={card.link}
-            target="_blank"
-            rel="noopener noreferrer"
-            onClick={(e) => e.stopPropagation()}
-            className={`mt-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium transition hover:scale-105 ${
-              hasBackground
-                ? "bg-white/20 text-white hover:bg-white/30"
-                : "bg-amber-100 text-amber-700 hover:bg-amber-200"
-            }`}
-            title={card.link}
-          >
-            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
-            </svg>
-            {card.link.includes("drive.google.com") ? "Google Drive" :
-             card.link.includes("docs.google.com") ? "Google Docs" :
-             card.link.includes("sheets.google.com") ? "Google Sheets" :
-             card.link.includes("figma.com") ? "Figma" :
-             card.link.includes("notion.") ? "Notion" :
-             card.link.includes("github.com") ? "GitHub" :
-             "Open link"}
-          </a>
-        )}
+        {/* Link - clickable hyperlink */}
+        {card.link && (() => {
+          const getLinkInfo = (url: string) => {
+            if (url.includes("drive.google.com")) return { label: "Google Drive", icon: "📁" };
+            if (url.includes("docs.google.com")) return { label: "Google Docs", icon: "📄" };
+            if (url.includes("sheets.google.com")) return { label: "Google Sheets", icon: "📊" };
+            if (url.includes("figma.com")) return { label: "Figma", icon: "🎨" };
+            if (url.includes("notion.")) return { label: "Notion", icon: "📝" };
+            if (url.includes("github.com")) return { label: "GitHub", icon: "🐙" };
+            if (url.includes("linear.app")) return { label: "Linear", icon: "📋" };
+            if (url.includes("slack.com")) return { label: "Slack", icon: "💬" };
+            if (url.includes("youtube.com") || url.includes("youtu.be")) return { label: "YouTube", icon: "▶️" };
+            try {
+              const hostname = new URL(url).hostname.replace("www.", "");
+              return { label: hostname, icon: "🔗" };
+            } catch {
+              return { label: "Link", icon: "🔗" };
+            }
+          };
+          const { label, icon } = getLinkInfo(card.link);
+          return (
+            <a
+              href={card.link}
+              target="_blank"
+              rel="noopener noreferrer"
+              onClick={(e) => e.stopPropagation()}
+              className={`mt-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium transition hover:scale-105 hover:underline ${
+                hasBackground
+                  ? "bg-white/20 text-white hover:bg-white/30"
+                  : "bg-blue-50 text-blue-700 hover:bg-blue-100"
+              }`}
+              title={card.link}
+            >
+              <span>{icon}</span>
+              <span className="max-w-[120px] truncate">{label}</span>
+              <svg className="h-3 w-3 opacity-60" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+              </svg>
+            </a>
+          );
+        })()}
       </div>
     </motion.div>
   );

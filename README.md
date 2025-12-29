@@ -7,7 +7,9 @@ A focused Kanban-style board with WIP limits, colored tags, and cloud sync.
 ## Features
 
 - **Kanban Board** - Drag-and-drop cards between customizable columns
+- **Work/Personal Swimlanes** - Separate tasks into collapsible Work and Personal rows
 - **WIP Limits** - Set work-in-progress limits per column with visual warnings
+- **Smart Card Creation** - Auto-suggest emojis and tags based on card title keywords
 - **Colored Tags** - Organize cards with predefined tag categories (Priority, Type, Effort) and custom colors
 - **Cloud Sync** - Optional Supabase authentication for syncing across devices
 - **Undo/Redo** - Full history support with keyboard shortcuts (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z)
