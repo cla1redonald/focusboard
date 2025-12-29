@@ -1,0 +1,19 @@
+{
+  "name": "focusboard-agents",
+  "version": "1.0.0",
+  "description": "Multi-agent orchestration for FocusBoard",
+  "type": "module",
+  "scripts": {
+    "start": "tsx orchestrator.ts",
+    "feature": "tsx workflows/feature.ts",
+    "bugfix": "tsx workflows/bugfix.ts",
+    "review": "tsx workflows/review.ts"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-code-sdk": "^0.1.0"
+  },
+  "devDependencies": {
+    "tsx": "^4.7.0",
+    "typescript": "^5.3.0"
+  }
+}
