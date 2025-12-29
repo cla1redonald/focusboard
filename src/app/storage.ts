@@ -236,12 +236,13 @@ function getDefaultState(): AppState {
 
 export function loadState(): AppState {
   try {
-    // Try user-scoped v4 first (if logged in)
+    // If logged in, only use user-scoped key (no fallback to global)
+    // This prevents new users from seeing other users' data
     const scopedKey = getStorageKey(KEY_V4);
     let rawV4 = localStorage.getItem(scopedKey);
 
-    // Fall back to global key for migration (when user first logs in)
-    if (!rawV4) {
+    // Only fall back to global key if NOT logged in (local-only mode)
+    if (!rawV4 && !currentUserId) {
       rawV4 = localStorage.getItem(KEY_V4);
     }
     if (rawV4) {
