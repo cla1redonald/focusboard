@@ -13,9 +13,12 @@ import {
   Package,
   Brain,
   Flame,
+  Sun,
+  Moon,
+  Monitor,
   type LucideIcon,
 } from "lucide-react";
-import type { AppState, Column, Settings, Tag, TagCategory } from "../app/types";
+import type { AppState, Column, Settings, Tag, TagCategory, ThemeMode } from "../app/types";
 import { COLUMN_COLORS, DEFAULT_COLUMN_ICONS, TAG_COLOR_PALETTE } from "../app/constants";
 import { ExportImportPanel } from "./ExportImportPanel";
 import type { ImportMode } from "../app/exportImport";
@@ -169,6 +172,40 @@ export function SettingsPanel({
                 />
               </div>
             )}
+          </div>
+
+          {/* Appearance Section */}
+          <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4">
+            <div className="text-sm font-semibold text-gray-900">Appearance</div>
+            <div className="mt-2 text-xs text-gray-500">Choose your preferred color theme</div>
+
+            <div className="mt-3 flex gap-2">
+              {(
+                [
+                  { value: "light", label: "Light", icon: Sun },
+                  { value: "dark", label: "Dark", icon: Moon },
+                  { value: "system", label: "System", icon: Monitor },
+                ] as { value: ThemeMode; label: string; icon: LucideIcon }[]
+              ).map((option) => {
+                const Icon = option.icon;
+                const isSelected = settings.theme === option.value;
+                return (
+                  <button
+                    key={option.value}
+                    type="button"
+                    onClick={() => set({ theme: option.value })}
+                    className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm transition ${
+                      isSelected
+                        ? "border-emerald-500 bg-emerald-50 text-emerald-700"
+                        : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                    }`}
+                  >
+                    <Icon size={16} />
+                    {option.label}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
           {/* Columns Section */}

@@ -1,5 +1,6 @@
 @import "tailwindcss";
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@custom-variant dark (&:where(.dark, .dark *));
 
 :root {
   color-scheme: light;
@@ -48,6 +49,13 @@ body {
   background: #f3f4f6;
 }
 
+.dark body,
+body.dark,
+.dark {
+  background: #111827;
+  color-scheme: dark;
+}
+
 .app-bg {
   position: relative;
   min-height: 100%;
@@ -68,6 +76,10 @@ body {
   inset: 0;
   background: rgba(255, 255, 255, 0.9);
   z-index: 1;
+}
+
+.dark .bg-scrim {
+  background: rgba(17, 24, 39, 0.95);
 }
 
 .app-shell {

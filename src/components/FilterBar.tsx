@@ -79,7 +79,7 @@ export function FilterBar({
             placeholder="Search cards... (⌘K)"
             value={filter.search}
             onChange={(e) => onChange({ ...filter, search: e.target.value })}
-            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 pl-10 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+            className="w-full rounded-xl border border-gray-200 bg-white px-4 py-2.5 pl-10 text-sm text-gray-900 shadow-sm placeholder:text-gray-400 focus:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-white dark:placeholder:text-gray-500"
           />
           <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
           {filter.search && (
@@ -97,8 +97,8 @@ export function FilterBar({
           onClick={() => setShowFilters(!showFilters)}
           className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm shadow-sm transition ${
             showFilters || hasActiveFilters
-              ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-              : "border-gray-200 bg-white text-gray-700 hover:border-gray-300"
+              ? "border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400"
+              : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-300 dark:hover:border-gray-500"
           }`}
         >
           <Filter size={14} />
@@ -115,14 +115,14 @@ export function FilterBar({
 
         {/* Result count */}
         {isFiltered && (
-          <div className="flex items-center gap-2 text-sm text-gray-600">
+          <div className="flex items-center gap-2 text-sm text-gray-600 dark:text-gray-400">
             <span>
-              Showing <span className="font-medium text-gray-900">{resultCount}</span> of{" "}
+              Showing <span className="font-medium text-gray-900 dark:text-white">{resultCount}</span> of{" "}
               {totalCount} cards
             </span>
             <button
               onClick={clearAllFilters}
-              className="text-emerald-600 hover:text-emerald-700 hover:underline"
+              className="text-emerald-600 hover:text-emerald-700 hover:underline dark:text-emerald-400 dark:hover:text-emerald-300"
             >
               Clear all
             </button>
@@ -132,11 +132,11 @@ export function FilterBar({
 
       {/* Expanded filters */}
       {showFilters && (
-        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+        <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm dark:border-gray-700 dark:bg-gray-800">
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
             {/* Column filter */}
             <div>
-              <div className="mb-2 text-xs font-medium text-gray-500">Columns</div>
+              <div className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">Columns</div>
               <div className="flex flex-wrap gap-1">
                 {columns.map((col) => (
                   <button
@@ -145,7 +145,7 @@ export function FilterBar({
                     className={`rounded-lg px-2 py-1 text-xs transition ${
                       filter.columns.includes(col.id)
                         ? "bg-emerald-500 text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                     }`}
                   >
                     {col.icon} {col.title}
@@ -156,7 +156,7 @@ export function FilterBar({
 
             {/* Tag filter */}
             <div>
-              <div className="mb-2 text-xs font-medium text-gray-500">Tags</div>
+              <div className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">Tags</div>
               {allTags.length > 0 ? (
                 <div className="flex flex-wrap gap-1">
                   {allTags.map((tagId) => {
@@ -192,7 +192,7 @@ export function FilterBar({
                         className={`rounded-lg px-2 py-1 text-xs transition ${
                           isSelected
                             ? "bg-emerald-500 text-white"
-                            : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                            : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                         }`}
                       >
                         {tagId}
@@ -201,13 +201,13 @@ export function FilterBar({
                   })}
                 </div>
               ) : (
-                <div className="text-xs text-gray-400">No tags found</div>
+                <div className="text-xs text-gray-400 dark:text-gray-500">No tags found</div>
               )}
             </div>
 
             {/* Due date filter */}
             <div>
-              <div className="mb-2 text-xs font-medium text-gray-500">Due Date</div>
+              <div className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">Due Date</div>
               <div className="flex flex-wrap gap-1">
                 {(
                   [
@@ -224,7 +224,7 @@ export function FilterBar({
                     className={`rounded-lg px-2 py-1 text-xs transition ${
                       filter.dueDate === option.value
                         ? "bg-emerald-500 text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                     }`}
                   >
                     {option.label}
@@ -235,7 +235,7 @@ export function FilterBar({
 
             {/* Blocker filter */}
             <div>
-              <div className="mb-2 text-xs font-medium text-gray-500">Blockers</div>
+              <div className="mb-2 text-xs font-medium text-gray-500 dark:text-gray-400">Blockers</div>
               <div className="flex flex-wrap gap-1">
                 {(
                   [
@@ -250,7 +250,7 @@ export function FilterBar({
                     className={`rounded-lg px-2 py-1 text-xs transition ${
                       filter.hasBlocker === option.value
                         ? "bg-emerald-500 text-white"
-                        : "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                        : "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600"
                     }`}
                   >
                     {option.label}

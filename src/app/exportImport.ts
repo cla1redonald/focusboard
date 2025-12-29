@@ -494,6 +494,10 @@ function validateSettings(obj: Record<string, unknown>): Settings {
     collapsedSwimlanes: Array.isArray(obj.collapsedSwimlanes)
       ? obj.collapsedSwimlanes.filter((s): s is "work" | "personal" => s === "work" || s === "personal")
       : DEFAULT_SETTINGS.collapsedSwimlanes,
+    theme:
+      obj.theme === "light" || obj.theme === "dark" || obj.theme === "system"
+        ? obj.theme
+        : DEFAULT_SETTINGS.theme,
   };
 }
 

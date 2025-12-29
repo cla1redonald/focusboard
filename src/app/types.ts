@@ -120,6 +120,7 @@ export type Settings = {
   autoPriorityFromDueDate: boolean; // Auto-assign priority tags based on due dates
   staleBacklogThreshold: 3 | 7 | 14; // Days before backlog cards without due dates show warning
   collapsedSwimlanes: SwimlaneId[]; // Which swimlanes are collapsed
+  theme: ThemeMode; // Dark/light/system theme preference
 };
 
 // Analytics types
@@ -169,6 +170,9 @@ export type CFDDataPoint = {
 };
 
 export type CardAgeLevel = "none" | "yellow" | "orange" | "red";
+
+// Theme mode for dark/light mode
+export type ThemeMode = "light" | "dark" | "system";
 
 // Urgency level based on due date proximity
 export type UrgencyLevel = "none" | "low" | "medium" | "high" | "critical";
