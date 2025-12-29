@@ -10,85 +10,190 @@
  * - Tester: Quality assurance and testing
  *
  * Usage:
- *   npx tsx orchestrator.ts "Add dark mode toggle to settings"
- *   npx tsx orchestrator.ts "Fix the timeline panel date filtering bug"
+ *   ANTHROPIC_API_KEY=your_key npx tsx orchestrator.ts "Add dark mode toggle"
  */
 
-import { agents } from "./definitions.js";
+import Anthropic from "@anthropic-ai/sdk";
+import { agents, AgentDefinition } from "./definitions.js";
+import * as readline from "readline";
 
-// Note: The actual SDK import would be:
-// import { query, ClaudeCodeOptions } from "@anthropic-ai/claude-code-sdk";
-// For now, we'll create a placeholder that shows how it would work.
+const client = new Anthropic();
 
-interface Message {
-  type: "text" | "tool_use" | "permission_request" | "result";
-  content?: string;
-  name?: string;
-  description?: string;
-  result?: string;
+// Colors for terminal output
+const colors = {
+  reset: "\x1b[0m",
+  bright: "\x1b[1m",
+  dim: "\x1b[2m",
+  cyan: "\x1b[36m",
+  green: "\x1b[32m",
+  yellow: "\x1b[33m",
+  blue: "\x1b[34m",
+  magenta: "\x1b[35m",
+  red: "\x1b[31m",
+};
+
+const agentColors: Record<string, string> = {
+  architect: colors.blue,
+  engineer: colors.green,
+  uxui: colors.magenta,
+  researcher: colors.cyan,
+  tester: colors.yellow,
+};
+
+function log(agent: string, message: string) {
+  const color = agentColors[agent] || colors.reset;
+  const icon = {
+    architect: "🏛️ ",
+    engineer: "⚙️ ",
+    uxui: "🎨",
+    researcher: "🔍",
+    tester: "🧪",
+  }[agent] || "🤖";
+
+  console.log(`${color}${colors.bright}[${icon} ${agent.toUpperCase()}]${colors.reset}`);
+  console.log(`${color}${message}${colors.reset}\n`);
 }
 
-interface WorkflowOptions {
-  allowedTools: string[];
-  permissionMode: "default" | "acceptEdits" | "bypassPermissions" | "plan";
-  agents: typeof agents;
-  maxTurns: number;
+async function askForApproval(question: string): Promise<boolean> {
+  const rl = readline.createInterface({
+    input: process.stdin,
+    output: process.stdout,
+  });
+
+  return new Promise((resolve) => {
+    rl.question(`${colors.yellow}${colors.bright}⚠️  ${question} (y/n): ${colors.reset}`, (answer) => {
+      rl.close();
+      resolve(answer.toLowerCase() === "y" || answer.toLowerCase() === "yes");
+    });
+  });
 }
 
-/**
- * Placeholder for the actual SDK query function.
- * In production, this would be replaced with the real SDK import.
- */
-async function* mockQuery(options: {
-  prompt: string;
-  options: WorkflowOptions;
-}): AsyncGenerator<Message> {
-  console.log("\n📋 Workflow Configuration:");
-  console.log(`   Permission Mode: ${options.options.permissionMode}`);
-  console.log(`   Max Turns: ${options.options.maxTurns}`);
-  console.log(`   Agents: ${Object.keys(options.options.agents).join(", ")}`);
-  console.log("\n---");
+async function runAgent(
+  agentName: string,
+  agent: AgentDefinition,
+  task: string,
+  context: string = ""
+): Promise<string> {
+  log(agentName, `Starting task...`);
 
-  yield {
-    type: "text",
-    content: `\n🚀 Starting workflow: "${options.prompt}"\n\nThis is a placeholder. To run the actual multi-agent system:\n\n1. Install the Claude Code SDK:\n   npm install @anthropic-ai/claude-code-sdk\n\n2. Set your API key:\n   export ANTHROPIC_API_KEY=your_key\n\n3. Update the import in orchestrator.ts\n\nAvailable agents:\n${Object.entries(options.options.agents)
-      .map(([name, def]) => `  • ${name}: ${def.description}`)
-      .join("\n")}`
-  };
+  const systemPrompt = `${agent.prompt}
+
+You are part of a multi-agent team working on FocusBoard.
+Your current task is below. Be concise and actionable.
+
+Available tools for your role: ${agent.tools.join(", ")}
+(Note: In this orchestrator, you provide recommendations - the human executes)`;
+
+  const userMessage = context
+    ? `Previous context from other agents:\n${context}\n\n---\n\nYour task:\n${task}`
+    : task;
+
+  try {
+    const response = await client.messages.create({
+      model: agent.model,
+      max_tokens: 2048,
+      system: systemPrompt,
+      messages: [{ role: "user", content: userMessage }],
+    });
+
+    const content = response.content[0];
+    if (content.type === "text") {
+      log(agentName, content.text);
+      return content.text;
+    }
+    return "";
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : String(error);
+    log(agentName, `Error: ${errorMessage}`);
+    return `Error: ${errorMessage}`;
+  }
 }
 
 export async function runWorkflow(task: string) {
-  const options: WorkflowOptions = {
-    allowedTools: ["Task", "Read", "Edit", "Write", "Bash", "Glob", "Grep", "WebSearch"],
-    permissionMode: "acceptEdits",  // Supervised execution
-    agents,
-    maxTurns: 50
-  };
+  console.log("\n" + "═".repeat(60));
+  console.log(`${colors.bright}${colors.cyan}  FocusBoard Agent Orchestrator${colors.reset}`);
+  console.log("═".repeat(60));
+  console.log(`\n${colors.dim}Task: ${task}${colors.reset}\n`);
 
-  console.log("╔════════════════════════════════════════════════════════════╗");
-  console.log("║           FocusBoard Agent Orchestrator                     ║");
-  console.log("╚════════════════════════════════════════════════════════════╝");
-
-  for await (const message of mockQuery({ prompt: task, options })) {
-    switch (message.type) {
-      case "text":
-        console.log(message.content);
-        break;
-      case "tool_use":
-        console.log(`\n🔧 [Tool: ${message.name}]`);
-        break;
-      case "permission_request":
-        console.log(`\n⚠️  [APPROVAL NEEDED] ${message.description}`);
-        // In production: await user confirmation via readline or UI
-        break;
-      case "result":
-        console.log(`\n✅ Result: ${message.result}`);
-        break;
-    }
+  // Check for API key
+  if (!process.env.ANTHROPIC_API_KEY) {
+    console.log(`${colors.red}Error: ANTHROPIC_API_KEY environment variable not set.${colors.reset}`);
+    console.log(`\nSet it with: export ANTHROPIC_API_KEY=your_key_here`);
+    console.log(`Or run with: ANTHROPIC_API_KEY=your_key npx tsx orchestrator.ts "task"`);
+    process.exit(1);
   }
 
-  console.log("\n---");
-  console.log("Workflow complete.\n");
+  let context = "";
+
+  // Step 1: Researcher (if task seems to need research)
+  if (task.toLowerCase().includes("add") || task.toLowerCase().includes("implement") || task.toLowerCase().includes("new")) {
+    console.log(`${colors.dim}─── Step 1: Research ───${colors.reset}\n`);
+    const researchResult = await runAgent(
+      "researcher",
+      agents.researcher,
+      `Research best practices and approaches for: ${task}`,
+      ""
+    );
+    context += `\n## Researcher Findings:\n${researchResult}\n`;
+  }
+
+  // Step 2: Architect
+  console.log(`${colors.dim}─── Step 2: Architecture Review ───${colors.reset}\n`);
+  const architectResult = await runAgent(
+    "architect",
+    agents.architect,
+    `Review and design approach for: ${task}\n\nProvide:\n1. Files that need modification\n2. Architectural considerations\n3. Potential risks or concerns`,
+    context
+  );
+  context += `\n## Architect Analysis:\n${architectResult}\n`;
+
+  // Step 3: UX/UI (if task involves UI)
+  if (task.toLowerCase().includes("ui") || task.toLowerCase().includes("component") ||
+      task.toLowerCase().includes("button") || task.toLowerCase().includes("modal") ||
+      task.toLowerCase().includes("style") || task.toLowerCase().includes("design")) {
+    console.log(`${colors.dim}─── Step 3: UX/UI Review ───${colors.reset}\n`);
+    const uxResult = await runAgent(
+      "uxui",
+      agents.uxui,
+      `Review UX/UI implications for: ${task}`,
+      context
+    );
+    context += `\n## UX/UI Review:\n${uxResult}\n`;
+  }
+
+  // Checkpoint: Ask for approval before implementation
+  console.log("─".repeat(60));
+  const approved = await askForApproval("Proceed with implementation recommendations?");
+
+  if (!approved) {
+    console.log(`\n${colors.yellow}Workflow paused. Review the above recommendations.${colors.reset}\n`);
+    return;
+  }
+
+  // Step 4: Engineer recommendations
+  console.log(`\n${colors.dim}─── Step 4: Implementation Plan ───${colors.reset}\n`);
+  const engineerResult = await runAgent(
+    "engineer",
+    agents.engineer,
+    `Based on the analysis above, provide specific implementation steps for: ${task}\n\nInclude:\n1. Exact code changes needed\n2. Files to modify\n3. Any new files to create`,
+    context
+  );
+  context += `\n## Engineer Implementation Plan:\n${engineerResult}\n`;
+
+  // Step 5: Tester recommendations
+  console.log(`${colors.dim}─── Step 5: Testing Plan ───${colors.reset}\n`);
+  await runAgent(
+    "tester",
+    agents.tester,
+    `Create a testing plan for: ${task}\n\nInclude:\n1. Test cases to add\n2. Existing tests to update\n3. Manual testing steps`,
+    context
+  );
+
+  console.log("═".repeat(60));
+  console.log(`${colors.green}${colors.bright}  Workflow Complete${colors.reset}`);
+  console.log("═".repeat(60));
+  console.log(`\n${colors.dim}The agents have provided their recommendations.`);
+  console.log(`Review the output above and implement as needed.${colors.reset}\n`);
 }
 
 // CLI entry point
@@ -96,20 +201,23 @@ const task = process.argv.slice(2).join(" ");
 
 if (!task) {
   console.log(`
-FocusBoard Agent Orchestrator
+${colors.bright}FocusBoard Agent Orchestrator${colors.reset}
 
 Usage:
-  npx tsx orchestrator.ts "<task description>"
+  ANTHROPIC_API_KEY=your_key npx tsx orchestrator.ts "<task description>"
 
 Examples:
   npx tsx orchestrator.ts "Add dark mode toggle"
   npx tsx orchestrator.ts "Fix the webhook swimlane bug"
   npx tsx orchestrator.ts "Review authentication flow for security"
 
-Available Agents:
+${colors.dim}Available Agents:${colors.reset}
 ${Object.entries(agents)
-  .map(([name, def]) => `  ${name.padEnd(12)} - ${def.description}`)
+  .map(([name, def]) => `  ${agentColors[name] || ""}${name.padEnd(12)}${colors.reset} - ${def.description}`)
   .join("\n")}
+
+${colors.dim}Environment:${colors.reset}
+  ANTHROPIC_API_KEY - Required for API access
 `);
   process.exit(0);
 }

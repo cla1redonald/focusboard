@@ -10,7 +10,7 @@
     "review": "tsx workflows/review.ts"
   },
   "dependencies": {
-    "@anthropic-ai/claude-code-sdk": "^0.1.0"
+    "@anthropic-ai/sdk": "^0.32.0"
   },
   "devDependencies": {
     "tsx": "^4.7.0",
