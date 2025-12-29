@@ -110,12 +110,12 @@ export function CardModal({
 
   return (
     <div className="fixed inset-0 z-[1100] flex items-center justify-center p-4">
-      <div className="absolute inset-0 bg-zinc-900/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative flex max-h-[90vh] w-full max-w-[720px] flex-col rounded-xl border border-zinc-200 bg-white shadow-xl">
+      <div className="absolute inset-0 bg-gray-900/30 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative flex max-h-[90vh] w-full max-w-[720px] flex-col rounded-xl border border-gray-200 bg-white shadow-xl">
         {/* Fixed Header */}
-        <div className="flex shrink-0 items-center justify-between border-b border-zinc-100 px-4 py-3 sm:px-6 sm:py-4">
-          <div className="text-lg font-semibold text-zinc-900 sm:text-xl">Edit card</div>
-          <button onClick={onClose} className="rounded-md p-1 text-zinc-400 hover:bg-zinc-100 hover:text-zinc-600" aria-label="Close">
+        <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-4 py-3 sm:px-6 sm:py-4">
+          <div className="text-lg font-semibold text-gray-900 sm:text-xl">Edit card</div>
+          <button onClick={onClose} className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600" aria-label="Close">
             <X size={20} />
           </button>
         </div>
@@ -124,16 +124,16 @@ export function CardModal({
         <div className="flex-1 overflow-y-auto px-4 py-4 sm:px-6">
         <div className="space-y-4">
           <div>
-            <label className="text-xs font-medium text-zinc-500">Title</label>
+            <label className="text-xs font-medium text-gray-500">Title</label>
             <input
               value={draft.title}
               onChange={(e) => update({ title: e.target.value })}
-              className="mt-1.5 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20"
+              className="mt-1.5 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
             />
           </div>
 
           <div>
-            <label className="text-xs font-medium text-zinc-500">Icon (emoji)</label>
+            <label className="text-xs font-medium text-gray-500">Icon (emoji)</label>
             <div className="mt-1.5 space-y-2">
               <div className="flex items-center gap-2">
                 <input
@@ -141,25 +141,25 @@ export function CardModal({
                   value={draft.icon ?? ""}
                   onChange={(e) => update({ icon: e.target.value })}
                   placeholder="Type or paste emoji"
-                  className="w-32 rounded-md border border-zinc-200 bg-white px-3 py-2 text-center text-lg text-zinc-900 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20"
+                  className="w-32 rounded-md border border-gray-200 bg-white px-3 py-2 text-center text-lg text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                 />
                 {draft.icon && (
                   <button
                     type="button"
                     onClick={() => update({ icon: undefined })}
-                    className="rounded-md border border-zinc-200 bg-zinc-50 px-3 py-2 text-xs text-zinc-600 hover:bg-zinc-100"
+                    className="rounded-md border border-gray-200 bg-gray-50 px-3 py-2 text-xs text-gray-600 hover:bg-gray-100"
                   >
                     Clear
                   </button>
                 )}
-                <span className="text-[10px] text-zinc-400">
+                <span className="text-[10px] text-gray-400">
                   Tip: Press {navigator.platform.includes("Mac") ? "⌘+Ctrl+Space" : "Win+."} for full emoji keyboard
                 </span>
               </div>
               {/* Recent emojis */}
               {recentEmojis.length > 0 && (
                 <div>
-                  <div className="text-[10px] text-zinc-400 mb-1">Recently used</div>
+                  <div className="text-[10px] text-gray-400 mb-1">Recently used</div>
                   <div className="flex flex-wrap gap-1">
                     {recentEmojis.map((emoji) => (
                       <button
@@ -168,8 +168,8 @@ export function CardModal({
                         onClick={() => selectEmoji(emoji)}
                         className={`rounded-md border px-2 py-1 text-base transition ${
                           draft.icon === emoji
-                            ? "border-violet-500 bg-violet-50"
-                            : "border-zinc-200 bg-zinc-50 hover:border-zinc-300"
+                            ? "border-emerald-500 bg-emerald-50"
+                            : "border-gray-200 bg-gray-50 hover:border-gray-300"
                         }`}
                       >
                         {emoji}
@@ -187,8 +187,8 @@ export function CardModal({
                     onClick={() => selectEmoji(emoji)}
                     className={`rounded-md border px-2 py-1 text-base transition ${
                       draft.icon === emoji
-                        ? "border-violet-500 bg-violet-50"
-                        : "border-zinc-200 bg-zinc-50 hover:border-zinc-300"
+                        ? "border-emerald-500 bg-emerald-50"
+                        : "border-gray-200 bg-gray-50 hover:border-gray-300"
                     }`}
                   >
                     {emoji}
@@ -199,38 +199,38 @@ export function CardModal({
           </div>
 
           <div>
-            <label className="text-xs font-medium text-zinc-500">Notes</label>
+            <label className="text-xs font-medium text-gray-500">Notes</label>
             <textarea
               value={draft.notes ?? ""}
               onChange={(e) => update({ notes: e.target.value })}
-              className="mt-1.5 w-full min-h-[90px] rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20"
+              className="mt-1.5 w-full min-h-[90px] rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
             />
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
             <div>
-              <label className="text-xs font-medium text-zinc-500">Link</label>
+              <label className="text-xs font-medium text-gray-500">Link</label>
               <input
                 value={draft.link ?? ""}
                 onChange={(e) => update({ link: e.target.value })}
-                className="mt-1.5 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20"
+                className="mt-1.5 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
               />
             </div>
             <div>
-              <label className="text-xs font-medium text-zinc-500">Due date</label>
+              <label className="text-xs font-medium text-gray-500">Due date</label>
               <input
                 type="date"
                 value={draft.dueDate ? draft.dueDate.slice(0, 10) : ""}
                 onChange={(e) =>
                   update({ dueDate: e.target.value ? new Date(e.target.value).toISOString() : undefined })
                 }
-                className="mt-1.5 w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20"
+                className="mt-1.5 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
               />
             </div>
           </div>
 
           <div>
-            <label className="text-xs font-medium text-zinc-500">Swimlane</label>
+            <label className="text-xs font-medium text-gray-500">Swimlane</label>
             <div className="mt-1.5 flex gap-2">
               {DEFAULT_SWIMLANES.map((s) => (
                 <button
@@ -239,8 +239,8 @@ export function CardModal({
                   onClick={() => update({ swimlane: s.id as SwimlaneId })}
                   className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition ${
                     (draft.swimlane ?? "work") === s.id
-                      ? "border-violet-500 bg-violet-50"
-                      : "border-zinc-200 bg-white hover:border-zinc-300"
+                      ? "border-emerald-500 bg-emerald-50"
+                      : "border-gray-200 bg-white hover:border-gray-300"
                   }`}
                   style={{
                     borderColor: (draft.swimlane ?? "work") === s.id ? s.color : undefined,
@@ -248,7 +248,7 @@ export function CardModal({
                   }}
                 >
                   <span className="text-base">{s.icon}</span>
-                  <span className="text-zinc-900">{s.title}</span>
+                  <span className="text-gray-900">{s.title}</span>
                 </button>
               ))}
             </div>
@@ -257,7 +257,7 @@ export function CardModal({
           {/* Card Background */}
           <div>
             <div className="flex items-center justify-between">
-              <label className="text-xs text-amber-900/60">Card Background</label>
+              <label className="text-xs text-gray-500">Card Background</label>
               {draft.backgroundImage && (
                 <button
                   type="button"
@@ -271,7 +271,7 @@ export function CardModal({
 
             {draft.backgroundImage ? (
               <div className="mt-2">
-                <div className="relative aspect-video w-full max-w-[200px] overflow-hidden rounded-lg border border-amber-700/15">
+                <div className="relative aspect-video w-full max-w-[200px] overflow-hidden rounded-lg border border-gray-200">
                   <img
                     src={draft.backgroundImage}
                     alt="Card background"
@@ -282,15 +282,15 @@ export function CardModal({
                   <button
                     type="button"
                     onClick={() => { setShowUnsplashPicker(true); setShowUrlInput(false); }}
-                    className="text-xs text-amber-600 hover:text-amber-700"
+                    className="text-xs text-emerald-600 hover:text-emerald-700"
                   >
                     Search Unsplash
                   </button>
-                  <span className="text-xs text-amber-900/30">|</span>
+                  <span className="text-xs text-gray-300">|</span>
                   <button
                     type="button"
                     onClick={() => { setShowUrlInput(true); setShowUnsplashPicker(false); }}
-                    className="text-xs text-amber-600 hover:text-amber-700"
+                    className="text-xs text-emerald-600 hover:text-emerald-700"
                   >
                     Paste URL
                   </button>
@@ -301,14 +301,14 @@ export function CardModal({
                 <button
                   type="button"
                   onClick={() => { setShowUnsplashPicker(true); setShowUrlInput(false); }}
-                  className="rounded-lg border border-dashed border-amber-700/20 bg-amber-50/50 px-3 py-2 text-xs text-amber-900/70 hover:border-amber-700/30 hover:bg-amber-50"
+                  className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-600 hover:border-gray-400 hover:bg-gray-100"
                 >
                   Search Unsplash
                 </button>
                 <button
                   type="button"
                   onClick={() => { setShowUrlInput(true); setShowUnsplashPicker(false); }}
-                  className="rounded-lg border border-dashed border-amber-700/20 bg-amber-50/50 px-3 py-2 text-xs text-amber-900/70 hover:border-amber-700/30 hover:bg-amber-50"
+                  className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-600 hover:border-gray-400 hover:bg-gray-100"
                 >
                   Paste URL
                 </button>
@@ -317,8 +317,8 @@ export function CardModal({
 
             {/* URL Input */}
             {showUrlInput && (
-              <div className="mt-3 rounded-xl border border-amber-700/15 bg-amber-50/50 p-3">
-                <div className="text-xs text-amber-900/60 mb-2">
+              <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
+                <div className="text-xs text-gray-500 mb-2">
                   Paste an image URL (Google Drive, Dropbox, etc.)
                 </div>
                 <div className="flex gap-2">
@@ -327,7 +327,7 @@ export function CardModal({
                     value={customUrl}
                     onChange={(e) => setCustomUrl(e.target.value)}
                     placeholder="https://..."
-                    className="flex-1 rounded-lg border border-amber-700/15 bg-white px-3 py-1.5 text-sm text-amber-950 outline-none focus:border-amber-700/30"
+                    className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none focus:border-emerald-500"
                   />
                   <button
                     type="button"
@@ -339,19 +339,19 @@ export function CardModal({
                       }
                     }}
                     disabled={!customUrl.trim()}
-                    className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+                    className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
                   >
                     Add
                   </button>
                   <button
                     type="button"
                     onClick={() => { setShowUrlInput(false); setCustomUrl(""); }}
-                    className="rounded-lg border border-amber-700/15 bg-white px-3 py-1.5 text-xs text-amber-900 hover:bg-amber-50"
+                    className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
                   >
                     Cancel
                   </button>
                 </div>
-                <div className="mt-2 text-[10px] text-amber-900/50">
+                <div className="mt-2 text-[10px] text-gray-400">
                   Tip: For Google Drive, use "Get link" → "Anyone with the link" and change /file/d/ID/view to /uc?id=ID
                 </div>
               </div>
@@ -372,12 +372,12 @@ export function CardModal({
 
           <div>
             <div className="flex items-center justify-between">
-              <label className="text-xs text-amber-900/60">Tags</label>
+              <label className="text-xs text-gray-500">Tags</label>
               {onAddTag && (
                 <button
                   type="button"
                   onClick={() => setShowAddTag(!showAddTag)}
-                  className="text-xs text-amber-600 hover:text-amber-700"
+                  className="text-xs text-emerald-600 hover:text-emerald-700"
                 >
                   {showAddTag ? "Cancel" : "+ Add custom tag"}
                 </button>
@@ -386,13 +386,13 @@ export function CardModal({
 
             {/* Add Tag Form */}
             {showAddTag && onAddTag && (
-              <div className="mt-2 rounded-xl border border-amber-700/15 bg-amber-50/50 p-3">
+              <div className="mt-2 rounded-xl border border-gray-200 bg-gray-50 p-3">
                 <div className="flex gap-2">
                   <input
                     value={newTagName}
                     onChange={(e) => setNewTagName(e.target.value)}
                     placeholder="Tag name"
-                    className="flex-1 rounded-lg border border-amber-700/15 bg-white px-3 py-1.5 text-sm text-amber-950 outline-none focus:border-amber-700/30"
+                    className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none focus:border-emerald-500"
                   />
                   <button
                     type="button"
@@ -409,7 +409,7 @@ export function CardModal({
                       }
                     }}
                     disabled={!newTagName.trim()}
-                    className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+                    className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
                   >
                     Add
                   </button>
@@ -421,7 +421,7 @@ export function CardModal({
                       type="button"
                       onClick={() => setNewTagColor(color)}
                       className={`h-6 w-6 rounded-full transition-transform ${
-                        newTagColor === color ? "scale-110 ring-2 ring-offset-1 ring-amber-600" : "hover:scale-105"
+                        newTagColor === color ? "scale-110 ring-2 ring-offset-1 ring-emerald-600" : "hover:scale-105"
                       }`}
                       style={{ backgroundColor: color }}
                     />
@@ -441,7 +441,7 @@ export function CardModal({
                     if (categoryTags.length === 0) return null;
                     return (
                       <div key={category.id}>
-                        <div className="text-[10px] font-medium uppercase tracking-wide text-amber-900/40 mb-1.5">
+                        <div className="text-[10px] font-medium uppercase tracking-wide text-gray-400 mb-1.5">
                           {category.name}
                         </div>
                         <div className="flex flex-wrap gap-1.5">
@@ -492,7 +492,7 @@ export function CardModal({
                   if (customTags.length === 0) return null;
                   return (
                     <div>
-                      <div className="text-[10px] font-medium uppercase tracking-wide text-amber-900/40 mb-1.5">
+                      <div className="text-[10px] font-medium uppercase tracking-wide text-gray-400 mb-1.5">
                         Custom
                       </div>
                       <div className="flex flex-wrap gap-1.5">
@@ -538,7 +538,7 @@ export function CardModal({
                 })()}
               </div>
             ) : (
-              <div className="mt-2 text-xs text-amber-900/50">
+              <div className="mt-2 text-xs text-gray-400">
                 No tags yet. Click &quot;+ Add custom tag&quot; to create one.
               </div>
             )}
@@ -546,8 +546,8 @@ export function CardModal({
 
           <div>
             <div className="flex items-center justify-between">
-            <label className="text-xs text-amber-900/60">Checklist</label>
-              <span className="text-[10px] text-amber-900/40">Press Enter to add item</span>
+            <label className="text-xs text-gray-500">Checklist</label>
+              <span className="text-[10px] text-gray-400">Press Enter to add item</span>
             </div>
             <div className="mt-2 space-y-2">
               {(draft.checklist ?? []).map((it, idx) => (
@@ -562,7 +562,7 @@ export function CardModal({
                         ),
                       })
                     }
-                    className="h-4 w-4 accent-amber-600"
+                    className="h-4 w-4 accent-emerald-600"
                   />
                   <input
                     value={it.text}
@@ -604,7 +604,7 @@ export function CardModal({
                     }}
                     data-checklist-input
                     placeholder="Type here..."
-                    className="flex-1 rounded-xl border border-amber-700/15 bg-white px-3 py-2 text-sm text-amber-950 outline-none focus:border-amber-700/30"
+                    className="flex-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-emerald-500"
                   />
                   <button
                     onClick={() =>
@@ -612,7 +612,7 @@ export function CardModal({
                         checklist: (draft.checklist ?? []).filter((x) => x.id !== it.id),
                       })
                     }
-                    className="text-amber-900/50 hover:text-amber-900"
+                    className="text-gray-400 hover:text-gray-600"
                   >
                     ✕
                   </button>
@@ -623,7 +623,7 @@ export function CardModal({
                 <div className="h-4 w-4" /> {/* Spacer for checkbox alignment */}
                 <input
                   placeholder="+ Add item..."
-                  className="flex-1 rounded-xl border border-dashed border-amber-700/15 bg-amber-50/30 px-3 py-2 text-sm text-amber-950 outline-none focus:border-amber-700/30 focus:bg-white focus:border-solid"
+                  className="flex-1 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:bg-white focus:border-solid"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
@@ -658,7 +658,7 @@ export function CardModal({
           </div>
 
           {(draft.blockedReason || draft.lastOverrideReason) && (
-            <div className="rounded-xl border border-amber-700/15 bg-amber-50/70 p-3 text-xs text-amber-900">
+            <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs text-gray-700">
               {draft.blockedReason && <div>Blocked: {draft.blockedReason}</div>}
               {draft.lastOverrideReason && (
                 <div className="mt-1">
@@ -671,10 +671,10 @@ export function CardModal({
           {allCards && onAddRelation && (
             <div>
               <div className="flex items-center justify-between">
-                <label className="text-xs text-amber-900/60">Relationships</label>
+                <label className="text-xs text-gray-500">Relationships</label>
                 <button
                   onClick={() => setShowRelationPicker(!showRelationPicker)}
-                  className="text-xs text-amber-600 hover:text-amber-700"
+                  className="text-xs text-emerald-600 hover:text-emerald-700"
                 >
                   {showRelationPicker ? "Cancel" : "+ Add relationship"}
                 </button>
@@ -705,7 +705,7 @@ export function CardModal({
               )}
 
               {(!card?.relations || card.relations.length === 0) && !showRelationPicker && (
-                <div className="mt-2 text-xs text-amber-900/50">
+                <div className="mt-2 text-xs text-gray-400">
                   No relationships yet
                 </div>
               )}
@@ -715,7 +715,7 @@ export function CardModal({
         </div>
 
         {/* Fixed Footer */}
-        <div className="flex shrink-0 flex-col gap-3 border-t border-zinc-100 px-4 py-3 sm:flex-row sm:justify-between sm:px-6 sm:py-4">
+        <div className="flex shrink-0 flex-col gap-3 border-t border-gray-100 px-4 py-3 sm:flex-row sm:justify-between sm:px-6 sm:py-4">
           <button
             onClick={() => onDelete(draft.id)}
             className="order-2 flex items-center justify-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-600 hover:bg-red-100 sm:order-1"
@@ -727,13 +727,13 @@ export function CardModal({
           <div className="order-1 flex gap-2 sm:order-2">
             <button
               onClick={onClose}
-              className="flex-1 rounded-md border border-zinc-200 bg-white px-4 py-2 text-sm font-medium text-zinc-700 hover:bg-zinc-50 sm:flex-none"
+              className="flex-1 rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 sm:flex-none"
             >
               Cancel
             </button>
             <button
               onClick={() => onSave(draft)}
-              className="flex-1 rounded-md bg-violet-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-violet-700 sm:flex-none"
+              className="flex-1 rounded-md bg-emerald-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-emerald-700 sm:flex-none"
             >
               Save
             </button>

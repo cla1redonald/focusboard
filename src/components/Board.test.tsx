@@ -51,11 +51,12 @@ describe("Board", () => {
       expect(screen.getAllByText("Done")).toHaveLength(2);
     });
 
-    it("renders title and tagline", () => {
+    it("renders greeting header", () => {
       render(<Board {...defaultProps} />);
 
-      expect(screen.getByText("Focusboard")).toBeInTheDocument();
-      expect(screen.getByText("Plan with intent. Keep flow sacred.")).toBeInTheDocument();
+      // Header now shows time-based greeting instead of static title
+      const greeting = screen.getByText(/Good (morning|afternoon|evening)/);
+      expect(greeting).toBeInTheDocument();
     });
 
     it("renders settings button", () => {

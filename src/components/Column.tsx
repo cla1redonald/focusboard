@@ -56,27 +56,27 @@ export function Column({
       ? "border-red-200 bg-red-50"
       : headerState === "near"
       ? "border-amber-200 bg-amber-50"
-      : "border-zinc-200 bg-zinc-50";
+      : "border-gray-200 bg-white";
 
   const headerFocusClass =
     columnFocused && focusedCardIndex === null
-      ? "ring-2 ring-violet-500/20"
+      ? "ring-2 ring-emerald-500/20"
       : "";
 
   return (
     <div className="flex-1 min-w-[220px] max-w-[400px]">
       <div
-        className={`rounded-lg border-l-4 border ${headerClass} ${headerFocusClass} px-3 py-2.5`}
+        className={`rounded-xl border-l-4 border ${headerClass} ${headerFocusClass} px-3 py-2.5 shadow-sm`}
         style={{ borderLeftColor: accentColor }}
       >
         <div className="flex items-center justify-between gap-2">
           <div className="flex items-center gap-2">
-            <div className="text-sm font-semibold text-zinc-900">
+            <div className="text-sm font-semibold text-gray-900">
               {icon && <span className="mr-1.5">{icon}</span>}
               {title}
             </div>
           </div>
-          <div className="rounded-full bg-white px-2 py-0.5 text-xs font-medium text-zinc-600 shadow-sm">
+          <div className="rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-600">
             {countLabel}
           </div>
         </div>
@@ -84,8 +84,8 @@ export function Column({
 
       <div
         ref={setNodeRef}
-        className={`mt-2 min-h-[260px] space-y-2 rounded-lg border border-zinc-200 bg-zinc-50/50 p-2 ${
-          isOver ? "ring-2 ring-violet-500/20" : ""
+        className={`mt-2 min-h-[260px] space-y-2 rounded-xl border border-gray-200 bg-white p-2 shadow-sm ${
+          isOver ? "ring-2 ring-emerald-500/20" : ""
         }`}
       >
         <SortableContext
@@ -129,7 +129,7 @@ export function Column({
             onChange={(e) => setText(e.target.value)}
             placeholder="Add a card…"
             data-column-input={id}
-            className="w-full rounded-md border border-zinc-200 bg-white px-3 py-2 text-sm text-zinc-900 outline-none transition placeholder:text-zinc-400 focus:border-violet-500 focus:ring-2 focus:ring-violet-500/20"
+            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20"
           />
         </form>
       </div>
