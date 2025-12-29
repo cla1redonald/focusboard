@@ -17,6 +17,7 @@ src/
 │   ├── sync.ts            # Cloud sync with Supabase
 │   ├── filters.ts         # Card filtering logic
 │   ├── metrics.ts         # Analytics and metrics calculations
+│   ├── urgency.ts         # Due date urgency calculations
 │   ├── utils.ts           # Helper functions
 │   ├── exportImport.ts    # JSON/CSV export and import
 │   ├── supabase.ts        # Supabase client initialization
@@ -30,6 +31,7 @@ src/
 │   ├── FilterBar.tsx      # Search and filter controls
 │   ├── SettingsPanel.tsx  # Settings modal
 │   ├── MetricsDashboard.tsx # Analytics dashboard
+│   ├── TimelinePanel.tsx  # Gantt-style timeline view
 │   ├── WipModal.tsx       # WIP limit override dialog
 │   ├── ConfettiBurst.tsx  # Celebration animation
 │   ├── LoginPage.tsx      # Authentication UI
@@ -93,6 +95,20 @@ type TagCategory = {
   name: string;
   order: number;
 };
+
+// Settings - User preferences
+type Settings = {
+  celebrations: boolean;
+  reducedMotionOverride: boolean;
+  backgroundImage: string | null;
+  showAgingIndicators: boolean;
+  staleCardThreshold: 3 | 7 | 14;
+  autoPriorityFromDueDate: boolean;
+  staleBacklogThreshold: 3 | 7 | 14;
+};
+
+// UrgencyLevel - Due date proximity
+type UrgencyLevel = "none" | "low" | "medium" | "high" | "critical";
 
 // AppState - Complete application state
 type AppState = {
@@ -262,6 +278,27 @@ filterCards(cards, filter) {
 - Implemented in `useKeyboardNav` hook
 - Tracks focused column and card index
 - Arrow keys navigate, Enter opens, Delete removes
+
+### Timeline View
+
+- Gantt-style SVG chart in `TimelinePanel.tsx`
+- Groups cards by Column, Urgency, or Flat view
+- Date range options: Week, Month, Quarter
+- Shows creation date to due date as horizontal bars
+- Color-coded by urgency level
+
+### Smart Urgency
+
+- Calculated in `urgency.ts` based on due date proximity
+- Levels: `critical` (overdue), `high` (≤3 days), `medium` (≤7 days), `low` (≤14 days)
+- Visual indicators shown on cards via `CardItem.tsx`
+- Optional auto-priority: automatically tags cards based on urgency
+
+### Stale Backlog Detection
+
+- Cards in backlog without due dates tracked for staleness
+- Configurable threshold (3, 7, or 14 days since last update)
+- Warning indicator shown on stale cards
 
 ## Performance Considerations
 

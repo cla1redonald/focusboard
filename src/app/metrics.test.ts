@@ -8,6 +8,7 @@ import {
   calculateAverageCycleTime,
   calculateThroughput,
   formatDuration,
+  getStaleBacklogCards,
 } from "./metrics";
 import { DEFAULT_COLUMNS } from "./constants";
 import type { Card, MetricsState, ColumnTransition } from "./types";
@@ -374,6 +375,90 @@ describe("metrics", () => {
     it("formats weeks correctly", () => {
       expect(formatDuration(1000 * 60 * 60 * 24 * 7)).toBe("1.0w");
       expect(formatDuration(1000 * 60 * 60 * 24 * 14)).toBe("2.0w");
+    });
+  });
+
+  describe("getStaleBacklogCards", () => {
+    function daysAgo(days: number): string {
+      const date = new Date();
+      date.setDate(date.getDate() - days);
+      return date.toISOString();
+    }
+
+    function createCard(id: string, column: string, updatedAt: string, dueDate?: string): Card {
+      return {
+        id,
+        column,
+        title: `Card ${id}`,
+        order: 0,
+        createdAt: daysAgo(30),
+        updatedAt,
+        tags: [],
+        checklist: [],
+        dueDate,
+      };
+    }
+
+    it("returns empty array when no backlog cards", () => {
+      const cards = [
+        createCard("1", "todo", daysAgo(10)),
+        createCard("2", "doing", daysAgo(10)),
+      ];
+      const result = getStaleBacklogCards(cards, DEFAULT_COLUMNS, 7);
+      expect(result).toHaveLength(0);
+    });
+
+    it("returns stale backlog cards without due dates", () => {
+      const cards = [
+        createCard("1", "backlog", daysAgo(10)),
+        createCard("2", "backlog", daysAgo(3)),
+      ];
+      const result = getStaleBacklogCards(cards, DEFAULT_COLUMNS, 7);
+      expect(result).toHaveLength(1);
+      expect(result[0].card.id).toBe("1");
+    });
+
+    it("excludes backlog cards with due dates", () => {
+      const cards = [
+        createCard("1", "backlog", daysAgo(10), daysAgo(-5)), // has due date in future
+        createCard("2", "backlog", daysAgo(10)),
+      ];
+      const result = getStaleBacklogCards(cards, DEFAULT_COLUMNS, 7);
+      expect(result).toHaveLength(1);
+      expect(result[0].card.id).toBe("2");
+    });
+
+    it("respects threshold parameter", () => {
+      const cards = [
+        createCard("1", "backlog", daysAgo(5)),
+        createCard("2", "backlog", daysAgo(10)),
+      ];
+
+      const result3 = getStaleBacklogCards(cards, DEFAULT_COLUMNS, 3);
+      expect(result3).toHaveLength(2);
+
+      const result7 = getStaleBacklogCards(cards, DEFAULT_COLUMNS, 7);
+      expect(result7).toHaveLength(1);
+
+      const result14 = getStaleBacklogCards(cards, DEFAULT_COLUMNS, 14);
+      expect(result14).toHaveLength(0);
+    });
+
+    it("includes daysSinceUpdate in result", () => {
+      const cards = [
+        createCard("1", "backlog", daysAgo(10)),
+      ];
+      const result = getStaleBacklogCards(cards, DEFAULT_COLUMNS, 7);
+      expect(result[0].daysSinceUpdate).toBeGreaterThanOrEqual(9);
+      expect(result[0].daysSinceUpdate).toBeLessThanOrEqual(11);
+    });
+
+    it("includes column title in result", () => {
+      const cards = [
+        createCard("1", "backlog", daysAgo(10)),
+      ];
+      const result = getStaleBacklogCards(cards, DEFAULT_COLUMNS, 7);
+      expect(result[0].columnTitle).toBe("Backlog");
     });
   });
 });

@@ -16,6 +16,10 @@ A focused Kanban-style board with WIP limits, colored tags, and cloud sync.
 - **Filtering** - Filter cards by search, column, tag, due date, or blocker status
 - **Export/Import** - Backup and restore your data in JSON or CSV format
 - **Metrics Dashboard** - Track completed cards, cycle time, and WIP violations
+- **Timeline View** - Gantt-style chart showing cards from creation to due date
+- **Smart Urgency** - Visual indicators based on due date proximity (overdue, due soon, this week)
+- **Stale Backlog Warnings** - Alerts for cards sitting in backlog without due dates
+- **Auto-Priority** - Optionally auto-assign priority tags based on due dates
 - **Celebrations** - Confetti animation when completing tasks (can be disabled)
 - **Custom Backgrounds** - Upload your own background image
 - **Responsive Design** - Works on desktop and tablet
