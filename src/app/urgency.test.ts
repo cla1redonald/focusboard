@@ -108,8 +108,8 @@ describe("urgency", () => {
       expect(getUrgencyColor("high")).toBe("#F97316");
     });
 
-    it("returns amber for medium urgency", () => {
-      expect(getUrgencyColor("medium")).toBe("#F59E0B");
+    it("returns yellow for medium urgency", () => {
+      expect(getUrgencyColor("medium")).toBe("#EAB308");
     });
 
     it("returns blue for low urgency", () => {

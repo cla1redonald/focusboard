@@ -73,20 +73,20 @@ export function UnsplashPicker({ onSelect, onCancel }: Props) {
 
   if (!UNSPLASH_ACCESS_KEY) {
     return (
-      <div className="rounded-xl border border-amber-700/15 bg-amber-50/50 p-4">
-        <div className="text-sm font-medium text-amber-900">Unsplash not configured</div>
-        <div className="mt-2 text-xs text-amber-900/70">
+      <div className="rounded-xl border border-gray-200 bg-gray-50 p-4">
+        <div className="text-sm font-medium text-gray-900">Unsplash not configured</div>
+        <div className="mt-2 text-xs text-gray-600">
           To enable image search, add your free Unsplash API key:
         </div>
-        <ol className="mt-2 list-decimal pl-4 text-xs text-amber-900/70 space-y-1">
-          <li>Go to <a href="https://unsplash.com/developers" target="_blank" rel="noopener noreferrer" className="text-amber-600 hover:underline">unsplash.com/developers</a></li>
+        <ol className="mt-2 list-decimal pl-4 text-xs text-gray-600 space-y-1">
+          <li>Go to <a href="https://unsplash.com/developers" target="_blank" rel="noopener noreferrer" className="text-emerald-600 hover:underline">unsplash.com/developers</a></li>
           <li>Create a free account and new application</li>
           <li>Copy your Access Key</li>
-          <li>Add <code className="bg-amber-100 px-1 rounded">VITE_UNSPLASH_ACCESS_KEY=your_key</code> to .env.local</li>
+          <li>Add <code className="bg-gray-100 px-1 rounded">VITE_UNSPLASH_ACCESS_KEY=your_key</code> to .env.local</li>
         </ol>
         <button
           onClick={onCancel}
-          className="mt-3 rounded-lg border border-amber-700/15 bg-white px-3 py-1.5 text-xs text-amber-900 hover:bg-amber-50"
+          className="mt-3 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
         >
           Close
         </button>
@@ -102,19 +102,19 @@ export function UnsplashPicker({ onSelect, onCancel }: Props) {
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="Search images..."
-          className="flex-1 rounded-lg border border-amber-700/15 bg-white px-3 py-1.5 text-sm text-amber-950 outline-none focus:border-amber-700/30"
+          className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none focus:border-emerald-500"
         />
         <button
           type="submit"
           disabled={loading || !query.trim()}
-          className="rounded-lg bg-amber-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-amber-700 disabled:opacity-50"
+          className="rounded-lg bg-emerald-600 px-3 py-1.5 text-xs font-medium text-white hover:bg-emerald-700 disabled:opacity-50"
         >
           {loading ? "..." : "Search"}
         </button>
         <button
           type="button"
           onClick={onCancel}
-          className="rounded-lg border border-amber-700/15 bg-white px-3 py-1.5 text-xs text-amber-900 hover:bg-amber-50"
+          className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
         >
           Cancel
         </button>
@@ -131,7 +131,7 @@ export function UnsplashPicker({ onSelect, onCancel }: Props) {
                 setQuery(suggestion);
                 searchImages(suggestion);
               }}
-              className="rounded-full border border-amber-700/15 bg-amber-50/70 px-2.5 py-1 text-xs text-amber-900 hover:bg-amber-100"
+              className="rounded-full border border-gray-200 bg-gray-50 px-2.5 py-1 text-xs text-gray-700 hover:bg-gray-100"
             >
               {suggestion}
             </button>
@@ -151,7 +151,7 @@ export function UnsplashPicker({ onSelect, onCancel }: Props) {
               key={image.id}
               type="button"
               onClick={() => onSelect(image.urls.regular)}
-              className="group relative aspect-video overflow-hidden rounded-lg border border-amber-700/15 hover:border-amber-500 focus:outline-none focus:ring-2 focus:ring-amber-500"
+              className="group relative aspect-video overflow-hidden rounded-lg border border-gray-200 hover:border-emerald-500 focus:outline-none focus:ring-2 focus:ring-emerald-500"
             >
               <img
                 src={image.urls.thumb}
@@ -169,7 +169,7 @@ export function UnsplashPicker({ onSelect, onCancel }: Props) {
       )}
 
       {images.length > 0 && (
-        <div className="text-[10px] text-amber-900/50">
+        <div className="text-[10px] text-gray-500">
           Photos from <a href="https://unsplash.com" target="_blank" rel="noopener noreferrer" className="hover:underline">Unsplash</a>
         </div>
       )}

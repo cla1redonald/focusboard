@@ -59,7 +59,7 @@ export function TopStrip({
       </div>
       <div className="text-sm text-gray-700">
         <span className="text-gray-500">Due today:</span>{" "}
-        <span className={dueTodayCount > 0 ? "font-medium text-amber-600" : ""}>{dueTodayCount}</span>
+        <span className={dueTodayCount > 0 ? "font-medium text-sky-600" : ""}>{dueTodayCount}</span>
       </div>
       {metrics.currentStreak > 0 && (
         <div

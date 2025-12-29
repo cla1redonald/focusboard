@@ -86,7 +86,7 @@ export function Column({
     headerState === "full"
       ? "border-red-200 bg-red-50"
       : headerState === "near"
-      ? "border-amber-200 bg-amber-50"
+      ? "border-gray-300 bg-gray-50"
       : "border-gray-200 bg-white";
 
   const headerFocusClass =

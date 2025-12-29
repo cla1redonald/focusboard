@@ -95,7 +95,7 @@ export function CardItem({
                 if (ageLevel === "none") return null;
                 const ageDays = getCardAgeDays(card);
                 const colors = {
-                  yellow: "bg-amber-400",
+                  yellow: "bg-gray-400",
                   orange: "bg-orange-500",
                   red: "bg-rose-500",
                 };
@@ -151,7 +151,7 @@ export function CardItem({
         {/* Stale backlog warning */}
         {isStaleBacklog && (
           <div className={`mt-2 flex items-center gap-1.5 text-[11px] ${
-            hasBackground ? "text-amber-300" : "text-amber-600"
+            hasBackground ? "text-gray-300" : "text-gray-600"
           }`}>
             <span>⚠️</span>
             <span>Stale ({staleBacklogDays} days)</span>

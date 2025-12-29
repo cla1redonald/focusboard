@@ -53,7 +53,7 @@ export function getUrgencyColor(level: UrgencyLevel): string {
     case "high":
       return "#F97316"; // Orange
     case "medium":
-      return "#F59E0B"; // Amber
+      return "#EAB308"; // Yellow
     case "low":
       return "#3B82F6"; // Blue
     default:
@@ -71,7 +71,7 @@ export function getUrgencyBackgroundColor(level: UrgencyLevel): string | undefin
     case "high":
       return "rgba(249, 115, 22, 0.08)"; // Very subtle orange
     case "medium":
-      return "rgba(245, 158, 11, 0.06)"; // Very subtle amber
+      return "rgba(234, 179, 8, 0.06)"; // Very subtle yellow
     case "low":
       return "rgba(59, 130, 246, 0.05)"; // Very subtle blue
     default:

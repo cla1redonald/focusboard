@@ -116,15 +116,15 @@ export function TimelinePanel({ open, cards, columns, onClose, onOpenCard }: Pro
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center backdrop-blur-sm" onClick={onClose}>
       <div
-        className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-2xl border border-amber-700/15 bg-white/95 shadow-2xl"
+        className="max-h-[90vh] w-full max-w-5xl overflow-hidden rounded-2xl border border-gray-200 bg-white/95 shadow-2xl"
         onClick={(e) => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-amber-700/10 px-6 py-4">
-          <h2 className="text-xl font-semibold text-amber-950">Timeline</h2>
+        <div className="flex items-center justify-between border-b border-gray-200 px-6 py-4">
+          <h2 className="text-xl font-semibold text-gray-900">Timeline</h2>
           <button
             onClick={onClose}
-            className="rounded-lg p-2 text-amber-700 transition hover:bg-amber-600/10"
+            className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-100"
             aria-label="Close"
           >
             <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
@@ -134,17 +134,17 @@ export function TimelinePanel({ open, cards, columns, onClose, onOpenCard }: Pro
         </div>
 
         {/* Controls */}
-        <div className="flex flex-wrap items-center gap-4 border-b border-amber-700/10 px-6 py-3">
+        <div className="flex flex-wrap items-center gap-4 border-b border-gray-200 px-6 py-3">
           {/* Grouping selector */}
-          <div className="flex gap-1 rounded-lg border border-amber-700/15 bg-amber-50/50 p-1">
+          <div className="flex gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1">
             {(["column", "urgency", "flat"] as const).map((g) => (
               <button
                 key={g}
                 onClick={() => setGrouping(g)}
                 className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
                   grouping === g
-                    ? "bg-white text-amber-900 shadow-sm"
-                    : "text-amber-900/60 hover:text-amber-900"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-900"
                 }`}
               >
                 {g === "column" ? "By Column" : g === "urgency" ? "By Urgency" : "Flat"}
@@ -153,15 +153,15 @@ export function TimelinePanel({ open, cards, columns, onClose, onOpenCard }: Pro
           </div>
 
           {/* Date range selector */}
-          <div className="flex gap-1 rounded-lg border border-amber-700/15 bg-amber-50/50 p-1">
+          <div className="flex gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1">
             {(["week", "month", "quarter"] as const).map((r) => (
               <button
                 key={r}
                 onClick={() => setDateRange(r)}
                 className={`rounded-md px-3 py-1.5 text-xs font-medium transition ${
                   dateRange === r
-                    ? "bg-white text-amber-900 shadow-sm"
-                    : "text-amber-900/60 hover:text-amber-900"
+                    ? "bg-white text-gray-900 shadow-sm"
+                    : "text-gray-500 hover:text-gray-900"
                 }`}
               >
                 {r === "week" ? "Week" : r === "month" ? "Month" : "Quarter"}
@@ -170,12 +170,12 @@ export function TimelinePanel({ open, cards, columns, onClose, onOpenCard }: Pro
           </div>
 
           {/* Show completed toggle */}
-          <label className="flex items-center gap-2 text-xs text-amber-900/70">
+          <label className="flex items-center gap-2 text-xs text-gray-600">
             <input
               type="checkbox"
               checked={showCompleted}
               onChange={(e) => setShowCompleted(e.target.checked)}
-              className="h-3.5 w-3.5 accent-amber-600"
+              className="h-3.5 w-3.5 accent-emerald-600"
             />
             Show completed
           </label>
@@ -184,7 +184,7 @@ export function TimelinePanel({ open, cards, columns, onClose, onOpenCard }: Pro
         {/* Timeline Chart */}
         <div className="max-h-[60vh] overflow-auto px-6 py-4">
           {Object.keys(groupedCards).length === 0 ? (
-            <div className="flex flex-col items-center justify-center py-12 text-amber-900/50">
+            <div className="flex flex-col items-center justify-center py-12 text-gray-400">
               <svg className="mb-3 h-12 w-12" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
                 <path
                   strokeLinecap="round"
@@ -206,8 +206,8 @@ export function TimelinePanel({ open, cards, columns, onClose, onOpenCard }: Pro
         </div>
 
         {/* Legend */}
-        <div className="border-t border-amber-700/10 px-6 py-3">
-          <div className="flex flex-wrap gap-4 text-xs text-amber-900/70">
+        <div className="border-t border-gray-200 px-6 py-3">
+          <div className="flex flex-wrap gap-4 text-xs text-gray-600">
             <div className="flex items-center gap-1.5">
               <span className="h-3 w-3 rounded-full bg-[#DC2626]" />
               <span>Overdue</span>
@@ -217,7 +217,7 @@ export function TimelinePanel({ open, cards, columns, onClose, onOpenCard }: Pro
               <span>Due in 3 days</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="h-3 w-3 rounded-full bg-[#F59E0B]" />
+              <span className="h-3 w-3 rounded-full bg-[#EAB308]" />
               <span>Due in 7 days</span>
             </div>
             <div className="flex items-center gap-1.5">
@@ -225,7 +225,7 @@ export function TimelinePanel({ open, cards, columns, onClose, onOpenCard }: Pro
               <span>Due in 14 days</span>
             </div>
             <div className="flex items-center gap-1.5">
-              <span className="h-3 w-6 rounded bg-amber-200" />
+              <span className="h-3 w-6 rounded bg-gray-200" />
               <span>No due date</span>
             </div>
           </div>

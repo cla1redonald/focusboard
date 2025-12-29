@@ -38,17 +38,17 @@ export function KeyboardShortcutsModal({
   return (
     <div className="fixed inset-0 z-[1400] flex items-center justify-center">
       <div
-        className="absolute inset-0 bg-amber-950/30 backdrop-blur-sm"
+        className="absolute inset-0 bg-gray-900/30 backdrop-blur-sm"
         onClick={onClose}
       />
-      <div className="relative w-[480px] max-w-[92vw] rounded-2xl border border-amber-700/15 bg-white/95 p-6 shadow-[0_30px_80px_rgba(0,0,0,0.2)]">
+      <div className="relative w-[480px] max-w-[92vw] rounded-2xl border border-gray-200 bg-white/95 p-6 shadow-[0_30px_80px_rgba(0,0,0,0.2)]">
         <div className="flex items-center justify-between">
-          <div className="display-font text-xl text-amber-950">
+          <div className="display-font text-xl text-gray-900">
             Keyboard Shortcuts
           </div>
           <button
             onClick={onClose}
-            className="text-amber-900/60 hover:text-amber-900"
+            className="text-gray-500 hover:text-gray-900"
           >
             ✕
           </button>
@@ -58,18 +58,18 @@ export function KeyboardShortcutsModal({
           {SHORTCUTS.map((shortcut, idx) => (
             <div
               key={idx}
-              className="flex items-center justify-between gap-4 rounded-lg border border-amber-700/10 bg-white/60 px-3 py-2"
+              className="flex items-center justify-between gap-4 rounded-lg border border-gray-200 bg-white/60 px-3 py-2"
             >
-              <span className="text-sm text-amber-900/80">
+              <span className="text-sm text-gray-700">
                 {shortcut.description}
               </span>
               <div className="flex items-center gap-1">
                 {shortcut.keys.map((key, keyIdx) => (
                   <React.Fragment key={keyIdx}>
                     {keyIdx > 0 && (
-                      <span className="text-xs text-amber-900/40">+</span>
+                      <span className="text-xs text-gray-400">+</span>
                     )}
-                    <kbd className="rounded-md border border-amber-700/20 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-800">
+                    <kbd className="rounded-md border border-gray-200 bg-gray-50 px-2 py-1 text-xs font-medium text-gray-700">
                       {key}
                     </kbd>
                   </React.Fragment>
@@ -79,8 +79,8 @@ export function KeyboardShortcutsModal({
           ))}
         </div>
 
-        <div className="mt-5 text-center text-xs text-amber-900/50">
-          Press <kbd className="rounded border border-amber-700/20 bg-amber-50 px-1.5 py-0.5 font-medium">Esc</kbd> to close
+        <div className="mt-5 text-center text-xs text-gray-500">
+          Press <kbd className="rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 font-medium">Esc</kbd> to close
         </div>
       </div>
     </div>

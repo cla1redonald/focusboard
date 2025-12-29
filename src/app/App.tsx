@@ -323,8 +323,8 @@ function AuthenticatedApp() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-[#fffbf5]">
-        <div className="text-amber-900/70">Loading...</div>
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="text-gray-500">Loading...</div>
       </div>
     );
   }
