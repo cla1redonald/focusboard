@@ -2,6 +2,21 @@ import type { AppState, Card, Column, Tag, TagCategory } from "./types";
 import { DEFAULT_SETTINGS, DEFAULT_COLUMNS, DEFAULT_TAG_CATEGORIES, DEFAULT_TAGS } from "./constants";
 
 const KEY_V1 = "focusboard:v1";
+
+// Map emoji icons to Lucide icon names for migration
+const EMOJI_TO_LUCIDE: Record<string, string> = {
+  "📦": "archive",
+  "🎨": "palette",
+  "📋": "list-todo",
+  "⚡": "zap",
+  "🚫": "ban",
+  "✅": "check-circle",
+  "💡": "lightbulb",
+  "🚀": "rocket",
+  "🎯": "target",
+  "🧠": "brain",
+  "🔥": "flame",
+};
 const KEY_V2 = "focusboard:v2";
 const KEY_V3 = "focusboard:v3";
 const KEY_V4 = "focusboard:v4";
@@ -216,11 +231,17 @@ export function loadState(): AppState {
         swimlane: card.swimlane ?? "work",
       })) as Card[];
       // Migrate doing column: remove hard WIP limit of 1 (now soft warning at 3+)
+      // Also migrate emoji icons to Lucide icon names
       const columns = (parsed.columns?.length ? parsed.columns : DEFAULT_COLUMNS).map((col) => {
+        let updatedCol = col;
         if (col.id === "doing" && col.wipLimit === 1) {
-          return { ...col, wipLimit: null };
+          updatedCol = { ...updatedCol, wipLimit: null };
         }
-        return col;
+        // Migrate emoji icon to Lucide icon name
+        if (col.icon && EMOJI_TO_LUCIDE[col.icon]) {
+          updatedCol = { ...updatedCol, icon: EMOJI_TO_LUCIDE[col.icon] };
+        }
+        return updatedCol;
       });
       return {
         cards,
