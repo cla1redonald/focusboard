@@ -109,7 +109,7 @@ Available tools for your role: ${agent.tools.join(", ")}
   }
 }
 
-export async function runWorkflow(task: string) {
+export async function runWorkflow(task: string, autoApprove: boolean = false) {
   console.log("\n" + "═".repeat(60));
   console.log(`${colors.bright}${colors.cyan}  FocusBoard Agent Orchestrator${colors.reset}`);
   console.log("═".repeat(60));
@@ -163,7 +163,12 @@ export async function runWorkflow(task: string) {
 
   // Checkpoint: Ask for approval before implementation
   console.log("─".repeat(60));
-  const approved = await askForApproval("Proceed with implementation recommendations?");
+  let approved = autoApprove;
+  if (!autoApprove) {
+    approved = await askForApproval("Proceed with implementation recommendations?");
+  } else {
+    console.log(`${colors.green}Auto-approved: proceeding with implementation...${colors.reset}\n`);
+  }
 
   if (!approved) {
     console.log(`\n${colors.yellow}Workflow paused. Review the above recommendations.${colors.reset}\n`);
@@ -197,7 +202,9 @@ export async function runWorkflow(task: string) {
 }
 
 // CLI entry point
-const task = process.argv.slice(2).join(" ");
+const args = process.argv.slice(2);
+const autoApprove = args.includes("--auto-approve") || args.includes("-y");
+const task = args.filter(a => !a.startsWith("-")).join(" ");
 
 if (!task) {
   console.log(`
@@ -222,4 +229,4 @@ ${colors.dim}Environment:${colors.reset}
   process.exit(0);
 }
 
-runWorkflow(task).catch(console.error);
+runWorkflow(task, autoApprove).catch(console.error);

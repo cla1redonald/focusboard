@@ -146,7 +146,7 @@ Provide structured recommendations with pros/cons.`,
 - New code should have tests
 - No decrease in coverage`,
     tools: ["Read", "Edit", "Write", "Bash", "Glob", "Grep"],
-    model: "claude-haiku-3-5-20241022"  // Cost-effective for test runs
+    model: "claude-3-5-haiku-20241022"  // Cost-effective for test runs
   }
 };
 
