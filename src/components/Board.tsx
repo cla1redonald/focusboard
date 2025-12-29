@@ -381,15 +381,17 @@ export function Board({
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3 sm:mb-6">
         <div>
           <div className="flex items-center gap-3">
-            <div className="h-8 w-1 rounded-full bg-gradient-to-b from-emerald-400 to-teal-500" />
-            <div className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
-              {new Date().getHours() < 12 ? "Good morning" : new Date().getHours() < 17 ? "Good afternoon" : "Good evening"}
+            <img src="/logo.svg" alt="FocusBoard" className="h-10 w-10 sm:h-12 sm:w-12" />
+            <div>
+              <div className="text-2xl font-bold tracking-tight text-gray-900 sm:text-3xl">
+                FocusBoard
+              </div>
+              <div className="text-sm text-gray-500">
+                {cards.filter(c => !columns.find(col => col.id === c.column)?.isTerminal).length === 0
+                  ? "No tasks pending. Time to plan your next goal!"
+                  : `${cards.filter(c => !columns.find(col => col.id === c.column)?.isTerminal).length} tasks in progress`}
+              </div>
             </div>
-          </div>
-          <div className="mt-1 ml-4 text-sm text-gray-500 sm:text-base">
-            {cards.filter(c => !columns.find(col => col.id === c.column)?.isTerminal).length === 0
-              ? "No tasks pending. Time to plan your next goal!"
-              : `${cards.filter(c => !columns.find(col => col.id === c.column)?.isTerminal).length} tasks in progress`}
           </div>
         </div>
         <button
