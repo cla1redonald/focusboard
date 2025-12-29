@@ -18,6 +18,7 @@ src/
 │   ├── filters.ts         # Card filtering logic
 │   ├── metrics.ts         # Analytics and metrics calculations
 │   ├── urgency.ts         # Due date urgency calculations
+│   ├── theme.ts           # Dark mode hook and theme application
 │   ├── utils.ts           # Helper functions
 │   ├── exportImport.ts    # JSON/CSV export and import
 │   ├── supabase.ts        # Supabase client initialization
@@ -102,6 +103,9 @@ type TagCategory = {
   order: number;
 };
 
+// ThemeMode - Light/dark preference
+type ThemeMode = "light" | "dark" | "system";
+
 // Settings - User preferences
 type Settings = {
   celebrations: boolean;
@@ -112,6 +116,7 @@ type Settings = {
   autoPriorityFromDueDate: boolean;
   staleBacklogThreshold: 3 | 7 | 14;
   collapsedSwimlanes: SwimlaneId[];  // Track collapsed swimlanes
+  theme: ThemeMode;                   // Color theme preference
 };
 
 // UrgencyLevel - Due date proximity
@@ -325,6 +330,16 @@ filterCards(cards, filter) {
 - Cards grouped by swimlane, then by column
 - Each swimlane is independently collapsible
 - Drag-and-drop between swimlanes supported
+
+### Dark Mode
+
+- Three theme modes: Light, Dark, System (follows OS preference)
+- Implemented via Tailwind's `darkMode: "class"` strategy
+- Theme applied via `useTheme` hook in `theme.ts`
+- CSS variables in `index.css` define dark color palette
+- FOUC prevention: inline script in `index.html` applies theme before render
+- Respects `prefers-reduced-motion` for color transitions
+- Persisted in Settings and synced with Supabase
 
 ## Performance Considerations
 

@@ -22,6 +22,7 @@ A focused Kanban-style board with WIP limits, colored tags, and cloud sync.
 - **Smart Urgency** - Visual indicators based on due date proximity (overdue, due soon, this week)
 - **Stale Backlog Warnings** - Alerts for cards sitting in backlog without due dates
 - **Auto-Priority** - Optionally auto-assign priority tags based on due dates
+- **Dark Mode** - Light, dark, or system theme with smooth transitions
 - **Celebrations** - Confetti animation when completing tasks (can be disabled)
 - **Custom Backgrounds** - Upload your own background image
 - **Responsive Design** - Works on desktop and tablet
