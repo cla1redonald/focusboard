@@ -303,6 +303,8 @@ describe("storage", () => {
           backgroundImage: null,
           showAgingIndicators: true,
           staleCardThreshold: 7,
+          autoPriorityFromDueDate: false,
+          staleBacklogThreshold: 7,
         },
         tagCategories: DEFAULT_TAG_CATEGORIES,
         tags: DEFAULT_TAGS,

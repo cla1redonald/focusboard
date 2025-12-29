@@ -483,6 +483,14 @@ function validateSettings(obj: Record<string, unknown>): Settings {
       obj.staleCardThreshold === 3 || obj.staleCardThreshold === 7 || obj.staleCardThreshold === 14
         ? obj.staleCardThreshold
         : DEFAULT_SETTINGS.staleCardThreshold,
+    autoPriorityFromDueDate:
+      typeof obj.autoPriorityFromDueDate === "boolean"
+        ? obj.autoPriorityFromDueDate
+        : DEFAULT_SETTINGS.autoPriorityFromDueDate,
+    staleBacklogThreshold:
+      obj.staleBacklogThreshold === 3 || obj.staleBacklogThreshold === 7 || obj.staleBacklogThreshold === 14
+        ? obj.staleBacklogThreshold
+        : DEFAULT_SETTINGS.staleBacklogThreshold,
   };
 }
 

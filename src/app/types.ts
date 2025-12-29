@@ -114,6 +114,8 @@ export type Settings = {
   backgroundImage: string | null;
   showAgingIndicators: boolean;
   staleCardThreshold: 3 | 7 | 14;
+  autoPriorityFromDueDate: boolean; // Auto-assign priority tags based on due dates
+  staleBacklogThreshold: 3 | 7 | 14; // Days before backlog cards without due dates show warning
 };
 
 // Analytics types
@@ -163,6 +165,19 @@ export type CFDDataPoint = {
 };
 
 export type CardAgeLevel = "none" | "yellow" | "orange" | "red";
+
+// Urgency level based on due date proximity
+export type UrgencyLevel = "none" | "low" | "medium" | "high" | "critical";
+
+// Timeline card for Gantt view
+export type TimelineCard = {
+  card: Card;
+  columnTitle: string;
+  columnColor: string;
+  startDate: Date;
+  endDate: Date | null; // null if no due date
+  urgencyLevel: UrgencyLevel;
+};
 
 export type AppState = {
   cards: Card[];

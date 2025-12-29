@@ -521,6 +521,8 @@ describe("state reducer", () => {
         backgroundImage: "data:image/png;base64,test",
         showAgingIndicators: false,
         staleCardThreshold: 14,
+        autoPriorityFromDueDate: true,
+        staleBacklogThreshold: 7,
       };
 
       act(() => {

@@ -406,6 +406,41 @@ export function SettingsPanel({
                   <option value={14}>14 days</option>
                 </select>
               </div>
+
+              {/* Auto Priority Toggle */}
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm text-amber-950">Auto-assign priority from due dates</div>
+                  <div className="text-xs text-amber-900/60">
+                    Automatically add priority tags based on how soon cards are due
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.autoPriorityFromDueDate}
+                  onChange={(e) => set({ autoPriorityFromDueDate: e.target.checked })}
+                  className="h-4 w-4 accent-amber-600"
+                />
+              </div>
+
+              {/* Stale Backlog Threshold */}
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm text-amber-950">Stale backlog warning</div>
+                  <div className="text-xs text-amber-900/60">
+                    Show warning on backlog cards without due dates after this many days
+                  </div>
+                </div>
+                <select
+                  value={settings.staleBacklogThreshold}
+                  onChange={(e) => set({ staleBacklogThreshold: Number(e.target.value) as 3 | 7 | 14 })}
+                  className="rounded-lg border border-amber-700/15 bg-white px-3 py-1.5 text-sm text-amber-950 outline-none focus:border-amber-700/30"
+                >
+                  <option value={3}>3 days</option>
+                  <option value={7}>7 days</option>
+                  <option value={14}>14 days</option>
+                </select>
+              </div>
             </div>
           </div>
 

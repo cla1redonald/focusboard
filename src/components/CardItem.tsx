@@ -5,6 +5,7 @@ import { CSS } from "@dnd-kit/utilities";
 import type { Card, Tag } from "../app/types";
 import { RelationshipIndicators } from "./RelationshipPicker";
 import { getCardAgeLevel, getCardAgeDays } from "../app/metrics";
+import { getUrgencyLevel, getUrgencyColor, getUrgencyLabel } from "../app/urgency";
 
 export function CardItem({
   card,
@@ -13,6 +14,9 @@ export function CardItem({
   focused = false,
   allTags = [],
   showAgingIndicator = false,
+  showUrgencyIndicator = false,
+  isStaleBacklog = false,
+  staleBacklogDays = 0,
   reducedMotion = false,
 }: {
   card: Card;
@@ -21,6 +25,9 @@ export function CardItem({
   focused?: boolean;
   allTags?: Tag[];
   showAgingIndicator?: boolean;
+  showUrgencyIndicator?: boolean;
+  isStaleBacklog?: boolean;
+  staleBacklogDays?: number;
   reducedMotion?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -149,6 +156,38 @@ export function CardItem({
                 +{card.tags!.length - 3}
               </span>
             )}
+          </div>
+        )}
+
+        {/* Urgency indicator */}
+        {showUrgencyIndicator && card.dueDate && (() => {
+          const urgencyLevel = getUrgencyLevel(card);
+          if (urgencyLevel === "none") return null;
+          const urgencyColor = getUrgencyColor(urgencyLevel);
+          const urgencyLabel = getUrgencyLabel(urgencyLevel);
+          return (
+            <div className="mt-2 flex items-center gap-1.5">
+              <span
+                className="h-2 w-2 rounded-full"
+                style={{ backgroundColor: urgencyColor }}
+              />
+              <span
+                className="text-[11px] font-medium"
+                style={{ color: hasBackground ? "white" : urgencyColor }}
+              >
+                {urgencyLabel}
+              </span>
+            </div>
+          );
+        })()}
+
+        {/* Stale backlog warning */}
+        {isStaleBacklog && (
+          <div className={`mt-2 flex items-center gap-1.5 text-[11px] ${
+            hasBackground ? "text-amber-300" : "text-amber-600"
+          }`}>
+            <span>⚠️</span>
+            <span>Stale ({staleBacklogDays} days)</span>
           </div>
         )}
 

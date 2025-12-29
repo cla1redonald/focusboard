@@ -57,6 +57,8 @@ function migrateV1ToV2(v1State: V1State): Omit<AppState, "tagCategories" | "tags
       backgroundImage: v1Settings.backgroundImage ?? DEFAULT_SETTINGS.backgroundImage,
       showAgingIndicators: DEFAULT_SETTINGS.showAgingIndicators,
       staleCardThreshold: DEFAULT_SETTINGS.staleCardThreshold,
+      autoPriorityFromDueDate: DEFAULT_SETTINGS.autoPriorityFromDueDate,
+      staleBacklogThreshold: DEFAULT_SETTINGS.staleBacklogThreshold,
     },
   };
 }

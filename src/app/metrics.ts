@@ -500,3 +500,43 @@ export function getCardAgeDays(card: Card): number {
   const lastUpdate = new Date(card.updatedAt).getTime();
   return Math.floor((now - lastUpdate) / (24 * 60 * 60 * 1000));
 }
+
+/**
+ * Get backlog cards that are stale (no due date and not updated in X days)
+ */
+export function getStaleBacklogCards(
+  cards: Card[],
+  columns: Column[],
+  thresholdDays: number
+): StaleCard[] {
+  const now = Date.now();
+  const thresholdMs = thresholdDays * 24 * 60 * 60 * 1000;
+
+  // Find backlog column(s) - match by id containing "backlog" or order 0
+  const backlogColumnIds = new Set(
+    columns
+      .filter((c) => c.id === "backlog" || c.id.toLowerCase().includes("backlog"))
+      .map((c) => c.id)
+  );
+
+  const columnMap = new Map(columns.map((c) => [c.id, c.title]));
+
+  return cards
+    .filter((card) => {
+      // Must be in backlog
+      if (!backlogColumnIds.has(card.column)) return false;
+      // Must NOT have a due date (cards with due dates are being proactive)
+      if (card.dueDate) return false;
+      // Must be stale (not updated in threshold)
+      const lastUpdate = new Date(card.updatedAt).getTime();
+      return now - lastUpdate >= thresholdMs;
+    })
+    .map((card) => ({
+      card,
+      columnTitle: columnMap.get(card.column) ?? card.column,
+      daysSinceUpdate: Math.floor(
+        (now - new Date(card.updatedAt).getTime()) / (24 * 60 * 60 * 1000)
+      ),
+    }))
+    .sort((a, b) => b.daysSinceUpdate - a.daysSinceUpdate);
+}

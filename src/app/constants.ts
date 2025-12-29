@@ -24,6 +24,8 @@ export const DEFAULT_SETTINGS: Settings = {
   backgroundImage: null,
   showAgingIndicators: true,
   staleCardThreshold: 7,
+  autoPriorityFromDueDate: false,
+  staleBacklogThreshold: 7,
 };
 
 export const CONFETTI_COLORS = ["#FBBF24", "#FB923C", "#F59E0B", "#FCD34D", "#34D399"];

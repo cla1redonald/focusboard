@@ -7,6 +7,7 @@ export function TopStrip({
   dueTodayCount,
   metrics,
   onOpenMetrics,
+  onOpenTimeline,
   canUndo,
   canRedo,
   onUndo,
@@ -17,6 +18,7 @@ export function TopStrip({
   dueTodayCount: number;
   metrics: MetricsState;
   onOpenMetrics: () => void;
+  onOpenTimeline: () => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -71,6 +73,17 @@ export function TopStrip({
         </div>
       )}
       <div className="ml-auto h-4 w-px bg-amber-700/20" />
+      <button
+        onClick={onOpenTimeline}
+        className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-amber-700 transition hover:bg-amber-600/10"
+        title="Open Timeline"
+        aria-label="Open Timeline"
+      >
+        <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth="2">
+          <path strokeLinecap="round" strokeLinejoin="round" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+        </svg>
+        <span className="text-sm">Timeline</span>
+      </button>
       <MetricsWidget metrics={metrics} onOpenDashboard={onOpenMetrics} />
     </div>
   );

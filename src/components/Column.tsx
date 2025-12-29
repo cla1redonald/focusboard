@@ -38,6 +38,9 @@ export function Column({
   focusedCardIndex = null,
   allTags = [],
   showAgingIndicators = false,
+  showUrgencyIndicators = false,
+  staleCardIds = new Set(),
+  staleCardDays = {},
   reducedMotion = false,
 }: {
   id: ColumnId;
@@ -54,6 +57,9 @@ export function Column({
   focusedCardIndex?: number | null;
   allTags?: Tag[];
   showAgingIndicators?: boolean;
+  showUrgencyIndicators?: boolean;
+  staleCardIds?: Set<string>;
+  staleCardDays?: Record<string, number>;
   reducedMotion?: boolean;
 }) {
   const { setNodeRef, isOver } = useDroppable({ id });
@@ -126,6 +132,9 @@ export function Column({
                   focused={columnFocused && focusedCardIndex === idx}
                   allTags={allTags}
                   showAgingIndicator={showAgingIndicators}
+                  showUrgencyIndicator={showUrgencyIndicators}
+                  isStaleBacklog={staleCardIds.has(c.id)}
+                  staleBacklogDays={staleCardDays[c.id] ?? 0}
                   reducedMotion={reducedMotion}
                 />
               ))}

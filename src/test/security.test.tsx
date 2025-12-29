@@ -70,6 +70,7 @@ describe("Security Tests", () => {
           onOpenCard={vi.fn()}
           onSettings={vi.fn()}
           onOpenMetrics={vi.fn()}
+          onOpenTimeline={vi.fn()}
           canUndo={false}
           canRedo={false}
           onUndo={vi.fn()}

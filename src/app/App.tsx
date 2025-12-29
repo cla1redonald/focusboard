@@ -11,6 +11,7 @@ import { Board } from "../components/Board";
 import { CardModal } from "../components/CardModal";
 import { SettingsPanel } from "../components/SettingsPanel";
 import { MetricsDashboard } from "../components/MetricsDashboard";
+import { TimelinePanel } from "../components/TimelinePanel";
 import { KeyboardShortcutsModal } from "../components/KeyboardShortcutsModal";
 import { CommandPalette } from "../components/CommandPalette";
 import { OnboardingModal } from "../components/OnboardingModal";
@@ -25,6 +26,7 @@ function AppContent() {
   const [openCard, setOpenCard] = React.useState<Card | null>(null);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [metricsDashboardOpen, setMetricsDashboardOpen] = React.useState(false);
+  const [timelinePanelOpen, setTimelinePanelOpen] = React.useState(false);
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = React.useState(false);
   const [onboardingOpen, setOnboardingOpen] = React.useState(() => !hasSeenOnboarding());
@@ -113,6 +115,21 @@ function AppContent() {
     }
   }, [metrics]);
 
+  // Apply auto-priorities when enabled
+  React.useEffect(() => {
+    if (!state.settings.autoPriorityFromDueDate) return;
+
+    // Apply immediately on mount/setting change
+    dispatch({ type: "APPLY_AUTO_PRIORITIES" });
+
+    // Also run every hour to catch urgency changes
+    const interval = setInterval(() => {
+      dispatch({ type: "APPLY_AUTO_PRIORITIES" });
+    }, 60 * 60 * 1000); // 1 hour
+
+    return () => clearInterval(interval);
+  }, [state.settings.autoPriorityFromDueDate, dispatch]);
+
   return (
     <div className="app-bg">
       {hasBgImage && (
@@ -165,6 +182,7 @@ function AppContent() {
             onOpenCard={(c) => setOpenCard(c)}
             onSettings={() => setSettingsOpen(true)}
             onOpenMetrics={() => setMetricsDashboardOpen(true)}
+            onOpenTimeline={() => setTimelinePanelOpen(true)}
             canUndo={canUndo}
             canRedo={canRedo}
             onUndo={() => dispatch({ type: "UNDO" })}
@@ -232,6 +250,17 @@ function AppContent() {
         }}
       />
 
+      <TimelinePanel
+        open={timelinePanelOpen}
+        cards={state.cards}
+        columns={state.columns}
+        onClose={() => setTimelinePanelOpen(false)}
+        onOpenCard={(card) => {
+          setTimelinePanelOpen(false);
+          setOpenCard(card);
+        }}
+      />
+
       <KeyboardShortcutsModal
         open={shortcutsOpen}
         onClose={() => setShortcutsOpen(false)}
@@ -253,6 +282,10 @@ function AppContent() {
         onOpenMetrics={() => {
           setCommandPaletteOpen(false);
           setMetricsDashboardOpen(true);
+        }}
+        onOpenTimeline={() => {
+          setCommandPaletteOpen(false);
+          setTimelinePanelOpen(true);
         }}
         onJumpToColumn={(columnId) => {
           const columnEl = document.querySelector(`[data-column-id="${columnId}"]`);

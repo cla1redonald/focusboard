@@ -3,6 +3,7 @@ import { nanoid } from "nanoid";
 import type { AppState, Card, CardRelation, CardTemplate, Column, ColumnId, ColumnTransition, RelationType, Settings, Tag, TagCategory } from "./types";
 import { loadState, saveState } from "./storage";
 import { nowIso } from "./utils";
+import { calculateAutoPriority } from "./urgency";
 import { loadStateFromSupabase, debouncedSaveToSupabase, subscribeToStateChanges } from "./sync";
 import { supabase } from "./supabase";
 
@@ -48,6 +49,7 @@ type Action =
   | { type: "DELETE_TAG_CATEGORY"; id: string }
   | { type: "REORDER_TAG_CATEGORIES"; categories: TagCategory[] }
   | { type: "IMPORT_STATE"; state: AppState }
+  | { type: "APPLY_AUTO_PRIORITIES" }
   | { type: "UNDO" }
   | { type: "REDO" };
 
@@ -450,6 +452,29 @@ function appReducer(state: AppState, action: Action): AppState {
 
     case "IMPORT_STATE": {
       return action.state;
+    }
+
+    case "APPLY_AUTO_PRIORITIES": {
+      // Only apply if the setting is enabled
+      if (!state.settings.autoPriorityFromDueDate) return state;
+
+      const now = nowIso();
+      let hasChanges = false;
+
+      const updatedCards = state.cards.map((card) => {
+        const priorityTagId = calculateAutoPriority(card, card.tags ?? []);
+        if (!priorityTagId) return card;
+
+        hasChanges = true;
+        return {
+          ...card,
+          tags: [...(card.tags ?? []), priorityTagId],
+          updatedAt: now,
+        };
+      });
+
+      if (!hasChanges) return state;
+      return { ...state, cards: updatedCards };
     }
 
     default:

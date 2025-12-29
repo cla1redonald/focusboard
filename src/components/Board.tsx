@@ -6,6 +6,7 @@ import type { Card, Column as ColumnType, ColumnId, FilterState, MetricsState, S
 import { CONFETTI_COLORS } from "../app/constants";
 import { groupByColumn, isToday, nowIso } from "../app/utils";
 import { DEFAULT_FILTER, filterCards, getAllTags } from "../app/filters";
+import { getStaleBacklogCards } from "../app/metrics";
 import { useKeyboardNav } from "../app/useKeyboardNav";
 import { Column } from "./Column";
 import { TopStrip } from "./TopStrip";
@@ -37,6 +38,7 @@ export function Board({
   onOpenCard,
   onSettings,
   onOpenMetrics,
+  onOpenTimeline,
   canUndo,
   canRedo,
   onUndo,
@@ -54,6 +56,7 @@ export function Board({
   onOpenCard: (card: Card) => void;
   onSettings: () => void;
   onOpenMetrics: () => void;
+  onOpenTimeline: () => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -111,6 +114,17 @@ export function Board({
   const blockedCol = sortedColumns.find((c) => c.id === "blocked");
   const blockedCount = blockedCol ? byCol[blockedCol.id]?.length ?? 0 : 0;
   const dueTodayCount = cards.filter((c) => isToday(c.dueDate)).length;
+
+  // Calculate stale backlog cards
+  const staleData = React.useMemo(() => {
+    const staleCards = getStaleBacklogCards(cards, columns, settings.staleBacklogThreshold);
+    const staleCardIds = new Set(staleCards.map((s) => s.card.id));
+    const staleCardDays: Record<string, number> = {};
+    for (const s of staleCards) {
+      staleCardDays[s.card.id] = s.daysSinceUpdate;
+    }
+    return { staleCardIds, staleCardDays };
+  }, [cards, columns, settings.staleBacklogThreshold]);
 
   const getColumn = (id: ColumnId): ColumnType | undefined =>
     columns.find((c) => c.id === id);
@@ -281,6 +295,7 @@ export function Board({
         dueTodayCount={dueTodayCount}
         metrics={metrics}
         onOpenMetrics={onOpenMetrics}
+        onOpenTimeline={onOpenTimeline}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={onUndo}
@@ -338,6 +353,9 @@ export function Board({
                     focusedCardIndex={isColumnFocused ? focusPosition?.cardIndex ?? null : null}
                     allTags={tagDefinitions}
                     showAgingIndicators={settings.showAgingIndicators}
+                    showUrgencyIndicators={true}
+                    staleCardIds={staleData.staleCardIds}
+                    staleCardDays={staleData.staleCardDays}
                     reducedMotion={reducedMotion}
                   />
                 </div>
