@@ -236,16 +236,24 @@ function getDefaultState(): AppState {
 
 export function loadState(): AppState {
   try {
+    // DEBUG logging
+    console.log("[loadState] currentUserId:", currentUserId);
+
     // If logged in, only use user-scoped key (no fallback to global)
     // This prevents new users from seeing other users' data
     const scopedKey = getStorageKey(KEY_V4);
+    console.log("[loadState] scopedKey:", scopedKey);
+
     let rawV4 = localStorage.getItem(scopedKey);
+    console.log("[loadState] scoped data exists:", !!rawV4);
 
     // Only fall back to global key if NOT logged in (local-only mode)
     if (!rawV4 && !currentUserId) {
+      console.log("[loadState] Falling back to global key (no userId)");
       rawV4 = localStorage.getItem(KEY_V4);
     }
     if (rawV4) {
+      console.log("[loadState] Parsing data from localStorage");
       const parsed = JSON.parse(rawV4) as AppState;
       // Ensure "custom" category exists
       let tagCategories = parsed.tagCategories?.length ? parsed.tagCategories : DEFAULT_TAG_CATEGORIES;
