@@ -64,7 +64,7 @@ export function Column({
       : "";
 
   return (
-    <div className="w-[280px] shrink-0 sm:w-[320px]">
+    <div className="flex-1 min-w-[220px] max-w-[400px]">
       <div
         className={`rounded-2xl border ${headerClass} ${headerFocusClass} px-4 py-3`}
       >

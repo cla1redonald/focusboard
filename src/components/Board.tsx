@@ -92,6 +92,35 @@ export function Board({
   // Active dragging card for DragOverlay
   const [activeCard, setActiveCard] = React.useState<Card | null>(null);
 
+  // Scroll indicator state
+  const scrollContainerRef = React.useRef<HTMLDivElement>(null);
+  const [canScrollDown, setCanScrollDown] = React.useState(false);
+
+  React.useEffect(() => {
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    const checkScroll = () => {
+      const hasMoreContent = container.scrollHeight > container.clientHeight;
+      const isNotAtBottom = container.scrollTop < container.scrollHeight - container.clientHeight - 20;
+      setCanScrollDown(hasMoreContent && isNotAtBottom);
+    };
+
+    checkScroll();
+    container.addEventListener("scroll", checkScroll);
+    window.addEventListener("resize", checkScroll);
+
+    // Re-check when swimlanes collapse/expand
+    const observer = new MutationObserver(checkScroll);
+    observer.observe(container, { childList: true, subtree: true });
+
+    return () => {
+      container.removeEventListener("scroll", checkScroll);
+      window.removeEventListener("resize", checkScroll);
+      observer.disconnect();
+    };
+  }, []);
+
   // Sort columns by order
   const sortedColumns = [...columns].sort((a, b) => a.order - b.order);
 
@@ -350,10 +379,13 @@ export function Board({
       />
 
       <div className="mb-3 flex flex-wrap items-end justify-between gap-2 sm:mb-5 sm:gap-3">
-        <div>
-          <div className="display-font text-2xl text-amber-950 sm:text-3xl">Focusboard</div>
-          <div className="hidden text-sm text-amber-900/70 sm:block">
-            Plan with intent. Keep flow sacred.
+        <div className="flex items-center gap-3">
+          <img src="/logo.svg" alt="Focusboard" className="h-10 w-10 sm:h-12 sm:w-12" />
+          <div>
+            <div className="display-font text-2xl text-amber-950 sm:text-3xl">Focusboard</div>
+            <div className="hidden text-sm text-amber-900/70 sm:block">
+              Plan with intent. Keep flow sacred.
+            </div>
           </div>
         </div>
         <button
@@ -376,7 +408,7 @@ export function Board({
       />
 
       <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={onDragCancel}>
-        <div className="flex-1 overflow-y-auto pb-6">
+        <div ref={scrollContainerRef} className="flex-1 overflow-y-auto pb-6 relative">
           {DEFAULT_SWIMLANES.map((swimlane, swimlaneIdx) => {
             const isSwimlaneFocused = isNavigating && swimlaneIdx === 0; // TODO: multi-swimlane keyboard nav
             return (
@@ -408,6 +440,18 @@ export function Board({
             );
           })}
         </div>
+
+        {/* Scroll indicator - shows when there's more content below */}
+        {canScrollDown && (
+          <div className="pointer-events-none sticky bottom-0 left-0 right-0 flex justify-center pb-2">
+            <div className="flex flex-col items-center gap-1 rounded-full bg-amber-900/80 px-4 py-2 text-white shadow-lg animate-bounce">
+              <span className="text-xs font-medium">Scroll for more</span>
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M19 14l-7 7m0 0l-7-7m7 7V3" />
+              </svg>
+            </div>
+          </div>
+        )}
 
         {/* Drag overlay shows a preview of the card being dragged */}
         <DragOverlay>

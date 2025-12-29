@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
+  <!-- Background circle -->
+  <circle cx="60" cy="60" r="56" fill="#FFFBEB" stroke="#F59E0B" stroke-width="3"/>
+
+  <!-- Three kanban columns -->
+  <rect x="22" y="32" width="22" height="56" rx="4" fill="#FCD34D"/>
+  <rect x="49" y="32" width="22" height="56" rx="4" fill="#FB923C"/>
+  <rect x="76" y="32" width="22" height="56" rx="4" fill="#34D399"/>
+
+  <!-- Cards in columns -->
+  <!-- Column 1 - Backlog -->
+  <rect x="26" y="38" width="14" height="10" rx="2" fill="white" stroke="#F59E0B" stroke-width="1"/>
+  <rect x="26" y="52" width="14" height="10" rx="2" fill="white" stroke="#F59E0B" stroke-width="1"/>
+  <rect x="26" y="66" width="14" height="10" rx="2" fill="white" stroke="#F59E0B" stroke-width="1"/>
+
+  <!-- Column 2 - Doing (highlighted) -->
+  <rect x="53" y="38" width="14" height="10" rx="2" fill="white" stroke="#EA580C" stroke-width="1.5"/>
+
+  <!-- Column 3 - Done -->
+  <rect x="80" y="38" width="14" height="10" rx="2" fill="white" stroke="#059669" stroke-width="1"/>
+  <rect x="80" y="52" width="14" height="10" rx="2" fill="white" stroke="#059669" stroke-width="1"/>
+
+  <!-- Focus indicator - bullseye on doing column -->
+  <circle cx="60" cy="43" r="3" fill="#EA580C"/>
+</svg>

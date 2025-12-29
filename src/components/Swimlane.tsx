@@ -76,7 +76,7 @@ export function Swimlane({
 
       {/* Collapsible Content */}
       {!collapsed && (
-        <div className="flex gap-3 overflow-x-auto pb-4 sm:gap-5">
+        <div className="flex flex-wrap gap-3 pb-4 sm:gap-4 lg:flex-nowrap">
           <SortableContext
             items={columns.map((col) => `${swimlaneId}:${col.id}`)}
             strategy={horizontalListSortingStrategy}
