@@ -1,4 +1,6 @@
 import React from "react";
+import html2canvas from "html2canvas";
+import { Download } from "lucide-react";
 import type { Card, Column, MetricsState, Settings } from "../app/types";
 import {
   calculateAverageLeadTime,
@@ -406,6 +408,32 @@ export function MetricsDashboard({
   onOpenCard: (card: Card) => void;
 }) {
   const [activeTab, setActiveTab] = React.useState<TabId>("overview");
+  const [isDownloading, setIsDownloading] = React.useState(false);
+  const contentRef = React.useRef<HTMLDivElement>(null);
+
+  const handleDownloadPNG = async () => {
+    if (!contentRef.current) return;
+
+    setIsDownloading(true);
+    try {
+      const canvas = await html2canvas(contentRef.current, {
+        backgroundColor: "#ffffff",
+        scale: 2, // Higher resolution
+        logging: false,
+        useCORS: true,
+      });
+
+      const link = document.createElement("a");
+      const date = new Date().toISOString().split("T")[0];
+      link.download = `focusboard-metrics-${date}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+    } catch (error) {
+      console.error("Failed to download metrics:", error);
+    } finally {
+      setIsDownloading(false);
+    }
+  };
 
   if (!open) return null;
 
@@ -437,11 +465,21 @@ export function MetricsDashboard({
       >
         <div className="mb-4 flex items-center justify-between">
           <h2 className="text-xl font-semibold text-gray-900">Productivity Metrics</h2>
-          <button
-            onClick={onClose}
-            className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-100"
-            aria-label="Close"
-          >
+          <div className="flex items-center gap-2">
+            <button
+              onClick={handleDownloadPNG}
+              disabled={isDownloading}
+              className="flex items-center gap-1.5 rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-700 transition hover:bg-gray-50 disabled:opacity-50"
+              aria-label="Download as PNG"
+            >
+              <Download size={16} />
+              {isDownloading ? "Saving..." : "Save PNG"}
+            </button>
+            <button
+              onClick={onClose}
+              className="rounded-lg p-2 text-gray-500 transition hover:bg-gray-100"
+              aria-label="Close"
+            >
             <svg
               xmlns="http://www.w3.org/2000/svg"
               width="20"
@@ -456,9 +494,12 @@ export function MetricsDashboard({
               <path d="M18 6 6 18" />
               <path d="m6 6 12 12" />
             </svg>
-          </button>
+            </button>
+          </div>
         </div>
 
+        {/* Content area to capture for PNG */}
+        <div ref={contentRef}>
         {/* Tabs */}
         <div className="mb-6 flex gap-1 rounded-lg border border-gray-200 bg-gray-50 p-1">
           {tabs.map((tab) => (
@@ -609,6 +650,7 @@ export function MetricsDashboard({
             onOpenCard={onOpenCard}
           />
         )}
+        </div>
 
         <div className="mt-6 flex justify-end">
           <button
