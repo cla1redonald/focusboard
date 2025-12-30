@@ -78,13 +78,16 @@ See [docs/API.md](docs/API.md) for full documentation.
 
 | Shortcut | Action |
 |----------|--------|
-| `Cmd/Ctrl + K` | Focus search |
+| `Cmd/Ctrl + K` | Open command palette |
 | `Cmd/Ctrl + Z` | Undo |
 | `Cmd/Ctrl + Shift + Z` | Redo |
 | `Arrow keys` | Navigate between cards |
 | `Enter` | Open selected card |
+| `N` | Add new card to focused column |
+| `D` | Mark focused card as Done |
 | `Delete/Backspace` | Delete selected card |
 | `Escape` | Close modal / clear search |
+| `?` | Show keyboard shortcuts |
 
 ## Tech Stack
 
