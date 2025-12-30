@@ -16,7 +16,7 @@ export const DEFAULT_COLUMNS: Column[] = [
   { id: "backlog", title: "Backlog", icon: "archive", color: "#64748b", wipLimit: null, isTerminal: false, order: 0 },
   { id: "design", title: "Design & Planning", icon: "palette", color: "#8b5cf6", wipLimit: 5, isTerminal: false, order: 1 },
   { id: "todo", title: "To Do", icon: "list-todo", color: "#0d9488", wipLimit: 12, isTerminal: false, order: 2 },
-  { id: "doing", title: "Doing", icon: "zap", color: "#f59e0b", wipLimit: null, isTerminal: false, order: 3 },
+  { id: "doing", title: "Doing", icon: "zap", color: "#f59e0b", wipLimit: 3, isTerminal: false, order: 3 },
   { id: "blocked", title: "Blocked", icon: "ban", color: "#ef4444", wipLimit: 5, isTerminal: false, order: 4 },
   { id: "done", title: "Done", icon: "check-circle", color: "#10b981", wipLimit: null, isTerminal: true, order: 5 },
 ];

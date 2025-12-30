@@ -6,9 +6,11 @@ import type { Card, UrgencyLevel } from "./types";
  * - high: due within 3 days
  * - medium: due within 7 days
  * - low: due within 14 days
- * - none: no due date or due > 14 days
+ * - none: no due date, completed, or due > 14 days
  */
 export function getUrgencyLevel(card: Card): UrgencyLevel {
+  // Completed cards don't have urgency
+  if (card.completedAt) return "none";
   if (!card.dueDate) return "none";
 
   const now = new Date();

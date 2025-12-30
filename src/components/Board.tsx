@@ -188,15 +188,6 @@ export function Board({
 
   const headerState = (colId: ColumnId): "normal" | "near" | "full" => {
     const count = byCol[colId]?.length ?? 0;
-
-    // Special handling for "doing" column - warn at 3+
-    if (colId === "doing") {
-      if (count >= 3) return "full";
-      if (count >= 2) return "near";
-      return "normal";
-    }
-
-    // Standard WIP limit logic for other columns
     const limit = wipLimit(colId);
     if (!limit) return "normal";
     if (count >= limit) return "full";
@@ -265,12 +256,6 @@ export function Board({
     window.setTimeout(() => el.classList.remove("animate-pulse"), 220);
   };
 
-  const canMoveDirect = (from: ColumnId, to: ColumnId) => {
-    // Block Design -> Doing direct moves (must go through Todo)
-    if (from === "design" && to === "doing") return false;
-    return true;
-  };
-
   const wouldExceedWip = (to: ColumnId) => {
     const limit = wipLimit(to);
     if (!limit) return false;
@@ -326,14 +311,6 @@ export function Board({
 
     // If it's a no-op (same column AND same swimlane), return
     if (from === to && fromSwimlane === targetSwimlane) return;
-
-    // guardrail: Design -> Doing disallowed
-    if (!canMoveDirect(from, to)) {
-      openWipModal(cardId, from, to, false);
-      pendingRef.current = null;
-      setActiveCard(null);
-      return;
-    }
 
     // blocked reason required
     if (to === "blocked") {
@@ -478,28 +455,14 @@ export function Board({
 
       <WipModal
         open={!!modal && modal.kind === "wip"}
-        title={
-          modal?.from === "design" && modal?.to === "doing"
-            ? "Move not allowed"
-            : "WIP limit reached"
-        }
-        message={
-          modal?.from === "design" && modal?.to === "doing"
-            ? "Cards must pass through To Do before moving into Doing."
-            : "This column is at its WIP limit. Move something out first, or override with a reason."
-        }
+        title="WIP limit reached"
+        message="This column is at its WIP limit. Move something out first, or override with a reason."
         askReason={!!modal && modal.kind === "wip" && modal.allowOverride}
         reasonLabel="Override reason"
         onCancel={() => setModal(null)}
         onConfirm={(reason) => {
           const pending = pendingRef.current;
           if (!pending || !modal) return;
-
-          if (modal.from === "design" && modal.to === "doing") {
-            setModal(null);
-            pendingRef.current = null;
-            return;
-          }
 
           // override move
           onMove(pending.id, pending.to, pending.toSwimlane, {
