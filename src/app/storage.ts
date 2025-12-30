@@ -247,8 +247,28 @@ export function loadState(): AppState {
     }
     if (rawV4) {
       const parsed = JSON.parse(rawV4) as AppState;
-      // Ensure "custom" category exists
+      // Ensure required categories exist (goals and custom)
       let tagCategories = parsed.tagCategories?.length ? parsed.tagCategories : DEFAULT_TAG_CATEGORIES;
+      let tags = parsed.tags?.length ? parsed.tags : DEFAULT_TAGS;
+
+      // Add Goals category if missing (was added after initial release)
+      if (!tagCategories.some((c) => c.id === "goals")) {
+        // Insert Goals at the beginning (order 0), shift others
+        tagCategories = [
+          { id: "goals", name: "Goals", order: 0 },
+          ...tagCategories.map((c) => ({ ...c, order: c.order + 1 })),
+        ];
+        // Add example goal tags if they don't exist
+        if (!tags.some((t) => t.categoryId === "goals")) {
+          tags = [
+            { id: "goal-launch", name: "Launch MVP", color: "#8B5CF6", categoryId: "goals" },
+            { id: "goal-q1", name: "Q1 Planning", color: "#3B82F6", categoryId: "goals" },
+            ...tags,
+          ];
+        }
+      }
+
+      // Ensure "custom" category exists
       if (!tagCategories.some((c) => c.id === "custom")) {
         tagCategories = [...tagCategories, { id: "custom", name: "Custom", order: tagCategories.length }];
       }
@@ -279,7 +299,7 @@ export function loadState(): AppState {
           ...(parsed.settings ?? {}),
         },
         tagCategories,
-        tags: parsed.tags?.length ? parsed.tags : DEFAULT_TAGS,
+        tags,
       };
     }
 
