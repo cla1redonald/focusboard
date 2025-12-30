@@ -1,5 +1,5 @@
 import React from "react";
-import { X, Trash2 } from "lucide-react";
+import { X, Trash2, CheckCircle } from "lucide-react";
 import type { Card, RelationType, SwimlaneId, Tag, TagCategory } from "../app/types";
 import { nanoid } from "nanoid";
 import { RelationshipPicker, RelationshipBadge } from "./RelationshipPicker";
@@ -46,6 +46,8 @@ type Props = {
   onClose: () => void;
   onSave: (card: Card) => void;
   onDelete: (id: string) => void;
+  onMarkComplete?: (id: string) => void;
+  isCompleted?: boolean;
   onAddRelation?: (cardId: string, targetCardId: string, relationType: RelationType) => void;
   onRemoveRelation?: (cardId: string, relationId: string) => void;
   onAddTag?: (tag: Omit<Tag, "id">) => void;
@@ -60,6 +62,8 @@ export function CardModal({
   onClose,
   onSave,
   onDelete,
+  onMarkComplete,
+  isCompleted = false,
   onAddRelation,
   onRemoveRelation,
   onAddTag,
@@ -716,13 +720,24 @@ export function CardModal({
 
         {/* Fixed Footer */}
         <div className="flex shrink-0 flex-col gap-3 border-t border-gray-100 px-4 py-3 sm:flex-row sm:justify-between sm:px-6 sm:py-4">
-          <button
-            onClick={() => onDelete(draft.id)}
-            className="order-2 flex items-center justify-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-600 hover:bg-red-100 sm:order-1"
-          >
-            <Trash2 size={16} />
-            Delete
-          </button>
+          <div className="order-2 flex gap-2 sm:order-1">
+            <button
+              onClick={() => onDelete(draft.id)}
+              className="flex items-center justify-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-600 hover:bg-red-100"
+            >
+              <Trash2 size={16} />
+              Delete
+            </button>
+            {onMarkComplete && !isCompleted && (
+              <button
+                onClick={() => onMarkComplete(draft.id)}
+                className="flex items-center justify-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-600 hover:bg-emerald-100"
+              >
+                <CheckCircle size={16} />
+                Complete
+              </button>
+            )}
+          </div>
 
           <div className="order-1 flex gap-2 sm:order-2">
             <button

@@ -209,6 +209,20 @@ function AppContent() {
           dispatch({ type: "DELETE_CARD", id });
           setOpenCard(null);
         }}
+        onMarkComplete={(id) => {
+          const card = state.cards.find((c) => c.id === id);
+          const doneColumn = state.columns.find((c) => c.isTerminal);
+          if (card && doneColumn) {
+            dispatch({ type: "MOVE_CARD", id, to: doneColumn.id, toSwimlane: card.swimlane });
+            setOpenCard(null);
+            showToast({ type: "success", message: `"${card.title}" marked complete!` });
+          }
+        }}
+        isCompleted={(() => {
+          const card = openCard ? state.cards.find((c) => c.id === openCard.id) : null;
+          const col = card ? state.columns.find((c) => c.id === card.column) : null;
+          return col?.isTerminal ?? false;
+        })()}
         onAddRelation={(cardId: string, targetCardId: string, relationType: RelationType) => {
           dispatch({ type: "ADD_RELATION", cardId, targetCardId, relationType });
         }}

@@ -12,6 +12,7 @@ export function useKeyboardNav({
   onOpenCard,
   onDeleteCard,
   onAddCard,
+  onMoveToColumn,
   enabled = true,
 }: {
   columns: Column[];
@@ -19,6 +20,7 @@ export function useKeyboardNav({
   onOpenCard: (card: Card) => void;
   onDeleteCard: (id: string) => void;
   onAddCard: (columnId: string) => void;
+  onMoveToColumn?: (cardId: string, columnId: string) => void;
   enabled?: boolean;
 }) {
   const [focusPosition, setFocusPosition] = React.useState<FocusPosition | null>(null);
@@ -174,6 +176,19 @@ export function useKeyboardNav({
           break;
         }
 
+        case "d":
+        case "D": {
+          if (!e.metaKey && !e.ctrlKey && onMoveToColumn) {
+            const card = getFocusedCard();
+            const doneColumn = sortedColumns.find((c) => c.isTerminal);
+            if (card && doneColumn && card.column !== doneColumn.id) {
+              e.preventDefault();
+              onMoveToColumn(card.id, doneColumn.id);
+            }
+          }
+          break;
+        }
+
         case "Delete":
         case "Backspace": {
           if (!e.metaKey && !e.ctrlKey) {
@@ -219,6 +234,7 @@ export function useKeyboardNav({
     onOpenCard,
     onDeleteCard,
     onAddCard,
+    onMoveToColumn,
   ]);
 
   // Click handler to clear keyboard focus

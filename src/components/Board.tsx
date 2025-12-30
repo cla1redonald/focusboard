@@ -151,6 +151,12 @@ export function Board({
       const input = document.querySelector(`[data-column-input="${columnId}"]`) as HTMLInputElement;
       input?.focus();
     },
+    onMoveToColumn: (cardId, columnId) => {
+      const card = cards.find((c) => c.id === cardId);
+      if (card) {
+        onMove(cardId, columnId as ColumnId, card.swimlane);
+      }
+    },
     enabled: !modal, // Disable when modal is open
   });
 

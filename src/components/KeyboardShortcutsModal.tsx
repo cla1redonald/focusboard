@@ -10,6 +10,7 @@ const SHORTCUTS = [
   { keys: ["Arrow Up/Down"], description: "Navigate between cards" },
   { keys: ["Enter"], description: "Open focused card" },
   { keys: ["N"], description: "Add new card to focused column" },
+  { keys: ["D"], description: "Mark focused card as Done" },
   { keys: ["Delete/Backspace"], description: "Delete focused card" },
 ];
 
