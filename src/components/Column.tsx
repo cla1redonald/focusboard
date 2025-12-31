@@ -15,6 +15,8 @@ import {
   Package,
   Brain,
   Flame,
+  Sparkles,
+  Loader2,
   type LucideIcon,
 } from "lucide-react";
 import type { Card, ColumnId, SwimlaneId } from "../app/types";
@@ -47,6 +49,7 @@ export function Column({
   countLabel,
   headerState,
   onAdd,
+  onAIAdd,
   onOpenCard,
   cardRefSetter,
   columnFocused = false,
@@ -56,6 +59,7 @@ export function Column({
   staleCardIds = new Set(),
   staleCardDays = {},
   reducedMotion = false,
+  aiLoading = false,
 }: {
   id: ColumnId;
   swimlaneId?: SwimlaneId;
@@ -66,6 +70,7 @@ export function Column({
   countLabel: string;
   headerState: "normal" | "near" | "full";
   onAdd: (column: ColumnId, title: string) => void;
+  onAIAdd?: (column: ColumnId, input: string) => Promise<void>;
   onOpenCard: (card: Card) => void;
   cardRefSetter?: (id: string, el: HTMLElement | null) => void;
   columnFocused?: boolean;
@@ -75,6 +80,7 @@ export function Column({
   staleCardIds?: Set<string>;
   staleCardDays?: Record<string, number>;
   reducedMotion?: boolean;
+  aiLoading?: boolean;
 }) {
   // Use composite droppable ID when in a swimlane context
   const droppableId = swimlaneId ? `${swimlaneId}:${id}` : id;
@@ -166,13 +172,35 @@ export function Column({
             setText("");
           }}
         >
-          <input
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Add a card…"
-            data-column-input={id}
-            className="w-full rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-500 dark:focus:bg-gray-700"
-          />
+          <div className="flex gap-1">
+            <input
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder={onAIAdd ? "Add card or describe with AI…" : "Add a card…"}
+              data-column-input={id}
+              className="flex-1 rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none transition placeholder:text-gray-400 focus:border-emerald-500 focus:bg-white focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white dark:placeholder:text-gray-500 dark:focus:bg-gray-700"
+            />
+            {onAIAdd && text.trim() && (
+              <button
+                type="button"
+                onClick={async () => {
+                  const t = text.trim();
+                  if (!t) return;
+                  await onAIAdd(id, t);
+                  setText("");
+                }}
+                disabled={aiLoading}
+                className="flex items-center justify-center rounded-lg border border-emerald-200 bg-emerald-50 px-2 text-emerald-600 transition hover:bg-emerald-100 disabled:opacity-50 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50"
+                title="Use AI to parse this as natural language"
+              >
+                {aiLoading ? (
+                  <Loader2 size={16} className="animate-spin" />
+                ) : (
+                  <Sparkles size={16} />
+                )}
+              </button>
+            )}
+          </div>
         </form>
       </div>
     </div>

@@ -157,6 +157,10 @@ function AppContent() {
               dispatch({ type: "ADD_CARD", column, title, swimlane });
               showToast({ type: "success", message: `Card "${title}" added` });
             }}
+            onAddWithData={(column, title, swimlane, data) => {
+              dispatch({ type: "ADD_CARD_WITH_DATA", column, title, swimlane, data });
+              showToast({ type: "success", message: `Card "${title}" added with AI` });
+            }}
             onMove={(id, to, toSwimlane, patch) => {
               const card = state.cards.find((c) => c.id === id);
               const toColumn = state.columns.find((c) => c.id === to);

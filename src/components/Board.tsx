@@ -9,6 +9,7 @@ import { DEFAULT_FILTER, filterCards, getAllTags } from "../app/filters";
 import { getStaleBacklogCards } from "../app/metrics";
 import { useKeyboardNav } from "../app/useKeyboardNav";
 import { useTheme } from "../app/theme";
+import { useAI } from "../app/useAI";
 import { Swimlane } from "./Swimlane";
 import { TopStrip } from "./TopStrip";
 import { FilterBar } from "./FilterBar";
@@ -34,6 +35,7 @@ export function Board({
   metrics,
   tagDefinitions = [],
   onAdd,
+  onAddWithData,
   onMove,
   onDelete,
   onOpenCard,
@@ -53,6 +55,7 @@ export function Board({
   metrics: MetricsState;
   tagDefinitions?: Tag[];
   onAdd: (column: ColumnId, title: string, swimlane?: SwimlaneId) => void;
+  onAddWithData?: (column: ColumnId, title: string, swimlane: SwimlaneId, data: { tags?: string[]; dueDate?: string; notes?: string }) => void;
   onMove: (id: string, to: ColumnId, toSwimlane?: SwimlaneId, patch?: Partial<Card>) => void;
   onDelete: (id: string) => void;
   onOpenCard: (card: Card) => void;
@@ -69,6 +72,43 @@ export function Board({
   const reducedMotion = usePrefersReducedMotion() || settings.reducedMotionOverride;
   useTheme(settings.theme);
   const [filter, setFilter] = React.useState<FilterState>(DEFAULT_FILTER);
+
+  // AI-powered card creation
+  const { parseCard, isLoading: aiLoading } = useAI({
+    availableTags: tagDefinitions,
+    availableColumns: columns,
+  });
+
+  const handleAIAdd = React.useCallback(
+    async (columnId: ColumnId, input: string, swimlane: SwimlaneId) => {
+      const parsed = await parseCard(input);
+      if (!parsed) {
+        // Fallback to regular add if AI fails
+        onAdd(columnId, input, swimlane);
+        return;
+      }
+
+      // Use parsed column if provided and valid, otherwise use the column user was adding to
+      const targetColumn = parsed.column && columns.some((c) => c.id === parsed.column)
+        ? (parsed.column as ColumnId)
+        : columnId;
+
+      // Use parsed swimlane if provided, otherwise use the swimlane user was adding to
+      const targetSwimlane = parsed.swimlane ?? swimlane;
+
+      if (onAddWithData) {
+        onAddWithData(targetColumn, parsed.title, targetSwimlane, {
+          tags: parsed.tags,
+          dueDate: parsed.dueDate,
+          notes: parsed.notes,
+        });
+      } else {
+        // Fallback: just use title if onAddWithData not provided
+        onAdd(targetColumn, parsed.title, targetSwimlane);
+      }
+    },
+    [parseCard, columns, onAdd, onAddWithData]
+  );
 
   // Configure sensors with distance constraint to prevent accidental drags
   const sensors = useSensors(
@@ -414,6 +454,7 @@ export function Board({
                 collapsed={settings.collapsedSwimlanes?.includes(swimlane.id) ?? false}
                 onToggleCollapse={() => onToggleSwimlaneCollapse(swimlane.id)}
                 onAdd={onAdd}
+                onAIAdd={onAddWithData ? handleAIAdd : undefined}
                 onOpenCard={onOpenCard}
                 cardRefSetter={setCardEl}
                 columnFocused={isSwimlaneFocused}
@@ -427,6 +468,7 @@ export function Board({
                 countLabel={countLabel}
                 headerState={headerState}
                 onReorderCards={onReorderCards}
+                aiLoading={aiLoading}
               />
             );
           })}

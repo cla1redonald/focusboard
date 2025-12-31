@@ -27,6 +27,7 @@ function getReciprocalType(type: RelationType): RelationType {
 
 type Action =
   | { type: "ADD_CARD"; column: ColumnId; title: string; swimlane?: SwimlaneId }
+  | { type: "ADD_CARD_WITH_DATA"; column: ColumnId; title: string; swimlane: SwimlaneId; data: { tags?: string[]; dueDate?: string; notes?: string } }
   | { type: "ADD_CARD_FROM_TEMPLATE"; templateId: string; swimlane?: SwimlaneId }
   | { type: "UPDATE_CARD"; card: Card }
   | { type: "DELETE_CARD"; id: string }
@@ -98,6 +99,48 @@ function appReducer(state: AppState, action: Action): AppState {
       };
       return { ...state, cards: [card, ...shiftedCards] };
     }
+
+    case "ADD_CARD_WITH_DATA": {
+      const now = nowIso();
+      const { column, title, swimlane, data } = action;
+      const initialTransition: ColumnTransition = {
+        from: null,
+        to: column,
+        at: now,
+      };
+
+      // New cards go to top (order 0), shift existing cards in same column AND swimlane
+      const shiftedCards = state.cards.map((c) =>
+        c.column === column && (c.swimlane ?? "work") === swimlane
+          ? { ...c, order: (c.order ?? 0) + 1 }
+          : c
+      );
+
+      // Use provided tags, or fall back to smart suggestions
+      const suggestedEmoji = suggestEmojiForTitle(title);
+      const availableTagIds = state.tags.map((t) => t.id);
+      const finalTags = data.tags?.length
+        ? data.tags.filter((t) => availableTagIds.includes(t))
+        : suggestTagsForTitle(title, availableTagIds);
+
+      const newCard: Card = {
+        id: nanoid(),
+        column,
+        swimlane,
+        title: title.trim(),
+        order: 0,
+        createdAt: now,
+        updatedAt: now,
+        icon: suggestedEmoji,
+        tags: finalTags,
+        checklist: [],
+        columnHistory: [initialTransition],
+        dueDate: data.dueDate,
+        notes: data.notes,
+      };
+      return { ...state, cards: [newCard, ...shiftedCards] };
+    }
+
     case "UPDATE_CARD": {
       return {
         ...state,

@@ -12,6 +12,7 @@ type SwimlaneProps = {
   collapsed: boolean;
   onToggleCollapse: () => void;
   onAdd: (column: ColumnId, title: string, swimlane: SwimlaneId) => void;
+  onAIAdd?: (column: ColumnId, input: string, swimlane: SwimlaneId) => Promise<void>;
   onOpenCard: (card: Card) => void;
   cardRefSetter: (id: string, el: HTMLElement | null) => void;
   columnFocused: boolean;
@@ -25,6 +26,7 @@ type SwimlaneProps = {
   countLabel: (colId: ColumnId) => string;
   headerState: (colId: ColumnId) => "normal" | "near" | "full";
   onReorderCards: (columnId: ColumnId, cardIds: string[], swimlane: SwimlaneId) => void;
+  aiLoading?: boolean;
 };
 
 export function Swimlane({
@@ -37,6 +39,7 @@ export function Swimlane({
   collapsed,
   onToggleCollapse,
   onAdd,
+  onAIAdd,
   onOpenCard,
   cardRefSetter,
   columnFocused,
@@ -50,6 +53,7 @@ export function Swimlane({
   countLabel,
   headerState,
   onReorderCards: _onReorderCards,
+  aiLoading = false,
 }: SwimlaneProps) {
   void _onReorderCards; // Will be used for reordering within swimlane
   const cardCount = Object.values(cardsByColumn).flat().length;
@@ -95,6 +99,7 @@ export function Swimlane({
                   countLabel={countLabel(col.id)}
                   headerState={headerState(col.id)}
                   onAdd={(colId, cardTitle) => onAdd(colId, cardTitle, swimlaneId)}
+                  onAIAdd={onAIAdd ? (colId, input) => onAIAdd(colId, input, swimlaneId) : undefined}
                   onOpenCard={onOpenCard}
                   cardRefSetter={cardRefSetter}
                   columnFocused={isColFocused}
@@ -104,6 +109,7 @@ export function Swimlane({
                   staleCardIds={staleCardIds}
                   staleCardDays={staleCardDays}
                   reducedMotion={reducedMotion}
+                  aiLoading={aiLoading}
                 />
               );
             })}
