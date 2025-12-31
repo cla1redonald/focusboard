@@ -228,6 +228,7 @@ export function CardModal({
                 onChange={(e) =>
                   update({ dueDate: e.target.value ? new Date(e.target.value).toISOString() : undefined })
                 }
+                onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
                 className="mt-1.5 w-full rounded-md border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 dark:border-gray-600 dark:bg-gray-700 dark:text-white"
               />
             </div>
