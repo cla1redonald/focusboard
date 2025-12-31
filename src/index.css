@@ -116,3 +116,27 @@ body.dark,
   font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
   letter-spacing: -0.01em;
 }
+
+/* Date input styling - ensure calendar picker is visible and clickable */
+input[type="date"] {
+  position: relative;
+  cursor: pointer;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator {
+  cursor: pointer;
+  padding: 4px;
+  margin-right: -4px;
+  border-radius: 4px;
+  opacity: 0.7;
+  transition: opacity 0.15s, background-color 0.15s;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+  background-color: rgba(16, 185, 129, 0.1);
+}
+
+.dark input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+}
