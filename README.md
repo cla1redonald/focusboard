@@ -34,7 +34,6 @@ A focused Kanban-style board with WIP limits, colored tags, and cloud sync.
   - **Daily Focus** - AI suggests your top 3-5 tasks based on due dates and priorities
   - **Weekly Planning** - 7-day calendar view with AI scheduling suggestions
   - **Smart Task Breakdown** - AI generates subtasks for complex cards
-- **Notion Calendar** (optional) - Show calendar events in Weekly Plan view
 - **Goals Tracking** - Tag cards with goals for big-picture organization
 
 ## Quick Start

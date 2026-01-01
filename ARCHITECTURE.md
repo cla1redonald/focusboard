@@ -23,8 +23,7 @@ src/
 │   ├── exportImport.ts    # JSON/CSV export and import
 │   ├── supabase.ts        # Supabase client initialization
 │   ├── useKeyboardNav.ts  # Keyboard navigation hook
-│   ├── useAI.ts           # AI feature API calls
-│   └── useNotionCalendar.ts # Notion calendar integration
+│   └── useAI.ts           # AI feature API calls
 ├── components/            # React components
 │   ├── Board.tsx          # Main board with swimlanes and drag-drop
 │   ├── Swimlane.tsx       # Work/Personal swimlane row
@@ -55,9 +54,6 @@ api/                        # Vercel serverless functions
 │   ├── breakdown.ts       # Task breakdown into subtasks
 │   ├── daily-focus.ts     # AI daily focus recommendations
 │   └── weekly-plan.ts     # AI weekly scheduling suggestions
-└── notion/                 # Notion calendar integration (optional)
-    ├── databases.ts       # List accessible Notion databases
-    └── events.ts          # Fetch calendar events
 
 docs/                       # Documentation
 ├── API.md                 # Webhook API reference
@@ -395,15 +391,6 @@ Requires `ANTHROPIC_API_KEY` environment variable. Uses Claude Haiku for fast, l
 - Sound notification when timer completes
 - Compact view in TopStrip, expands on click
 - Stats persisted to localStorage
-
-### Notion Calendar Integration
-
-Optional integration to show calendar events in Weekly Plan view.
-
-- Requires `NOTION_API_KEY` and `NOTION_CALENDAR_DATABASE_ID`
-- Fetches events from a Notion database with date properties
-- Events displayed in day cells with time and title
-- Note: Notion Calendar app data is NOT accessible (only Notion databases)
 
 ## Performance Considerations
 
