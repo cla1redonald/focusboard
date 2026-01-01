@@ -1,6 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";
+import { setCorsHeaders, handlePreflight } from "../_lib/cors.js";
 
 // Inline types
 type Card = {
@@ -71,14 +72,9 @@ function getDefaultState(): AppState {
 }
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
-  // CORS headers
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "POST, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
-
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
-  }
+  // CORS headers - use shared helper instead of wildcard
+  setCorsHeaders(req, res);
+  if (handlePreflight(req, res)) return;
 
   if (req.method !== "POST") {
     return res.status(405).json({ error: "Method not allowed" });
@@ -123,7 +119,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .single();
 
     if (fetchError && fetchError.code !== "PGRST116") {
-      return res.status(500).json({ error: fetchError.message });
+      console.error("Webhook fetch error:", fetchError.message);
+      return res.status(500).json({ error: "Failed to fetch state" });
     }
 
     const state: AppState = data?.state ?? getDefaultState();
@@ -146,7 +143,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     );
 
     if (upsertError) {
-      return res.status(500).json({ error: upsertError.message });
+      console.error("Webhook upsert error:", upsertError.message);
+      return res.status(500).json({ error: "Failed to save card" });
     }
 
     return res.status(200).json({
@@ -155,6 +153,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       cardId: card.id
     });
   } catch (err) {
-    return res.status(500).json({ error: String(err) });
+    console.error("Webhook unexpected error:", err);
+    return res.status(500).json({ error: "Internal server error" });
   }
 }
