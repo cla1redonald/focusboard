@@ -3,24 +3,49 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const STEPS = [
   {
-    title: "Welcome to Focusboard",
+    title: "Welcome to FocusBoard",
     emoji: "👋",
-    description: "Your personal kanban board for staying focused and getting things done. Let's take a quick tour!",
+    description: "Your AI-powered kanban board for staying focused and getting things done. Let's walk through how to get the most out of it!",
   },
   {
-    title: "WIP Limits Keep You Focused",
+    title: "Step 1: Add Your Tasks",
+    emoji: "✏️",
+    description: "Start by adding your tasks to the Backlog column. Click the + button or press N. Type naturally like \"urgent bug fix login page by friday\" — the AI will parse tags, priority, and due dates for you!",
+  },
+  {
+    title: "AI-Powered Task Creation",
+    emoji: "✨",
+    description: "Look for the sparkles button when typing a task. Click it to let AI extract details from natural language. It understands priorities, due dates, categories, and more.",
+  },
+  {
+    title: "Organize with Drag & Drop",
     emoji: "🎯",
-    description: "Each column has a work-in-progress limit. When you hit the limit, finish something before starting something new. This keeps you focused and prevents overwhelm.",
+    description: "Drag tasks between columns as you work on them. Each column has a WIP limit — when you hit it, finish something before starting something new. This keeps you focused!",
   },
   {
-    title: "Quick Navigation with Cmd+K",
-    emoji: "⌨️",
-    description: "Press Cmd+K (or Ctrl+K) to open the command palette. Quickly search cards, jump to columns, or access settings without leaving your keyboard.",
+    title: "Step 2: Plan Your Work",
+    emoji: "📅",
+    description: "Once you have tasks, use the AI planning features in the header: Daily Focus (sparkles icon) suggests your top priorities, and Weekly Plan (calendar icon) helps schedule your week.",
   },
   {
-    title: "Track Your Progress",
+    title: "Break Down Complex Tasks",
+    emoji: "🧩",
+    description: "Open any card and click \"Break down with AI\" to generate subtasks. Great for turning big projects into actionable steps. You can also add file attachments to cards!",
+  },
+  {
+    title: "Step 3: Track & Analyze",
     emoji: "📊",
-    description: "Click the metrics button to see your productivity stats: cycle time, throughput, and more. Understanding your flow helps you improve!",
+    description: "Click the chart icon to see your Metrics Dashboard — cycle time, throughput, and completion trends. The Timeline view shows your tasks as a Gantt chart.",
+  },
+  {
+    title: "Keyboard Power User",
+    emoji: "⌨️",
+    description: "Press Cmd+K for the command palette. Use arrow keys to navigate, D to mark done, N to add cards. Press ? anytime to see all shortcuts.",
+  },
+  {
+    title: "You're Ready!",
+    emoji: "🚀",
+    description: "Start by adding 3-5 tasks to your Backlog, then try the Daily Focus feature to see AI prioritization in action. Happy focusing!",
   },
 ];
 
