@@ -44,6 +44,8 @@ export function Board({
   onOpenTimeline,
   onOpenFocus,
   onOpenWeeklyPlan,
+  onShowTutorial,
+  onShowShortcuts,
   canUndo,
   canRedo,
   onUndo,
@@ -66,6 +68,8 @@ export function Board({
   onOpenTimeline: () => void;
   onOpenFocus?: () => void;
   onOpenWeeklyPlan?: () => void;
+  onShowTutorial?: () => void;
+  onShowShortcuts?: () => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -422,6 +426,8 @@ export function Board({
         onOpenTimeline={onOpenTimeline}
         onOpenFocus={onOpenFocus}
         onOpenWeeklyPlan={onOpenWeeklyPlan}
+        onShowTutorial={onShowTutorial}
+        onShowShortcuts={onShowShortcuts}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={onUndo}

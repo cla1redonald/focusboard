@@ -1,4 +1,5 @@
-import { Undo2, Redo2, Calendar, Sparkles, CalendarDays } from "lucide-react";
+import React from "react";
+import { Undo2, Redo2, Calendar, Sparkles, CalendarDays, HelpCircle, BookOpen, Keyboard } from "lucide-react";
 import type { Card, MetricsState } from "../app/types";
 import { MetricsWidget } from "./MetricsWidget";
 import { PomodoroTimer } from "./PomodoroTimer";
@@ -12,6 +13,8 @@ export function TopStrip({
   onOpenTimeline,
   onOpenFocus,
   onOpenWeeklyPlan,
+  onShowTutorial,
+  onShowShortcuts,
   canUndo,
   canRedo,
   onUndo,
@@ -25,6 +28,8 @@ export function TopStrip({
   onOpenTimeline: () => void;
   onOpenFocus?: () => void;
   onOpenWeeklyPlan?: () => void;
+  onShowTutorial?: () => void;
+  onShowShortcuts?: () => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -109,6 +114,82 @@ export function TopStrip({
         <span className="text-sm">Timeline</span>
       </button>
       <MetricsWidget metrics={metrics} onOpenDashboard={onOpenMetrics} />
+      {(onShowTutorial || onShowShortcuts) && (
+        <HelpMenu onShowTutorial={onShowTutorial} onShowShortcuts={onShowShortcuts} />
+      )}
+    </div>
+  );
+}
+
+function HelpMenu({
+  onShowTutorial,
+  onShowShortcuts,
+}: {
+  onShowTutorial?: () => void;
+  onShowShortcuts?: () => void;
+}) {
+  const [open, setOpen] = React.useState(false);
+  const menuRef = React.useRef<HTMLDivElement>(null);
+
+  // Close menu when clicking outside
+  React.useEffect(() => {
+    if (!open) return;
+    const handleClick = (e: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(e.target as Node)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [open]);
+
+  return (
+    <div ref={menuRef} className="relative">
+      <button
+        onClick={() => setOpen(!open)}
+        className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+        title="Help & Support"
+        aria-label="Help"
+        aria-expanded={open}
+      >
+        <HelpCircle size={16} />
+        <span className="text-sm">Help</span>
+      </button>
+
+      {open && (
+        <div className="absolute right-0 top-full z-50 mt-1 w-56 rounded-xl border border-gray-200 bg-white py-1 shadow-lg dark:border-gray-700 dark:bg-gray-800">
+          {onShowTutorial && (
+            <button
+              onClick={() => {
+                setOpen(false);
+                onShowTutorial();
+              }}
+              className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+              <BookOpen size={16} className="text-emerald-600 dark:text-emerald-400" />
+              <div>
+                <div className="font-medium">Getting Started</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">Learn how to use FocusBoard</div>
+              </div>
+            </button>
+          )}
+          {onShowShortcuts && (
+            <button
+              onClick={() => {
+                setOpen(false);
+                onShowShortcuts();
+              }}
+              className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm text-gray-700 transition hover:bg-gray-50 dark:text-gray-300 dark:hover:bg-gray-700"
+            >
+              <Keyboard size={16} className="text-gray-500 dark:text-gray-400" />
+              <div>
+                <div className="font-medium">Keyboard Shortcuts</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">Press ? to view anytime</div>
+              </div>
+            </button>
+          )}
+        </div>
+      )}
     </div>
   );
 }

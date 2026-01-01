@@ -195,6 +195,8 @@ function AppContent() {
             onOpenTimeline={() => setTimelinePanelOpen(true)}
             onOpenFocus={() => setFocusPanelOpen(true)}
             onOpenWeeklyPlan={() => setWeeklyPlanOpen(true)}
+            onShowTutorial={() => setOnboardingOpen(true)}
+            onShowShortcuts={() => setShortcutsOpen(true)}
             canUndo={canUndo}
             canRedo={canRedo}
             onUndo={() => dispatch({ type: "UNDO" })}
@@ -268,14 +270,6 @@ function AppContent() {
         onAddTagCategory={(category) => dispatch({ type: "ADD_TAG_CATEGORY", category })}
         onUpdateTagCategory={(category) => dispatch({ type: "UPDATE_TAG_CATEGORY", category })}
         onDeleteTagCategory={(id) => dispatch({ type: "DELETE_TAG_CATEGORY", id })}
-        onShowTutorial={() => {
-          setSettingsOpen(false);
-          setOnboardingOpen(true);
-        }}
-        onShowShortcuts={() => {
-          setSettingsOpen(false);
-          setShortcutsOpen(true);
-        }}
       />
 
       <MetricsDashboard

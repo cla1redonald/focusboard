@@ -1,5 +1,5 @@
 import React from "react";
-import { X, Sun, Moon, Monitor, HelpCircle, BookOpen, Keyboard, type LucideIcon } from "lucide-react";
+import { X, Sun, Moon, Monitor, type LucideIcon } from "lucide-react";
 import type { AppState, Column, Settings, Tag, TagCategory, ThemeMode } from "../app/types";
 import { COLUMN_COLORS, DEFAULT_COLUMN_ICONS, ICON_MAP, TAG_COLOR_PALETTE } from "../app/constants";
 import { ExportImportPanel } from "./ExportImportPanel";
@@ -25,8 +25,6 @@ export function SettingsPanel({
   onAddTagCategory,
   onUpdateTagCategory,
   onDeleteTagCategory,
-  onShowTutorial,
-  onShowShortcuts,
 }: {
   open: boolean;
   settings: Settings;
@@ -46,8 +44,6 @@ export function SettingsPanel({
   onAddTagCategory?: (category: Omit<TagCategory, "id" | "order">) => void;
   onUpdateTagCategory?: (category: TagCategory) => void;
   onDeleteTagCategory?: (id: string) => void;
-  onShowTutorial?: () => void;
-  onShowShortcuts?: () => void;
 }) {
   const [editingColumn, setEditingColumn] = React.useState<Column | null>(null);
   const [deleteConfirm, setDeleteConfirm] = React.useState<{ column: Column; migrateToId: string } | null>(null);
@@ -495,76 +491,6 @@ export function SettingsPanel({
           <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4">
             <div className="mb-3 text-sm font-semibold text-gray-900">Data Management</div>
             <ExportImportPanel state={state} onImport={onImport} />
-          </div>
-
-          {/* Help & Support Section */}
-          <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4">
-            <div className="mb-3 text-sm font-semibold text-gray-900">Help & Support</div>
-            <div className="space-y-3">
-              {/* Tutorial */}
-              {onShowTutorial && (
-                <button
-                  onClick={() => {
-                    onClose();
-                    onShowTutorial();
-                  }}
-                  className="flex w-full items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left transition hover:border-emerald-300 hover:bg-emerald-50"
-                >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-100">
-                    <BookOpen size={16} className="text-emerald-600" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-900">Getting Started Tutorial</div>
-                    <div className="text-xs text-gray-500">Learn how to use FocusBoard step-by-step</div>
-                  </div>
-                </button>
-              )}
-
-              {/* Keyboard Shortcuts */}
-              {onShowShortcuts && (
-                <button
-                  onClick={() => {
-                    onClose();
-                    onShowShortcuts();
-                  }}
-                  className="flex w-full items-center gap-3 rounded-lg border border-gray-200 bg-white px-3 py-2.5 text-left transition hover:border-emerald-300 hover:bg-emerald-50"
-                >
-                  <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gray-100">
-                    <Keyboard size={16} className="text-gray-600" />
-                  </div>
-                  <div className="flex-1">
-                    <div className="text-sm font-medium text-gray-900">Keyboard Shortcuts</div>
-                    <div className="text-xs text-gray-500">Press ? anytime to see all shortcuts</div>
-                  </div>
-                </button>
-              )}
-
-              {/* Quick Tips */}
-              <div className="rounded-lg border border-gray-200 bg-white px-3 py-2.5">
-                <div className="flex items-center gap-2 text-sm font-medium text-gray-900">
-                  <HelpCircle size={14} className="text-gray-400" />
-                  Quick Tips
-                </div>
-                <ul className="mt-2 space-y-1.5 text-xs text-gray-600">
-                  <li className="flex items-start gap-2">
-                    <span className="text-emerald-500">•</span>
-                    <span>Press <kbd className="rounded bg-gray-100 px-1 py-0.5 font-mono text-[10px]">Cmd+K</kbd> to open Command Palette</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-emerald-500">•</span>
-                    <span>Type naturally when adding tasks — AI parses tags & dates</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-emerald-500">•</span>
-                    <span>Use Daily Focus (sparkles icon) to see AI-prioritized tasks</span>
-                  </li>
-                  <li className="flex items-start gap-2">
-                    <span className="text-emerald-500">•</span>
-                    <span>Drag files onto cards to attach screenshots & documents</span>
-                  </li>
-                </ul>
-              </div>
-            </div>
           </div>
 
           {/* Account Section - only show when Supabase is configured */}
