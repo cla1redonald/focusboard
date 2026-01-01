@@ -1,4 +1,6 @@
 import React from "react";
+import { Analytics } from "@vercel/analytics/react";
+import { SpeedInsights } from "@vercel/speed-insights/react";
 import { useAppState } from "./state";
 import type { AppState, Card, Column, MetricsState, RelationType } from "./types";
 import { loadMetrics, saveMetrics, recordCompletedCard, takeDailySnapshot } from "./metrics";
@@ -433,6 +435,8 @@ export default function App() {
   return (
     <AuthProvider>
       <AuthenticatedApp />
+      <Analytics />
+      <SpeedInsights />
     </AuthProvider>
   );
 }
