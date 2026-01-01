@@ -167,22 +167,36 @@ export function Board({
     };
   }, []);
 
-  // Sort columns by order
-  const sortedColumns = [...columns].sort((a, b) => a.order - b.order);
+  // Sort columns by order (memoized)
+  const sortedColumns = React.useMemo(
+    () => [...columns].sort((a, b) => a.order - b.order),
+    [columns]
+  );
 
-  // Apply filters
-  const filteredCards = filterCards(cards, filter);
-  const allTags = getAllTags(cards);
-  const bySwimlaneAndCol = groupBySwimlaneAndColumn(filteredCards, columns);
+  // Apply filters (memoized)
+  const filteredCards = React.useMemo(
+    () => filterCards(cards, filter),
+    [cards, filter]
+  );
 
-  // Flat byCol for WIP calculations (counts all cards regardless of swimlane)
-  const byCol: Record<ColumnId, Card[]> = {};
-  for (const col of columns) {
-    byCol[col.id] = [
-      ...(bySwimlaneAndCol.work[col.id] ?? []),
-      ...(bySwimlaneAndCol.personal[col.id] ?? []),
-    ];
-  }
+  const allTags = React.useMemo(() => getAllTags(cards), [cards]);
+
+  const bySwimlaneAndCol = React.useMemo(
+    () => groupBySwimlaneAndColumn(filteredCards, columns),
+    [filteredCards, columns]
+  );
+
+  // Flat byCol for WIP calculations (memoized)
+  const byCol = React.useMemo(() => {
+    const result: Record<ColumnId, Card[]> = {};
+    for (const col of columns) {
+      result[col.id] = [
+        ...(bySwimlaneAndCol.work[col.id] ?? []),
+        ...(bySwimlaneAndCol.personal[col.id] ?? []),
+      ];
+    }
+    return result;
+  }, [columns, bySwimlaneAndCol]);
 
   // Keyboard navigation
   const { focusPosition, isNavigating } = useKeyboardNav({
@@ -204,11 +218,16 @@ export function Board({
     enabled: !modal, // Disable when modal is open
   });
 
-  const doingCol = sortedColumns.find((c) => c.id === "doing");
-  const doingCard = doingCol ? byCol[doingCol.id]?.[0] : undefined;
-  const blockedCol = sortedColumns.find((c) => c.id === "blocked");
-  const blockedCount = blockedCol ? byCol[blockedCol.id]?.length ?? 0 : 0;
-  const dueTodayCount = cards.filter((c) => isToday(c.dueDate)).length;
+  // Memoize header stats
+  const { doingCard, blockedCount, dueTodayCount } = React.useMemo(() => {
+    const doingCol = sortedColumns.find((c) => c.id === "doing");
+    const blockedCol = sortedColumns.find((c) => c.id === "blocked");
+    return {
+      doingCard: doingCol ? byCol[doingCol.id]?.[0] : undefined,
+      blockedCount: blockedCol ? byCol[blockedCol.id]?.length ?? 0 : 0,
+      dueTodayCount: cards.filter((c) => isToday(c.dueDate)).length,
+    };
+  }, [sortedColumns, byCol, cards]);
 
   // Calculate stale backlog cards
   const staleData = React.useMemo(() => {

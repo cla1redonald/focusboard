@@ -1,4 +1,38 @@
+import {
+  Archive,
+  Palette,
+  ListTodo,
+  Zap,
+  Ban,
+  CheckCircle,
+  Lightbulb,
+  Rocket,
+  Target,
+  Package,
+  Brain,
+  Flame,
+  type LucideIcon,
+} from "lucide-react";
 import type { Column, Settings, SwimlaneId, Tag, TagCategory } from "./types";
+
+/**
+ * Icon name to Lucide component mapping.
+ * Used by Column and SettingsPanel for column icons.
+ */
+export const ICON_MAP: Record<string, LucideIcon> = {
+  archive: Archive,
+  palette: Palette,
+  "list-todo": ListTodo,
+  zap: Zap,
+  ban: Ban,
+  "check-circle": CheckCircle,
+  lightbulb: Lightbulb,
+  rocket: Rocket,
+  target: Target,
+  package: Package,
+  brain: Brain,
+  flame: Flame,
+};
 
 export type Swimlane = {
   id: SwimlaneId;

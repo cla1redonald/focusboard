@@ -1,5 +1,7 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { Client } from "@notionhq/client";
+import { verifySession } from "../_lib/auth.js";
+import { setCorsHeaders, handlePreflight } from "../_lib/cors.js";
 
 /**
  * List Notion databases shared with the integration
@@ -9,16 +11,20 @@ import { Client } from "@notionhq/client";
  */
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   // CORS headers
-  res.setHeader("Access-Control-Allow-Origin", "*");
-  res.setHeader("Access-Control-Allow-Methods", "GET, OPTIONS");
-  res.setHeader("Access-Control-Allow-Headers", "Content-Type");
+  setCorsHeaders(req, res);
 
-  if (req.method === "OPTIONS") {
-    return res.status(200).end();
+  if (handlePreflight(req, res)) {
+    return;
   }
 
   if (req.method !== "GET") {
     return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  // Verify authentication
+  const user = await verifySession(req);
+  if (!user) {
+    return res.status(401).json({ error: "Unauthorized" });
   }
 
   try {

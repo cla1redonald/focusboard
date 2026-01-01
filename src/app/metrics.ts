@@ -44,7 +44,12 @@ export function loadMetrics(): MetricsState {
 }
 
 export function saveMetrics(metrics: MetricsState): void {
-  localStorage.setItem(METRICS_KEY, JSON.stringify(metrics));
+  try {
+    localStorage.setItem(METRICS_KEY, JSON.stringify(metrics));
+  } catch (error) {
+    // localStorage can fail (quota exceeded, private mode, etc.)
+    console.warn("Failed to save metrics to localStorage:", error);
+  }
 }
 
 function getDateString(date: Date): string {
@@ -366,10 +371,7 @@ export function getCycleTimeDistribution(metrics: MetricsState): CycleTimeBucket
 /**
  * Get blocked time analysis
  */
-export function getBlockedTimeAnalysis(
-  cards: Card[],
-  _metrics: MetricsState
-): BlockedTimeStats {
+export function getBlockedTimeAnalysis(cards: Card[]): BlockedTimeStats {
   const now = Date.now();
   const blockedColumnId = "blocked";
 

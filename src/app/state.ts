@@ -10,6 +10,9 @@ import { supabase } from "./supabase";
 
 const MAX_HISTORY = 50;
 
+/** Ignore external updates within this window after our own save (prevents echo) */
+const ECHO_SUPPRESSION_MS = 3000;
+
 function getReciprocalType(type: RelationType): RelationType {
   switch (type) {
     case "blocks":
@@ -264,10 +267,11 @@ function appReducer(state: AppState, action: Action): AppState {
     }
 
     case "DELETE_COLUMN": {
-      const updatedCards = action.migrateCardsTo
+      const targetColumn = action.migrateCardsTo;
+      const updatedCards = targetColumn
         ? state.cards.map((c) =>
             c.column === action.id
-              ? { ...c, column: action.migrateCardsTo!, updatedAt: nowIso() }
+              ? { ...c, column: targetColumn, updatedAt: nowIso() }
               : c
           )
         : state.cards.filter((c) => c.column !== action.id);
@@ -645,9 +649,12 @@ export function useAppState(userId?: string | null) {
   // Load from Supabase on startup (if logged in)
   React.useEffect(() => {
     if (!supabase) return;
+    let isMounted = true;
 
     const loadFromCloud = async () => {
       const cloudState = await loadStateFromSupabase();
+      // Check isMounted to prevent update after unmount (memory leak fix)
+      if (!isMounted) return;
       if (cloudState && !hasLoadedFromCloud.current) {
         hasLoadedFromCloud.current = true;
         isExternalUpdate.current = true;
@@ -656,17 +663,18 @@ export function useAppState(userId?: string | null) {
     };
 
     loadFromCloud();
+    return () => { isMounted = false; };
   }, []);
 
   // Subscribe to real-time changes from Supabase
   React.useEffect(() => {
-    if (!supabase) return;
+    if (!supabase || !userId) return;
 
-    const unsubscribe = subscribeToStateChanges((cloudState) => {
-      // Ignore updates that arrive within 3 seconds of our own save
+    const unsubscribe = subscribeToStateChanges(userId, (cloudState) => {
+      // Ignore updates that arrive within echo suppression window
       // (these are likely echoes of our own changes)
       const timeSinceLastSave = Date.now() - lastLocalSaveTime.current;
-      if (timeSinceLastSave < 3000) {
+      if (timeSinceLastSave < ECHO_SUPPRESSION_MS) {
         return;
       }
 
@@ -678,7 +686,7 @@ export function useAppState(userId?: string | null) {
     return () => {
       if (unsubscribe) unsubscribe();
     };
-  }, []);
+  }, [userId]);
 
   // Save to localStorage and Supabase when state changes
   React.useEffect(() => {

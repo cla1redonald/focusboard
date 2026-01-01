@@ -104,20 +104,23 @@ export async function saveMetricsToSupabase(metrics: MetricsState): Promise<bool
 }
 
 // Subscribe to real-time changes (for multi-device sync)
+// Must pass userId to filter subscription to only this user's changes
 export function subscribeToStateChanges(
+  userId: string,
   onStateChange: (state: AppState) => void
 ): (() => void) | null {
   if (!supabase) return null;
 
   const client = supabase; // Capture for closure
   const channel = client
-    .channel("app_state_changes")
+    .channel(`app_state_changes:${userId}`)
     .on(
       "postgres_changes",
       {
         event: "UPDATE",
         schema: "public",
         table: "app_state",
+        filter: `user_id=eq.${userId}`, // Only receive updates for this user
       },
       (payload) => {
         const newState = payload.new as { state: AppState };
@@ -134,23 +137,25 @@ export function subscribeToStateChanges(
 }
 
 // Debounced save to avoid too many writes
-let saveTimeout: ReturnType<typeof setTimeout> | null = null;
+// Separate timeouts for state and metrics to prevent interference
+let stateTimeout: ReturnType<typeof setTimeout> | null = null;
+let metricsTimeout: ReturnType<typeof setTimeout> | null = null;
 const SAVE_DEBOUNCE_MS = 1000;
 
 export function debouncedSaveToSupabase(state: AppState): void {
-  if (saveTimeout) {
-    clearTimeout(saveTimeout);
+  if (stateTimeout) {
+    clearTimeout(stateTimeout);
   }
-  saveTimeout = setTimeout(() => {
+  stateTimeout = setTimeout(() => {
     saveStateToSupabase(state);
   }, SAVE_DEBOUNCE_MS);
 }
 
 export function debouncedSaveMetricsToSupabase(metrics: MetricsState): void {
-  if (saveTimeout) {
-    clearTimeout(saveTimeout);
+  if (metricsTimeout) {
+    clearTimeout(metricsTimeout);
   }
-  saveTimeout = setTimeout(() => {
+  metricsTimeout = setTimeout(() => {
     saveMetricsToSupabase(metrics);
   }, SAVE_DEBOUNCE_MS);
 }

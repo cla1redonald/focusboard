@@ -2,6 +2,24 @@ import type { Card, Column, ColumnId, SwimlaneId } from "./types";
 
 export const nowIso = () => new Date().toISOString();
 
+/**
+ * Sort comparator for cards: due date first (earliest first), then by order.
+ * Cards with due dates come before cards without.
+ */
+export function compareCardsByDueDate(a: Card, b: Card): number {
+  const aDue = a.dueDate ? new Date(a.dueDate).getTime() : null;
+  const bDue = b.dueDate ? new Date(b.dueDate).getTime() : null;
+
+  if (aDue !== null && bDue !== null) {
+    if (aDue !== bDue) return aDue - bDue;
+  } else if (aDue !== null) {
+    return -1;
+  } else if (bDue !== null) {
+    return 1;
+  }
+  return (a.order ?? 0) - (b.order ?? 0);
+}
+
 export function isToday(isoDate?: string) {
   if (!isoDate) return false;
   const d = new Date(isoDate);
@@ -31,26 +49,9 @@ export function groupByColumn(cards: Card[], columns?: Column[]): Record<ColumnI
     map[c.column].push(c);
   }
 
-  // Sort cards within each column: due date first (earliest first), then by order
+  // Sort cards within each column
   for (const colId of Object.keys(map)) {
-    map[colId].sort((a, b) => {
-      // Cards with due dates come before cards without
-      const aDue = a.dueDate ? new Date(a.dueDate).getTime() : null;
-      const bDue = b.dueDate ? new Date(b.dueDate).getTime() : null;
-
-      if (aDue !== null && bDue !== null) {
-        // Both have due dates - earlier date first
-        if (aDue !== bDue) return aDue - bDue;
-      } else if (aDue !== null) {
-        // Only a has due date - a comes first
-        return -1;
-      } else if (bDue !== null) {
-        // Only b has due date - b comes first
-        return 1;
-      }
-      // Same due date or both null - fall back to order
-      return (a.order ?? 0) - (b.order ?? 0);
-    });
+    map[colId].sort(compareCardsByDueDate);
   }
 
   return map;
@@ -83,22 +84,10 @@ export function groupBySwimlaneAndColumn(
     result[swimlane][card.column].push(card);
   }
 
-  // Sort cards within each column: due date first (earliest first), then by order
+  // Sort cards within each column
   for (const swimlane of Object.keys(result) as SwimlaneId[]) {
     for (const colId of Object.keys(result[swimlane])) {
-      result[swimlane][colId].sort((a, b) => {
-        const aDue = a.dueDate ? new Date(a.dueDate).getTime() : null;
-        const bDue = b.dueDate ? new Date(b.dueDate).getTime() : null;
-
-        if (aDue !== null && bDue !== null) {
-          if (aDue !== bDue) return aDue - bDue;
-        } else if (aDue !== null) {
-          return -1;
-        } else if (bDue !== null) {
-          return 1;
-        }
-        return (a.order ?? 0) - (b.order ?? 0);
-      });
+      result[swimlane][colId].sort(compareCardsByDueDate);
     }
   }
 

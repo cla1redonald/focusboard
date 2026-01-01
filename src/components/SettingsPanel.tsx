@@ -1,47 +1,10 @@
 import React from "react";
-import {
-  X,
-  Archive,
-  Palette,
-  ListTodo,
-  Zap,
-  Ban,
-  CheckCircle,
-  Lightbulb,
-  Rocket,
-  Target,
-  Package,
-  Brain,
-  Flame,
-  Sun,
-  Moon,
-  Monitor,
-  HelpCircle,
-  BookOpen,
-  Keyboard,
-  type LucideIcon,
-} from "lucide-react";
+import { X, Sun, Moon, Monitor, HelpCircle, BookOpen, Keyboard, type LucideIcon } from "lucide-react";
 import type { AppState, Column, Settings, Tag, TagCategory, ThemeMode } from "../app/types";
-import { COLUMN_COLORS, DEFAULT_COLUMN_ICONS, TAG_COLOR_PALETTE } from "../app/constants";
+import { COLUMN_COLORS, DEFAULT_COLUMN_ICONS, ICON_MAP, TAG_COLOR_PALETTE } from "../app/constants";
 import { ExportImportPanel } from "./ExportImportPanel";
 import type { ImportMode } from "../app/exportImport";
 import { isSupabaseConfigured } from "../app/supabase";
-
-// Map icon names to Lucide components
-const ICON_MAP: Record<string, LucideIcon> = {
-  archive: Archive,
-  palette: Palette,
-  "list-todo": ListTodo,
-  zap: Zap,
-  ban: Ban,
-  "check-circle": CheckCircle,
-  lightbulb: Lightbulb,
-  rocket: Rocket,
-  target: Target,
-  package: Package,
-  brain: Brain,
-  flame: Flame,
-};
 
 export function SettingsPanel({
   open,

@@ -257,16 +257,14 @@ function CumulativeFlowDiagram({
 
 function BlockedPanel({
   cards,
-  metrics,
   onOpenCard,
 }: {
   cards: Card[];
-  metrics: MetricsState;
   onOpenCard: (card: Card) => void;
 }) {
   const blockedStats = React.useMemo(
-    () => getBlockedTimeAnalysis(cards, metrics),
-    [cards, metrics]
+    () => getBlockedTimeAnalysis(cards),
+    [cards]
   );
 
   return (
@@ -639,7 +637,7 @@ export function MetricsDashboard({
         )}
 
         {activeTab === "blocked" && (
-          <BlockedPanel cards={cards} metrics={metrics} onOpenCard={onOpenCard} />
+          <BlockedPanel cards={cards} onOpenCard={onOpenCard} />
         )}
 
         {activeTab === "stale" && (

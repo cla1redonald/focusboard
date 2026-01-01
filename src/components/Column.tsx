@@ -2,42 +2,11 @@ import React from "react";
 import { AnimatePresence } from "framer-motion";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
-import {
-  Archive,
-  Palette,
-  ListTodo,
-  Zap,
-  Ban,
-  CheckCircle,
-  Lightbulb,
-  Rocket,
-  Target,
-  Package,
-  Brain,
-  Flame,
-  Sparkles,
-  Loader2,
-  type LucideIcon,
-} from "lucide-react";
+import { Sparkles, Loader2 } from "lucide-react";
 import type { Card, ColumnId, SwimlaneId } from "../app/types";
+import { ICON_MAP } from "../app/constants";
 import { CardItem } from "./CardItem";
 import { EmptyColumnState } from "./EmptyColumnState";
-
-// Map icon names to Lucide components
-const ICON_MAP: Record<string, LucideIcon> = {
-  archive: Archive,
-  palette: Palette,
-  "list-todo": ListTodo,
-  zap: Zap,
-  ban: Ban,
-  "check-circle": CheckCircle,
-  lightbulb: Lightbulb,
-  rocket: Rocket,
-  target: Target,
-  package: Package,
-  brain: Brain,
-  flame: Flame,
-};
 
 export function Column({
   id,

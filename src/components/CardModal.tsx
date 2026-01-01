@@ -124,21 +124,25 @@ export function CardModal({
   // Load signed URLs for existing attachments
   React.useEffect(() => {
     if (!draft?.attachments?.length) return;
+    let isMounted = true;
 
     const loadUrls = async () => {
       const urls: Record<string, string> = {};
       for (const att of draft.attachments!) {
+        // Check isMounted to prevent update after unmount (race condition fix)
+        if (!isMounted) return;
         if (!signedUrls[att.id]) {
           const url = await getSignedUrl(att.storagePath);
           if (url) urls[att.id] = url;
         }
       }
-      if (Object.keys(urls).length > 0) {
+      if (isMounted && Object.keys(urls).length > 0) {
         setSignedUrls((prev) => ({ ...prev, ...urls }));
       }
     };
     loadUrls();
-  }, [draft?.attachments, getSignedUrl]);
+    return () => { isMounted = false; };
+  }, [draft?.attachments]); // Removed getSignedUrl - it's stable
 
   // File upload handlers
   const handleFiles = async (files: FileList | null) => {

@@ -115,7 +115,7 @@ describe("Security Tests", () => {
 
   describe("localStorage Security", () => {
     it("handles corrupted JSON gracefully", () => {
-      localStorage.setItem("focusboard:v2", "{{{{invalid json}}}}");
+      localStorage.setItem("focusboard:v4", "{{{{invalid json}}}}");
 
       const state = loadState();
 
@@ -125,7 +125,7 @@ describe("Security Tests", () => {
     });
 
     it("handles null values gracefully", () => {
-      localStorage.setItem("focusboard:v2", "null");
+      localStorage.setItem("focusboard:v4", "null");
 
       const state = loadState();
 
@@ -134,7 +134,7 @@ describe("Security Tests", () => {
     });
 
     it("handles empty object gracefully", () => {
-      localStorage.setItem("focusboard:v2", "{}");
+      localStorage.setItem("focusboard:v4", "{}");
 
       const state = loadState();
 
@@ -153,7 +153,7 @@ describe("Security Tests", () => {
         settings: DEFAULT_SETTINGS,
       };
 
-      localStorage.setItem("focusboard:v2", JSON.stringify(malformedState));
+      localStorage.setItem("focusboard:v4", JSON.stringify(malformedState));
 
       const state = loadState();
 
@@ -295,7 +295,7 @@ describe("Security Tests", () => {
         settings: DEFAULT_SETTINGS,
       };
 
-      localStorage.setItem("focusboard:v2", JSON.stringify(maliciousData));
+      localStorage.setItem("focusboard:v4", JSON.stringify(maliciousData));
       loadState();
 
       // Check that Object.prototype was not polluted
@@ -312,7 +312,7 @@ describe("Security Tests", () => {
         },
       };
 
-      localStorage.setItem("focusboard:v2", JSON.stringify(maliciousData));
+      localStorage.setItem("focusboard:v4", JSON.stringify(maliciousData));
       loadState();
 
       // Check that Function.prototype was not polluted
@@ -472,7 +472,7 @@ describe("Security Tests", () => {
         settings: DEFAULT_SETTINGS,
       };
 
-      localStorage.setItem("focusboard:v2", JSON.stringify(state));
+      localStorage.setItem("focusboard:v4", JSON.stringify(state));
       const loaded = loadState();
 
       // App should handle this without crashing
@@ -489,7 +489,7 @@ describe("Security Tests", () => {
         },
       };
 
-      localStorage.setItem("focusboard:v2", JSON.stringify(state));
+      localStorage.setItem("focusboard:v4", JSON.stringify(state));
       const loaded = loadState();
 
       expect(loaded.settings).toBeDefined();
@@ -501,7 +501,7 @@ describe("Security Tests", () => {
       // JSON.stringify will throw on circular references, so we can't actually
       // create a circular reference in localStorage. But we test that our code
       // handles parse errors gracefully.
-      localStorage.setItem("focusboard:v2", '{"cards": [{"id": "test"');
+      localStorage.setItem("focusboard:v4", '{"cards": [{"id": "test"');
 
       const state = loadState();
 

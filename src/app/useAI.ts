@@ -1,5 +1,27 @@
 import React from "react";
 import type { Tag, Column } from "./types";
+import { supabase } from "./supabase";
+
+/**
+ * Get the current session access token for API authentication
+ */
+async function getAuthToken(): Promise<string | null> {
+  if (!supabase) return null;
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token ?? null;
+}
+
+/**
+ * Create headers with auth token
+ */
+async function getAuthHeaders(): Promise<HeadersInit> {
+  const token = await getAuthToken();
+  const headers: HeadersInit = { "Content-Type": "application/json" };
+  if (token) {
+    headers["Authorization"] = `Bearer ${token}`;
+  }
+  return headers;
+}
 
 type ParsedCard = {
   title: string;
@@ -82,7 +104,7 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
       try {
         const response = await fetch("/api/ai/suggest", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: await getAuthHeaders(),
           body: JSON.stringify({
             title,
             availableTags: availableTags.map((t) => ({ id: t.id, name: t.name })),
@@ -128,7 +150,7 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
       try {
         const response = await fetch("/api/ai/parse-card", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: await getAuthHeaders(),
           body: JSON.stringify({
             input,
             availableColumns: availableColumns.map((c) => ({ id: c.id, title: c.title })),
@@ -166,7 +188,7 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
       try {
         const response = await fetch("/api/ai/breakdown", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: await getAuthHeaders(),
           body: JSON.stringify({
             title,
             notes: options?.notes,
@@ -208,7 +230,7 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
       try {
         const response = await fetch("/api/ai/daily-focus", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: await getAuthHeaders(),
           body: JSON.stringify({
             cards,
             completedToday: options?.completedToday ?? 0,
@@ -254,7 +276,7 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
       try {
         const response = await fetch("/api/ai/weekly-plan", {
           method: "POST",
-          headers: { "Content-Type": "application/json" },
+          headers: await getAuthHeaders(),
           body: JSON.stringify({
             cards,
             weekStart: options?.weekStart,
