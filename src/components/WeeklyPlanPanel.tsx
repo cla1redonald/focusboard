@@ -1,7 +1,8 @@
 import React from "react";
-import { X, CalendarDays, Loader2, ChevronLeft, ChevronRight, Check, AlertTriangle } from "lucide-react";
+import { X, CalendarDays, Loader2, ChevronLeft, ChevronRight, Check, AlertTriangle, Calendar } from "lucide-react";
 import type { Card, Column } from "../app/types";
 import { useAI } from "../app/useAI";
+import { useNotionCalendar, type NotionEvent } from "../app/useNotionCalendar";
 
 type PlanSuggestion = {
   cardId: string;
@@ -16,6 +17,7 @@ type Props = {
   onClose: () => void;
   onSetDueDate: (cardId: string, dueDate: string) => void;
   avgThroughput?: number;
+  notionDatabaseId?: string;
 };
 
 function getMonday(date: Date): Date {
@@ -43,15 +45,18 @@ export function WeeklyPlanPanel({
   onClose,
   onSetDueDate,
   avgThroughput = 5,
+  notionDatabaseId,
 }: Props) {
   void _columns; // Reserved for future column-based filtering
   const { getWeeklyPlan, isLoading } = useAI();
+  const { fetchEvents, events: notionEvents } = useNotionCalendar();
   const [weekStart, setWeekStart] = React.useState(() => getMonday(new Date()));
   const [suggestions, setSuggestions] = React.useState<PlanSuggestion[]>([]);
   const [weeklyGoal, setWeeklyGoal] = React.useState<string | undefined>();
   const [capacityWarning, setCapacityWarning] = React.useState<string | undefined>();
   const [appliedSuggestions, setAppliedSuggestions] = React.useState<Set<string>>(new Set());
   const [hasLoaded, setHasLoaded] = React.useState(false);
+  const [calendarLoaded, setCalendarLoaded] = React.useState(false);
 
   // Calculate week days
   const weekDays = React.useMemo(() => {
@@ -115,10 +120,31 @@ export function WeeklyPlanPanel({
     loadSuggestions();
   }, [open, hasLoaded, cards, getWeeklyPlan, weekStart, avgThroughput]);
 
+  // Load Notion calendar events when panel opens or week changes
+  React.useEffect(() => {
+    if (!open || calendarLoaded) return;
+
+    const startDate = formatDate(weekDays[0]);
+    const endDate = formatDate(weekDays[6]);
+    // Try to fetch events - the API will use NOTION_CALENDAR_DATABASE_ID from env if no databaseId provided
+    fetchEvents(startDate, endDate, notionDatabaseId).then(() => {
+      setCalendarLoaded(true);
+    });
+  }, [open, calendarLoaded, weekDays, fetchEvents, notionDatabaseId]);
+
+  // Get events for a specific date
+  const getEventsForDate = React.useCallback(
+    (date: string): NotionEvent[] => {
+      return notionEvents.filter((event) => event.date === date);
+    },
+    [notionEvents]
+  );
+
   // Reset when panel closes or week changes
   React.useEffect(() => {
     if (!open) {
       setHasLoaded(false);
+      setCalendarLoaded(false);
       setSuggestions([]);
       setWeeklyGoal(undefined);
       setCapacityWarning(undefined);
@@ -131,6 +157,7 @@ export function WeeklyPlanPanel({
     d.setDate(d.getDate() - 7);
     setWeekStart(d);
     setHasLoaded(false);
+    setCalendarLoaded(false);
   };
 
   const handleNextWeek = () => {
@@ -138,6 +165,7 @@ export function WeeklyPlanPanel({
     d.setDate(d.getDate() + 7);
     setWeekStart(d);
     setHasLoaded(false);
+    setCalendarLoaded(false);
   };
 
   const handleApplySuggestion = (suggestion: PlanSuggestion) => {
@@ -261,6 +289,26 @@ export function WeeklyPlanPanel({
                         {formatDayLabel(day)}
                       </div>
                       <div className="space-y-1">
+                        {/* Calendar Events from Notion */}
+                        {getEventsForDate(dateStr).slice(0, 2).map((event) => (
+                          <div
+                            key={event.id}
+                            className="truncate text-xs text-purple-700 dark:text-purple-400 rounded bg-purple-50 dark:bg-purple-900/30 px-1.5 py-1 flex items-center gap-1"
+                            title={`${event.title}${event.startTime ? ` at ${event.startTime}` : ""}`}
+                          >
+                            <Calendar size={10} className="shrink-0" />
+                            <span className="truncate">
+                              {event.startTime && <span className="font-medium">{event.startTime} </span>}
+                              {event.title}
+                            </span>
+                          </div>
+                        ))}
+                        {getEventsForDate(dateStr).length > 2 && (
+                          <div className="text-xs text-purple-500 dark:text-purple-400">
+                            +{getEventsForDate(dateStr).length - 2} events
+                          </div>
+                        )}
+                        {/* Tasks due this day */}
                         {dayCards.slice(0, 3).map((card) => (
                           <div
                             key={card.id}
@@ -273,7 +321,7 @@ export function WeeklyPlanPanel({
                         ))}
                         {dayCards.length > 3 && (
                           <div className="text-xs text-gray-400">
-                            +{dayCards.length - 3} more
+                            +{dayCards.length - 3} more tasks
                           </div>
                         )}
                       </div>
