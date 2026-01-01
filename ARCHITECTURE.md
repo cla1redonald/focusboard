@@ -22,7 +22,9 @@ src/
 │   ├── utils.ts           # Helper functions
 │   ├── exportImport.ts    # JSON/CSV export and import
 │   ├── supabase.ts        # Supabase client initialization
-│   └── useKeyboardNav.ts  # Keyboard navigation hook
+│   ├── useKeyboardNav.ts  # Keyboard navigation hook
+│   ├── useAI.ts           # AI feature API calls
+│   └── useNotionCalendar.ts # Notion calendar integration
 ├── components/            # React components
 │   ├── Board.tsx          # Main board with swimlanes and drag-drop
 │   ├── Swimlane.tsx       # Work/Personal swimlane row
@@ -34,6 +36,9 @@ src/
 │   ├── SettingsPanel.tsx  # Settings modal
 │   ├── MetricsDashboard.tsx # Analytics dashboard
 │   ├── TimelinePanel.tsx  # Gantt-style timeline view
+│   ├── FocusSuggestionPanel.tsx # AI daily focus suggestions
+│   ├── WeeklyPlanPanel.tsx # Weekly planning with AI suggestions
+│   ├── PomodoroTimer.tsx  # Focus timer with breaks
 │   ├── WipModal.tsx       # WIP limit override dialog
 │   ├── ConfettiBurst.tsx  # Celebration animation
 │   ├── LoginPage.tsx      # Authentication UI
@@ -42,8 +47,17 @@ src/
 └── main.tsx              # Application entry point
 
 api/                        # Vercel serverless functions
-└── webhook/
-    └── add-card.ts        # POST /api/webhook/add-card
+├── webhook/
+│   └── add-card.ts        # POST /api/webhook/add-card
+├── ai/                     # AI-powered features (requires ANTHROPIC_API_KEY)
+│   ├── parse-card.ts      # Natural language card parsing
+│   ├── suggest.ts         # Tag/emoji suggestions
+│   ├── breakdown.ts       # Task breakdown into subtasks
+│   ├── daily-focus.ts     # AI daily focus recommendations
+│   └── weekly-plan.ts     # AI weekly scheduling suggestions
+└── notion/                 # Notion calendar integration (optional)
+    ├── databases.ts       # List accessible Notion databases
+    └── events.ts          # Fetch calendar events
 
 docs/                       # Documentation
 ├── API.md                 # Webhook API reference
@@ -243,6 +257,7 @@ App
 └── (authenticated)
     ├── Board
     │   ├── TopStrip
+    │   │   └── PomodoroTimer
     │   ├── FilterBar
     │   ├── Swimlane (Work, Personal)
     │   │   └── Column (×n)
@@ -253,7 +268,9 @@ App
     ├── SettingsPanel
     │   └── ExportImportPanel
     ├── MetricsDashboard
-    └── TimelinePanel
+    ├── TimelinePanel
+    ├── FocusSuggestionPanel
+    └── WeeklyPlanPanel
 ```
 
 ### Props Flow
@@ -351,6 +368,42 @@ filterCards(cards, filter) {
 - FOUC prevention: inline script in `index.html` applies theme before render
 - Respects `prefers-reduced-motion` for color transitions
 - Persisted in Settings and synced with Supabase
+
+### AI Features
+
+Requires `ANTHROPIC_API_KEY` environment variable. Uses Claude Haiku for fast, low-cost processing.
+
+| Feature | API Route | Description |
+|---------|-----------|-------------|
+| Natural Language Cards | `/api/ai/parse-card` | Parses "urgent bug fix by friday" → title, tags, due date |
+| Daily Focus | `/api/ai/daily-focus` | Recommends top 3-5 tasks based on due dates and priorities |
+| Weekly Planning | `/api/ai/weekly-plan` | Suggests optimal task scheduling across 7 days |
+| Task Breakdown | `/api/ai/breakdown` | Generates 3-8 subtasks for complex cards |
+
+```
+┌─────────────┐     ┌─────────────┐     ┌─────────────┐
+│  Frontend   │────▶│  Vercel API │────▶│  Claude AI  │
+│  useAI.ts   │     │  /api/ai/*  │     │  (Haiku)    │
+└─────────────┘     └─────────────┘     └─────────────┘
+```
+
+### Pomodoro Timer
+
+- 25-minute focus sessions with 5/15 minute breaks
+- Visual progress ring with countdown display
+- Tracks completed pomodoros and total focus time
+- Sound notification when timer completes
+- Compact view in TopStrip, expands on click
+- Stats persisted to localStorage
+
+### Notion Calendar Integration
+
+Optional integration to show calendar events in Weekly Plan view.
+
+- Requires `NOTION_API_KEY` and `NOTION_CALENDAR_DATABASE_ID`
+- Fetches events from a Notion database with date properties
+- Events displayed in day cells with time and title
+- Note: Notion Calendar app data is NOT accessible (only Notion databases)
 
 ## Performance Considerations
 
