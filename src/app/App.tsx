@@ -6,6 +6,7 @@ import { hasSeenOnboarding, markOnboardingSeen } from "./storage";
 import { AuthProvider, useRequireAuth, useAuth } from "./AuthContext";
 import { ToastProvider, useToast } from "./ToastContext";
 import { isSupabaseConfigured } from "./supabase";
+import { cleanupCardAttachments } from "./attachmentCleanup";
 import { debouncedSaveToSupabase, debouncedSaveMetricsToSupabase } from "./sync";
 import { Board } from "../components/Board";
 import { CardModal } from "../components/CardModal";
@@ -210,12 +211,18 @@ function AppContent() {
         allCards={state.cards}
         tags={state.tags}
         tagCategories={state.tagCategories}
+        userId={user?.id}
         onClose={() => setOpenCard(null)}
         onSave={(card) => {
           dispatch({ type: "UPDATE_CARD", card });
           setOpenCard(null);
         }}
         onDelete={(id) => {
+          const card = state.cards.find((c) => c.id === id);
+          // Cleanup attachments from Supabase Storage
+          if (card?.attachments?.length) {
+            cleanupCardAttachments(card.attachments);
+          }
           dispatch({ type: "DELETE_CARD", id });
           setOpenCard(null);
         }}

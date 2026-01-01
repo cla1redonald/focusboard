@@ -1,11 +1,12 @@
 import React from "react";
-import { X, Trash2, CheckCircle, Sparkles, Loader2 } from "lucide-react";
-import type { Card, RelationType, SwimlaneId, Tag, TagCategory } from "../app/types";
+import { X, Trash2, CheckCircle, Sparkles, Loader2, Upload, Download, FileText, AlertCircle } from "lucide-react";
+import type { Card, RelationType, SwimlaneId, Tag, TagCategory, Attachment } from "../app/types";
 import { nanoid } from "nanoid";
 import { RelationshipPicker, RelationshipBadge } from "./RelationshipPicker";
 import { TAG_COLOR_PALETTE, DEFAULT_SWIMLANES } from "../app/constants";
 import { UnsplashPicker } from "./UnsplashPicker";
 import { useAI } from "../app/useAI";
+import { useAttachments, isImageType, formatFileSize } from "../app/useAttachments";
 
 // Extended emoji palette organized by category
 const EMOJI_CHOICES = [
@@ -44,6 +45,7 @@ type Props = {
   allCards?: Card[];
   tags?: Tag[];
   tagCategories?: TagCategory[];
+  userId?: string | null;
   onClose: () => void;
   onSave: (card: Card) => void;
   onDelete: (id: string) => void;
@@ -60,6 +62,7 @@ export function CardModal({
   allCards,
   tags = [],
   tagCategories = [],
+  userId,
   onClose,
   onSave,
   onDelete,
@@ -85,6 +88,19 @@ export function CardModal({
   const [aiSuggestions, setAiSuggestions] = React.useState<Array<{ text: string; estimatedEffort?: string }>>([]);
   const [aiSuggestion, setAiSuggestion] = React.useState<string | undefined>();
 
+  // File attachments
+  const [isDragOver, setIsDragOver] = React.useState(false);
+  const [signedUrls, setSignedUrls] = React.useState<Record<string, string>>({});
+  const [uploadError, setUploadError] = React.useState<string | null>(null);
+  const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const {
+    uploadFile,
+    deleteFile,
+    getSignedUrl,
+    uploads,
+    isConfigured: isStorageConfigured
+  } = useAttachments(userId ?? null, draft?.id ?? "");
+
   const selectEmoji = (emoji: string) => {
     update({ icon: emoji });
     setRecentEmojis(saveRecentEmoji(emoji));
@@ -101,7 +117,71 @@ export function CardModal({
     setCustomUrl("");
     setAiSuggestions([]);
     setAiSuggestion(undefined);
+    setSignedUrls({});
+    setUploadError(null);
   }, [card]);
+
+  // Load signed URLs for existing attachments
+  React.useEffect(() => {
+    if (!draft?.attachments?.length) return;
+
+    const loadUrls = async () => {
+      const urls: Record<string, string> = {};
+      for (const att of draft.attachments!) {
+        if (!signedUrls[att.id]) {
+          const url = await getSignedUrl(att.storagePath);
+          if (url) urls[att.id] = url;
+        }
+      }
+      if (Object.keys(urls).length > 0) {
+        setSignedUrls((prev) => ({ ...prev, ...urls }));
+      }
+    };
+    loadUrls();
+  }, [draft?.attachments, getSignedUrl]);
+
+  // File upload handlers
+  const handleFiles = async (files: FileList | null) => {
+    if (!files || !draft) return;
+    setUploadError(null);
+
+    for (const file of Array.from(files)) {
+      try {
+        const attachment = await uploadFile(file);
+        if (attachment) {
+          update({
+            attachments: [...(draft.attachments ?? []), attachment]
+          });
+          // Get signed URL for the new attachment
+          const url = await getSignedUrl(attachment.storagePath);
+          if (url) {
+            setSignedUrls((prev) => ({ ...prev, [attachment.id]: url }));
+          }
+        }
+      } catch (error) {
+        setUploadError((error as Error).message);
+      }
+    }
+  };
+
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setIsDragOver(false);
+    handleFiles(e.dataTransfer.files);
+  };
+
+  const handleDeleteAttachment = async (attachment: Attachment) => {
+    if (!draft) return;
+    await deleteFile(attachment.storagePath);
+    update({
+      attachments: draft.attachments?.filter((a) => a.id !== attachment.id) ?? []
+    });
+    setSignedUrls((prev) => {
+      const updated = { ...prev };
+      delete updated[attachment.id];
+      return updated;
+    });
+  };
 
   if (!open || !draft) return null;
 
@@ -830,6 +910,130 @@ export function CardModal({
               )}
             </div>
           )}
+
+          {/* Attachments Section */}
+          <div>
+            <label className="text-xs font-medium text-gray-500">Attachments</label>
+
+            {!isStorageConfigured || !userId ? (
+              <div className="mt-2 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4">
+                <div className="flex items-center gap-2 text-gray-500">
+                  <AlertCircle size={16} />
+                  <span className="text-sm font-medium">Cloud sync required</span>
+                </div>
+                <p className="mt-1 text-xs text-gray-400">
+                  Sign in and configure Supabase to enable file attachments.
+                </p>
+              </div>
+            ) : (
+              <>
+                {/* Drop zone */}
+                <div
+                  className={`mt-2 cursor-pointer rounded-lg border-2 border-dashed p-4 text-center transition ${
+                    isDragOver
+                      ? "border-emerald-500 bg-emerald-50"
+                      : "border-gray-300 bg-gray-50 hover:border-gray-400"
+                  }`}
+                  onDragOver={(e) => {
+                    e.preventDefault();
+                    setIsDragOver(true);
+                  }}
+                  onDragLeave={() => setIsDragOver(false)}
+                  onDrop={handleDrop}
+                  onClick={() => fileInputRef.current?.click()}
+                >
+                  <Upload size={24} className="mx-auto text-gray-400" />
+                  <p className="mt-1 text-sm text-gray-600">
+                    Drop files here or <span className="text-emerald-600">browse</span>
+                  </p>
+                  <p className="text-xs text-gray-400">Max 10MB per file</p>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    className="hidden"
+                    onChange={(e) => handleFiles(e.target.files)}
+                  />
+                </div>
+
+                {/* Upload error */}
+                {uploadError && (
+                  <div className="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-600">
+                    {uploadError}
+                  </div>
+                )}
+
+                {/* Upload progress */}
+                {uploads
+                  .filter((u) => u.status === "uploading")
+                  .map((upload) => (
+                    <div key={upload.attachmentId} className="mt-2 flex items-center gap-2">
+                      <div className="h-2 flex-1 overflow-hidden rounded-full bg-gray-200">
+                        <div
+                          className="h-full bg-emerald-500 transition-all"
+                          style={{ width: `${upload.progress}%` }}
+                        />
+                      </div>
+                      <span className="text-xs text-gray-500">Uploading...</span>
+                    </div>
+                  ))}
+
+                {/* Attachment list */}
+                {(draft?.attachments?.length ?? 0) > 0 && (
+                  <div className="mt-3 space-y-2">
+                    {draft?.attachments?.map((att) => (
+                      <div
+                        key={att.id}
+                        className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-2"
+                      >
+                        {/* Preview/Icon */}
+                        {isImageType(att.type) && signedUrls[att.id] ? (
+                          <img
+                            src={signedUrls[att.id]}
+                            alt={att.name}
+                            className="h-12 w-12 rounded object-cover"
+                          />
+                        ) : (
+                          <div className="flex h-12 w-12 items-center justify-center rounded bg-gray-100">
+                            <FileText size={20} className="text-gray-400" />
+                          </div>
+                        )}
+
+                        {/* File info */}
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-sm font-medium text-gray-900">{att.name}</p>
+                          <p className="text-xs text-gray-500">{formatFileSize(att.size)}</p>
+                        </div>
+
+                        {/* Actions */}
+                        <div className="flex gap-1">
+                          {signedUrls[att.id] && (
+                            <a
+                              href={signedUrls[att.id]}
+                              download={att.name}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="rounded p-1.5 text-gray-400 hover:bg-gray-100 hover:text-gray-600"
+                              title="Download"
+                            >
+                              <Download size={16} />
+                            </a>
+                          )}
+                          <button
+                            onClick={() => handleDeleteAttachment(att)}
+                            className="rounded p-1.5 text-gray-400 hover:bg-red-50 hover:text-red-500"
+                            title="Delete"
+                          >
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
+              </>
+            )}
+          </div>
         </div>
         </div>
 

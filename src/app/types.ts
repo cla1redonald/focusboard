@@ -32,6 +32,16 @@ export type CardRelation = {
   targetCardId: string;
 };
 
+// File attachment type
+export type Attachment = {
+  id: string;
+  name: string; // Original filename
+  size: number; // File size in bytes
+  type: string; // MIME type (e.g., "image/png", "application/pdf")
+  storagePath: string; // Path in Supabase Storage: {userId}/{cardId}/{id}_{name}
+  createdAt: string; // ISO date
+};
+
 // Tag types
 export type Tag = {
   id: string;
@@ -70,6 +80,7 @@ export type Card = {
   relations?: CardRelation[]; // Links to other cards
 
   backgroundImage?: string; // URL to background image (e.g., from Unsplash)
+  attachments?: Attachment[]; // File attachments stored in Supabase Storage
 };
 
 // Metrics types
