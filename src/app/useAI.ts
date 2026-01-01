@@ -10,6 +10,59 @@ type ParsedCard = {
   notes?: string;
 };
 
+type Subtask = {
+  text: string;
+  estimatedEffort?: "quick" | "medium" | "large";
+};
+
+type BreakdownResult = {
+  subtasks: Subtask[];
+  suggestion?: string;
+};
+
+type FocusSuggestion = {
+  cardId: string;
+  reason: string;
+  priority: 1 | 2 | 3;
+};
+
+type DailyFocusResult = {
+  suggestions: FocusSuggestion[];
+  insight?: string;
+};
+
+type CardForFocus = {
+  id: string;
+  title: string;
+  column: string;
+  dueDate?: string;
+  tags: string[];
+  urgencyLevel: string;
+  createdAt: string;
+  blockedReason?: string;
+};
+
+type PlanSuggestion = {
+  cardId: string;
+  suggestedDate: string;
+  reason: string;
+};
+
+type WeeklyPlanResult = {
+  suggestions: PlanSuggestion[];
+  weeklyGoal?: string;
+  capacityWarning?: string;
+};
+
+type CardForPlan = {
+  id: string;
+  title: string;
+  column: string;
+  dueDate?: string;
+  tags: string[];
+  swimlane: string;
+};
+
 type UseAIOptions = {
   availableTags?: Tag[];
   availableColumns?: Column[];
@@ -100,9 +153,143 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
     [availableColumns, availableTags]
   );
 
+  const breakdownTask = React.useCallback(
+    async (
+      title: string,
+      options?: { notes?: string; tags?: string[]; existingChecklist?: string[] }
+    ): Promise<BreakdownResult | null> => {
+      if (!title.trim()) return null;
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch("/api/ai/breakdown", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            title,
+            notes: options?.notes,
+            tags: options?.tags,
+            existingChecklist: options?.existingChecklist,
+          }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || "Failed to break down task");
+        }
+
+        const data = await response.json();
+        return {
+          subtasks: data.subtasks || [],
+          suggestion: data.suggestion,
+        };
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error");
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
+
+  const getDailyFocus = React.useCallback(
+    async (
+      cards: CardForFocus[],
+      options?: { completedToday?: number; avgCycleTime?: number; wipLimit?: number }
+    ): Promise<DailyFocusResult | null> => {
+      if (!cards.length) return { suggestions: [], insight: "No tasks available" };
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch("/api/ai/daily-focus", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cards,
+            completedToday: options?.completedToday ?? 0,
+            avgCycleTime: options?.avgCycleTime,
+            wipLimit: options?.wipLimit ?? 3,
+          }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || "Failed to get daily focus");
+        }
+
+        const data = await response.json();
+        return {
+          suggestions: data.suggestions || [],
+          insight: data.insight,
+        };
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error");
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
+
+  const getWeeklyPlan = React.useCallback(
+    async (
+      cards: CardForPlan[],
+      options?: {
+        weekStart?: string;
+        avgThroughput?: number;
+        existingCommitments?: Array<{ date: string; count: number }>;
+      }
+    ): Promise<WeeklyPlanResult | null> => {
+      if (!cards.length) return { suggestions: [], weeklyGoal: "No tasks to plan" };
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetch("/api/ai/weekly-plan", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            cards,
+            weekStart: options?.weekStart,
+            avgThroughput: options?.avgThroughput,
+            existingCommitments: options?.existingCommitments,
+          }),
+        });
+
+        if (!response.ok) {
+          const data = await response.json();
+          throw new Error(data.error || "Failed to get weekly plan");
+        }
+
+        const data = await response.json();
+        return {
+          suggestions: data.suggestions || [],
+          weeklyGoal: data.weeklyGoal,
+          capacityWarning: data.capacityWarning,
+        };
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Unknown error");
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
+
   return {
     suggestTags,
     parseCard,
+    breakdownTask,
+    getDailyFocus,
+    getWeeklyPlan,
     isLoading,
     error,
   };

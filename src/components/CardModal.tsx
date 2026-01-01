@@ -1,10 +1,11 @@
 import React from "react";
-import { X, Trash2, CheckCircle } from "lucide-react";
+import { X, Trash2, CheckCircle, Sparkles, Loader2 } from "lucide-react";
 import type { Card, RelationType, SwimlaneId, Tag, TagCategory } from "../app/types";
 import { nanoid } from "nanoid";
 import { RelationshipPicker, RelationshipBadge } from "./RelationshipPicker";
 import { TAG_COLOR_PALETTE, DEFAULT_SWIMLANES } from "../app/constants";
 import { UnsplashPicker } from "./UnsplashPicker";
+import { useAI } from "../app/useAI";
 
 // Extended emoji palette organized by category
 const EMOJI_CHOICES = [
@@ -79,6 +80,11 @@ export function CardModal({
   const [recentEmojis, setRecentEmojis] = React.useState<string[]>(() => loadRecentEmojis());
   const emojiInputRef = React.useRef<HTMLInputElement>(null);
 
+  // AI task breakdown
+  const { breakdownTask, isLoading: aiLoading } = useAI();
+  const [aiSuggestions, setAiSuggestions] = React.useState<Array<{ text: string; estimatedEffort?: string }>>([]);
+  const [aiSuggestion, setAiSuggestion] = React.useState<string | undefined>();
+
   const selectEmoji = (emoji: string) => {
     update({ icon: emoji });
     setRecentEmojis(saveRecentEmoji(emoji));
@@ -93,6 +99,8 @@ export function CardModal({
     setShowUnsplashPicker(false);
     setShowUrlInput(false);
     setCustomUrl("");
+    setAiSuggestions([]);
+    setAiSuggestion(undefined);
   }, [card]);
 
   if (!open || !draft) return null;
@@ -659,6 +667,112 @@ export function CardModal({
                   }}
                 />
               </div>
+            </div>
+
+            {/* AI Task Breakdown */}
+            <div className="mt-3 flex flex-col gap-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  const existingItems = (draft.checklist ?? []).map((item) => item.text);
+                  const result = await breakdownTask(draft.title, {
+                    notes: draft.notes,
+                    tags: draft.tags,
+                    existingChecklist: existingItems,
+                  });
+                  if (result) {
+                    setAiSuggestions(result.subtasks);
+                    setAiSuggestion(result.suggestion);
+                  }
+                }}
+                disabled={aiLoading}
+                className="flex items-center justify-center gap-2 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-700 transition hover:bg-emerald-100 disabled:opacity-50 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-400"
+              >
+                {aiLoading ? (
+                  <>
+                    <Loader2 size={16} className="animate-spin" />
+                    Breaking down...
+                  </>
+                ) : (
+                  <>
+                    <Sparkles size={16} />
+                    Break down with AI
+                  </>
+                )}
+              </button>
+
+              {aiSuggestions.length > 0 && (
+                <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3 dark:border-emerald-800 dark:bg-emerald-900/20">
+                  <div className="mb-2 flex items-center justify-between">
+                    <span className="text-xs font-medium text-emerald-700 dark:text-emerald-400">
+                      AI Suggestions
+                    </span>
+                    <button
+                      onClick={() => {
+                        const newItems = aiSuggestions.map((s) => ({
+                          id: nanoid(),
+                          text: s.text,
+                          done: false,
+                        }));
+                        update({ checklist: [...(draft.checklist ?? []), ...newItems] });
+                        setAiSuggestions([]);
+                        setAiSuggestion(undefined);
+                      }}
+                      className="text-xs font-medium text-emerald-600 hover:text-emerald-700 dark:text-emerald-400"
+                    >
+                      Add all
+                    </button>
+                  </div>
+                  <div className="space-y-1.5">
+                    {aiSuggestions.map((suggestion, idx) => (
+                      <div
+                        key={idx}
+                        className="flex items-center gap-2 rounded-md bg-white px-2 py-1.5 text-sm dark:bg-gray-800"
+                      >
+                        <button
+                          onClick={() => {
+                            update({
+                              checklist: [
+                                ...(draft.checklist ?? []),
+                                { id: nanoid(), text: suggestion.text, done: false },
+                              ],
+                            });
+                            setAiSuggestions(aiSuggestions.filter((_, i) => i !== idx));
+                          }}
+                          className="text-emerald-500 hover:text-emerald-600"
+                          title="Add to checklist"
+                        >
+                          +
+                        </button>
+                        <span className="flex-1 text-gray-700 dark:text-gray-300">{suggestion.text}</span>
+                        {suggestion.estimatedEffort && (
+                          <span className={`text-[10px] px-1.5 py-0.5 rounded ${
+                            suggestion.estimatedEffort === "quick"
+                              ? "bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400"
+                              : suggestion.estimatedEffort === "medium"
+                              ? "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400"
+                              : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
+                          }`}>
+                            {suggestion.estimatedEffort}
+                          </span>
+                        )}
+                        <button
+                          onClick={() => setAiSuggestions(aiSuggestions.filter((_, i) => i !== idx))}
+                          className="text-gray-400 hover:text-gray-600"
+                          title="Dismiss"
+                        >
+                          ✕
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                  {aiSuggestion && (
+                    <div className="mt-2 text-xs text-emerald-600 dark:text-emerald-400">
+                      💡 {aiSuggestion}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 

@@ -1,4 +1,4 @@
-import { Undo2, Redo2, Calendar } from "lucide-react";
+import { Undo2, Redo2, Calendar, Sparkles, CalendarDays } from "lucide-react";
 import type { Card, MetricsState } from "../app/types";
 import { MetricsWidget } from "./MetricsWidget";
 import { PomodoroTimer } from "./PomodoroTimer";
@@ -10,6 +10,8 @@ export function TopStrip({
   metrics,
   onOpenMetrics,
   onOpenTimeline,
+  onOpenFocus,
+  onOpenWeeklyPlan,
   canUndo,
   canRedo,
   onUndo,
@@ -21,6 +23,8 @@ export function TopStrip({
   metrics: MetricsState;
   onOpenMetrics: () => void;
   onOpenTimeline: () => void;
+  onOpenFocus?: () => void;
+  onOpenWeeklyPlan?: () => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -73,6 +77,28 @@ export function TopStrip({
       <div className="ml-auto h-4 w-px bg-gray-200 dark:bg-gray-600" />
       <PomodoroTimer />
       <div className="h-4 w-px bg-gray-200 dark:bg-gray-600" />
+      {onOpenFocus && (
+        <button
+          onClick={onOpenFocus}
+          className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-gray-600 transition hover:bg-emerald-50 hover:text-emerald-700 dark:text-gray-400 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-400"
+          title="Get AI focus suggestions"
+          aria-label="Daily Focus"
+        >
+          <Sparkles size={16} />
+          <span className="text-sm">Focus</span>
+        </button>
+      )}
+      {onOpenWeeklyPlan && (
+        <button
+          onClick={onOpenWeeklyPlan}
+          className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+          title="Plan your week"
+          aria-label="Weekly Plan"
+        >
+          <CalendarDays size={16} />
+          <span className="text-sm">Plan Week</span>
+        </button>
+      )}
       <button
         onClick={onOpenTimeline}
         className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"

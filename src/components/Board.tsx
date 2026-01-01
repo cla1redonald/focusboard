@@ -42,6 +42,8 @@ export function Board({
   onSettings,
   onOpenMetrics,
   onOpenTimeline,
+  onOpenFocus,
+  onOpenWeeklyPlan,
   canUndo,
   canRedo,
   onUndo,
@@ -62,6 +64,8 @@ export function Board({
   onSettings: () => void;
   onOpenMetrics: () => void;
   onOpenTimeline: () => void;
+  onOpenFocus?: () => void;
+  onOpenWeeklyPlan?: () => void;
   canUndo: boolean;
   canRedo: boolean;
   onUndo: () => void;
@@ -397,6 +401,8 @@ export function Board({
         metrics={metrics}
         onOpenMetrics={onOpenMetrics}
         onOpenTimeline={onOpenTimeline}
+        onOpenFocus={onOpenFocus}
+        onOpenWeeklyPlan={onOpenWeeklyPlan}
         canUndo={canUndo}
         canRedo={canRedo}
         onUndo={onUndo}

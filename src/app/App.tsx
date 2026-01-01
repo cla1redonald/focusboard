@@ -12,6 +12,8 @@ import { CardModal } from "../components/CardModal";
 import { SettingsPanel } from "../components/SettingsPanel";
 import { MetricsDashboard } from "../components/MetricsDashboard";
 import { TimelinePanel } from "../components/TimelinePanel";
+import { FocusSuggestionPanel } from "../components/FocusSuggestionPanel";
+import { WeeklyPlanPanel } from "../components/WeeklyPlanPanel";
 import { KeyboardShortcutsModal } from "../components/KeyboardShortcutsModal";
 import { CommandPalette } from "../components/CommandPalette";
 import { OnboardingModal } from "../components/OnboardingModal";
@@ -28,6 +30,8 @@ function AppContent() {
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [metricsDashboardOpen, setMetricsDashboardOpen] = React.useState(false);
   const [timelinePanelOpen, setTimelinePanelOpen] = React.useState(false);
+  const [focusPanelOpen, setFocusPanelOpen] = React.useState(false);
+  const [weeklyPlanOpen, setWeeklyPlanOpen] = React.useState(false);
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = React.useState(false);
   const [onboardingOpen, setOnboardingOpen] = React.useState(() => !hasSeenOnboarding());
@@ -188,6 +192,8 @@ function AppContent() {
             onSettings={() => setSettingsOpen(true)}
             onOpenMetrics={() => setMetricsDashboardOpen(true)}
             onOpenTimeline={() => setTimelinePanelOpen(true)}
+            onOpenFocus={() => setFocusPanelOpen(true)}
+            onOpenWeeklyPlan={() => setWeeklyPlanOpen(true)}
             canUndo={canUndo}
             canRedo={canRedo}
             onUndo={() => dispatch({ type: "UNDO" })}
@@ -279,6 +285,56 @@ function AppContent() {
           setTimelinePanelOpen(false);
           setOpenCard(card);
         }}
+      />
+
+      <FocusSuggestionPanel
+        open={focusPanelOpen}
+        cards={state.cards}
+        columns={state.columns}
+        onClose={() => setFocusPanelOpen(false)}
+        onStartTask={(cardId) => {
+          const card = state.cards.find((c) => c.id === cardId);
+          const doingColumn = state.columns.find((c) => c.id === "doing");
+          if (card && doingColumn) {
+            dispatch({ type: "MOVE_CARD", id: cardId, to: doingColumn.id, toSwimlane: card.swimlane });
+            showToast({ type: "success", message: `Started "${card.title}"` });
+          }
+        }}
+        completedToday={(() => {
+          const today = new Date().toISOString().split("T")[0];
+          return metrics.completedCards.filter((c) => c.completedAt.startsWith(today)).length;
+        })()}
+        avgCycleTime={(() => {
+          if (!metrics.completedCards.length) return undefined;
+          const total = metrics.completedCards.reduce((sum, c) => sum + (c.cycleTimeMs || 0), 0);
+          return total / metrics.completedCards.length;
+        })()}
+      />
+
+      <WeeklyPlanPanel
+        open={weeklyPlanOpen}
+        cards={state.cards}
+        columns={state.columns}
+        onClose={() => setWeeklyPlanOpen(false)}
+        onSetDueDate={(cardId, dueDate) => {
+          const card = state.cards.find((c) => c.id === cardId);
+          if (card) {
+            dispatch({
+              type: "UPDATE_CARD",
+              card: { ...card, dueDate, updatedAt: new Date().toISOString() },
+            });
+            showToast({ type: "success", message: `Set "${card.title}" due ${dueDate}` });
+          }
+        }}
+        avgThroughput={(() => {
+          // Calculate weekly throughput from completed cards in last 4 weeks
+          const fourWeeksAgo = new Date();
+          fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+          const recentCards = metrics.completedCards.filter(
+            (c) => new Date(c.completedAt) >= fourWeeksAgo
+          );
+          return recentCards.length > 0 ? Math.ceil(recentCards.length / 4) : 5;
+        })()}
       />
 
       <KeyboardShortcutsModal
