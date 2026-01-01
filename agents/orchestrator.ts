@@ -2,11 +2,12 @@
 /**
  * FocusBoard Agent Orchestrator
  *
- * Runs a multi-agent workflow with 6 specialized agents:
+ * Runs a multi-agent workflow with 7 specialized agents:
  * - Architect: System design and technical decisions
  * - Engineer: Code implementation
  * - UX/UI: Design consistency and accessibility
  * - Researcher: Technical research and evaluation
+ * - DevSecOps: Security review and vulnerability assessment
  * - Tester: Quality assurance and testing
  * - TechAuthor: Documentation updates
  *
@@ -50,6 +51,7 @@ const agentColors: Record<string, string> = {
   researcher: colors.cyan,
   tester: colors.yellow,
   techAuthor: colors.bright + colors.cyan,
+  devsecops: colors.red,
 };
 
 function log(agent: string, message: string) {
@@ -61,6 +63,7 @@ function log(agent: string, message: string) {
     researcher: "🔍",
     tester: "🧪",
     techAuthor: "📝",
+    devsecops: "🔐",
   }[agent] || "🤖";
 
   console.log(`${color}${colors.bright}[${icon} ${agent.toUpperCase()}]${colors.reset}`);
@@ -198,18 +201,28 @@ export async function runWorkflow(task: string, autoApprove: boolean = false) {
   );
   context += `\n## Engineer Implementation Plan:\n${engineerResult}\n`;
 
-  // Step 5: Tester recommendations
-  console.log(`${colors.dim}─── Step 5: Testing Plan ───${colors.reset}\n`);
+  // Step 5: Security Review (always run)
+  console.log(`${colors.dim}─── Step 5: Security Review ───${colors.reset}\n`);
+  const securityResult = await runAgent(
+    "devsecops",
+    agents.devsecops,
+    `Review the implementation plan for security issues: ${task}\n\nCheck for:\n1. Authentication/authorization gaps\n2. Input validation issues\n3. Data exposure risks\n4. API security concerns\n5. Any OWASP Top 10 vulnerabilities`,
+    context
+  );
+  context += `\n## Security Review:\n${securityResult}\n`;
+
+  // Step 6: Tester recommendations
+  console.log(`${colors.dim}─── Step 6: Testing Plan ───${colors.reset}\n`);
   const testerResult = await runAgent(
     "tester",
     agents.tester,
-    `Create a testing plan for: ${task}\n\nInclude:\n1. Test cases to add\n2. Existing tests to update\n3. Manual testing steps`,
+    `Create a testing plan for: ${task}\n\nInclude:\n1. Test cases to add\n2. Existing tests to update\n3. Manual testing steps\n4. Security test cases based on security review above`,
     context
   );
   context += `\n## Tester Plan:\n${testerResult}\n`;
 
-  // Step 6: Technical Author (documentation updates)
-  console.log(`${colors.dim}─── Step 6: Documentation ───${colors.reset}\n`);
+  // Step 7: Technical Author (documentation updates)
+  console.log(`${colors.dim}─── Step 7: Documentation ───${colors.reset}\n`);
   await runAgent(
     "techAuthor",
     agents.techAuthor,
