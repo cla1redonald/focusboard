@@ -1,4 +1,4 @@
-import React from "react";
+import React, { Suspense } from "react";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { useAppState } from "./state";
@@ -13,16 +13,33 @@ import { debouncedSaveToSupabase, debouncedSaveMetricsToSupabase } from "./sync"
 import { Board } from "../components/Board";
 import { CardModal } from "../components/CardModal";
 import { SettingsPanel } from "../components/SettingsPanel";
-import { MetricsDashboard } from "../components/MetricsDashboard";
-import { TimelinePanel } from "../components/TimelinePanel";
-import { FocusSuggestionPanel } from "../components/FocusSuggestionPanel";
-import { WeeklyPlanPanel } from "../components/WeeklyPlanPanel";
 import { KeyboardShortcutsModal } from "../components/KeyboardShortcutsModal";
 import { CommandPalette } from "../components/CommandPalette";
 import { OnboardingModal } from "../components/OnboardingModal";
 import { ToastContainer } from "../components/ToastContainer";
 import { LoginPage } from "../components/LoginPage";
 import { SetPasswordPage } from "../components/SetPasswordPage";
+import { ErrorBoundary } from "../components/ErrorBoundary";
+
+// Lazy load heavy panel components to reduce initial bundle size
+const MetricsDashboard = React.lazy(() => import("../components/MetricsDashboard").then(m => ({ default: m.MetricsDashboard })));
+const TimelinePanel = React.lazy(() => import("../components/TimelinePanel").then(m => ({ default: m.TimelinePanel })));
+const FocusSuggestionPanel = React.lazy(() => import("../components/FocusSuggestionPanel").then(m => ({ default: m.FocusSuggestionPanel })));
+const WeeklyPlanPanel = React.lazy(() => import("../components/WeeklyPlanPanel").then(m => ({ default: m.WeeklyPlanPanel })));
+
+// Loading fallback for lazy-loaded panels
+function PanelLoadingFallback() {
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
+      <div className="rounded-xl bg-white p-6 shadow-xl dark:bg-gray-800">
+        <div className="flex items-center gap-3">
+          <div className="h-5 w-5 animate-spin rounded-full border-2 border-emerald-500 border-t-transparent" />
+          <span className="text-gray-600 dark:text-gray-300">Loading...</span>
+        </div>
+      </div>
+    </div>
+  );
+}
 
 function AppContent() {
   const { user, signOut } = useAuth();
@@ -274,79 +291,104 @@ function AppContent() {
         onDeleteTagCategory={(id) => dispatch({ type: "DELETE_TAG_CATEGORY", id })}
       />
 
-      <MetricsDashboard
-        open={metricsDashboardOpen}
-        metrics={metrics}
-        cards={state.cards}
-        columns={state.columns}
-        settings={state.settings}
-        onClose={() => setMetricsDashboardOpen(false)}
-        onOpenCard={(card) => {
-          setMetricsDashboardOpen(false);
-          setOpenCard(card);
-        }}
-      />
+      {/* Lazy-loaded panels wrapped in Suspense and ErrorBoundary */}
+      {metricsDashboardOpen && (
+        <Suspense fallback={<PanelLoadingFallback />}>
+          <ErrorBoundary>
+            <MetricsDashboard
+              open={metricsDashboardOpen}
+              metrics={metrics}
+              cards={state.cards}
+              columns={state.columns}
+              settings={state.settings}
+              onClose={() => setMetricsDashboardOpen(false)}
+              onOpenCard={(card) => {
+                setMetricsDashboardOpen(false);
+                setOpenCard(card);
+              }}
+            />
+          </ErrorBoundary>
+        </Suspense>
+      )}
 
-      <TimelinePanel
-        open={timelinePanelOpen}
-        cards={state.cards}
-        columns={state.columns}
-        onClose={() => setTimelinePanelOpen(false)}
-        onOpenCard={(card) => {
-          setTimelinePanelOpen(false);
-          setOpenCard(card);
-        }}
-      />
+      {timelinePanelOpen && (
+        <Suspense fallback={<PanelLoadingFallback />}>
+          <ErrorBoundary>
+            <TimelinePanel
+              open={timelinePanelOpen}
+              cards={state.cards}
+              columns={state.columns}
+              onClose={() => setTimelinePanelOpen(false)}
+              onOpenCard={(card) => {
+                setTimelinePanelOpen(false);
+                setOpenCard(card);
+              }}
+            />
+          </ErrorBoundary>
+        </Suspense>
+      )}
 
-      <FocusSuggestionPanel
-        open={focusPanelOpen}
-        cards={state.cards}
-        columns={state.columns}
-        onClose={() => setFocusPanelOpen(false)}
-        onStartTask={(cardId) => {
-          const card = state.cards.find((c) => c.id === cardId);
-          const doingColumn = state.columns.find((c) => c.id === "doing");
-          if (card && doingColumn) {
-            dispatch({ type: "MOVE_CARD", id: cardId, to: doingColumn.id, toSwimlane: card.swimlane });
-            showToast({ type: "success", message: `Started "${card.title}"` });
-          }
-        }}
-        completedToday={(() => {
-          const today = new Date().toISOString().split("T")[0];
-          return metrics.completedCards.filter((c) => c.completedAt.startsWith(today)).length;
-        })()}
-        avgCycleTime={(() => {
-          if (!metrics.completedCards.length) return undefined;
-          const total = metrics.completedCards.reduce((sum, c) => sum + (c.cycleTimeMs || 0), 0);
-          return total / metrics.completedCards.length;
-        })()}
-      />
+      {focusPanelOpen && (
+        <Suspense fallback={<PanelLoadingFallback />}>
+          <ErrorBoundary>
+            <FocusSuggestionPanel
+              open={focusPanelOpen}
+              cards={state.cards}
+              columns={state.columns}
+              onClose={() => setFocusPanelOpen(false)}
+              onStartTask={(cardId) => {
+                const card = state.cards.find((c) => c.id === cardId);
+                const doingColumn = state.columns.find((c) => c.id === "doing");
+                if (card && doingColumn) {
+                  dispatch({ type: "MOVE_CARD", id: cardId, to: doingColumn.id, toSwimlane: card.swimlane });
+                  showToast({ type: "success", message: `Started "${card.title}"` });
+                }
+              }}
+              completedToday={(() => {
+                const today = new Date().toISOString().split("T")[0];
+                return metrics.completedCards.filter((c) => c.completedAt.startsWith(today)).length;
+              })()}
+              avgCycleTime={(() => {
+                if (!metrics.completedCards.length) return undefined;
+                const total = metrics.completedCards.reduce((sum, c) => sum + (c.cycleTimeMs || 0), 0);
+                return total / metrics.completedCards.length;
+              })()}
+            />
+          </ErrorBoundary>
+        </Suspense>
+      )}
 
-      <WeeklyPlanPanel
-        open={weeklyPlanOpen}
-        cards={state.cards}
-        columns={state.columns}
-        onClose={() => setWeeklyPlanOpen(false)}
-        onSetDueDate={(cardId, dueDate) => {
-          const card = state.cards.find((c) => c.id === cardId);
-          if (card) {
-            dispatch({
-              type: "UPDATE_CARD",
-              card: { ...card, dueDate, updatedAt: new Date().toISOString() },
-            });
-            showToast({ type: "success", message: `Set "${card.title}" due ${dueDate}` });
-          }
-        }}
-        avgThroughput={(() => {
-          // Calculate weekly throughput from completed cards in last 4 weeks
-          const fourWeeksAgo = new Date();
-          fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
-          const recentCards = metrics.completedCards.filter(
-            (c) => new Date(c.completedAt) >= fourWeeksAgo
-          );
-          return recentCards.length > 0 ? Math.ceil(recentCards.length / 4) : 5;
-        })()}
-      />
+      {weeklyPlanOpen && (
+        <Suspense fallback={<PanelLoadingFallback />}>
+          <ErrorBoundary>
+            <WeeklyPlanPanel
+              open={weeklyPlanOpen}
+              cards={state.cards}
+              columns={state.columns}
+              onClose={() => setWeeklyPlanOpen(false)}
+              onSetDueDate={(cardId, dueDate) => {
+                const card = state.cards.find((c) => c.id === cardId);
+                if (card) {
+                  dispatch({
+                    type: "UPDATE_CARD",
+                    card: { ...card, dueDate, updatedAt: new Date().toISOString() },
+                  });
+                  showToast({ type: "success", message: `Set "${card.title}" due ${dueDate}` });
+                }
+              }}
+              avgThroughput={(() => {
+                // Calculate weekly throughput from completed cards in last 4 weeks
+                const fourWeeksAgo = new Date();
+                fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+                const recentCards = metrics.completedCards.filter(
+                  (c) => new Date(c.completedAt) >= fourWeeksAgo
+                );
+                return recentCards.length > 0 ? Math.ceil(recentCards.length / 4) : 5;
+              })()}
+            />
+          </ErrorBoundary>
+        </Suspense>
+      )}
 
       <KeyboardShortcutsModal
         open={shortcutsOpen}
@@ -433,10 +475,12 @@ function AuthenticatedApp() {
 
 export default function App() {
   return (
-    <AuthProvider>
-      <AuthenticatedApp />
-      <Analytics />
-      <SpeedInsights />
-    </AuthProvider>
+    <ErrorBoundary>
+      <AuthProvider>
+        <AuthenticatedApp />
+        <Analytics />
+        <SpeedInsights />
+      </AuthProvider>
+    </ErrorBoundary>
   );
 }

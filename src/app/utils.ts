@@ -170,6 +170,31 @@ export function suggestEmojiForTitle(title: string): string | undefined {
  * Suggest tags based on keywords in the card title
  * Returns an array of tag IDs that match
  */
+/**
+ * Check if a URL is safe to use in href attributes
+ * Prevents javascript: and other dangerous protocols
+ */
+export function isSafeUrl(url: string): boolean {
+  if (!url || typeof url !== "string") return false;
+  
+  try {
+    const parsed = new URL(url);
+    // Only allow http and https protocols
+    return ["http:", "https:"].includes(parsed.protocol);
+  } catch {
+    // If URL parsing fails, check if it's a relative URL (starts with /)
+    return url.startsWith("/") && !url.startsWith("//");
+  }
+}
+
+/**
+ * Sanitize a URL for safe use - returns the URL if safe, undefined otherwise
+ */
+export function getSafeUrl(url: string | undefined): string | undefined {
+  if (!url) return undefined;
+  return isSafeUrl(url) ? url : undefined;
+}
+
 export function suggestTagsForTitle(title: string, availableTagIds: string[]): string[] {
   const lower = title.toLowerCase();
   const suggested: string[] = [];

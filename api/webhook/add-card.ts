@@ -127,8 +127,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Create and add card
     const card = createCard(title.trim(), column, source, swimlane);
+    // Shift cards in the same column AND swimlane to make room at top (matches main app behavior)
     state.cards = state.cards.map((c) =>
-      c.column === card.column ? { ...c, order: c.order + 1 } : c
+      c.column === card.column && (c.swimlane ?? "work") === card.swimlane
+        ? { ...c, order: c.order + 1 }
+        : c
     );
     state.cards.unshift(card);
 
