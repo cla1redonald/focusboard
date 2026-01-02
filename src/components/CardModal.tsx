@@ -1,6 +1,6 @@
 import React from "react";
-import { X, Trash2, CheckCircle, Sparkles, Loader2, Upload, Download, FileText, AlertCircle, GripVertical } from "lucide-react";
-import type { Card, RelationType, SwimlaneId, Tag, TagCategory, Attachment } from "../app/types";
+import { X, Trash2, CheckCircle, Sparkles, Loader2, Upload, Download, FileText, AlertCircle, GripVertical, Plus, Link } from "lucide-react";
+import type { Card, CardLink, RelationType, SwimlaneId, Tag, TagCategory, Attachment } from "../app/types";
 import { nanoid } from "nanoid";
 import { RelationshipPicker, RelationshipBadge } from "./RelationshipPicker";
 import { TAG_COLOR_PALETTE, DEFAULT_SWIMLANES } from "../app/constants";
@@ -508,27 +508,82 @@ export function CardModal({
             />
           </div>
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <div>
-              <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Link</label>
-              <input
-                value={draft.link ?? ""}
-                onChange={(e) => update({ link: e.target.value })}
-                className="mt-1.5 w-full rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-              />
+          {/* Links Section */}
+          <div>
+            <div className="flex items-center justify-between">
+              <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Links</label>
+              <button
+                type="button"
+                onClick={() => {
+                  const newLink: CardLink = { id: nanoid(), url: "", label: "" };
+                  update({ links: [...(draft.links ?? []), newLink] });
+                }}
+                className="flex items-center gap-1 text-xs text-emerald-600 hover:text-emerald-700"
+              >
+                <Plus size={12} />
+                Add link
+              </button>
             </div>
-            <div>
-              <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Due date</label>
-              <input
-                type="date"
-                value={draft.dueDate ? draft.dueDate.slice(0, 10) : ""}
-                onChange={(e) =>
-                  update({ dueDate: e.target.value ? new Date(e.target.value).toISOString() : undefined })
-                }
-                onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
-                className="mt-1.5 w-full rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
-              />
+            <div className="mt-2 space-y-2">
+              {(draft.links ?? []).map((link, idx) => (
+                <div key={link.id} className="flex items-start gap-2">
+                  <div className="mt-2.5 text-gray-400">
+                    <Link size={14} />
+                  </div>
+                  <div className="flex-1 space-y-1.5">
+                    <input
+                      value={link.url}
+                      onChange={(e) => {
+                        const newLinks = [...(draft.links ?? [])];
+                        newLinks[idx] = { ...link, url: e.target.value };
+                        update({ links: newLinks });
+                      }}
+                      placeholder="https://..."
+                      className="w-full rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                    />
+                    <input
+                      value={link.label ?? ""}
+                      onChange={(e) => {
+                        const newLinks = [...(draft.links ?? [])];
+                        newLinks[idx] = { ...link, label: e.target.value || undefined };
+                        update({ links: newLinks });
+                      }}
+                      placeholder="Label (optional)"
+                      className="w-full rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-xs text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newLinks = (draft.links ?? []).filter((_, i) => i !== idx);
+                      update({ links: newLinks });
+                    }}
+                    className="mt-2 text-gray-400 hover:text-red-500"
+                    title="Remove link"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+              ))}
+              {(draft.links ?? []).length === 0 && (
+                <div className="text-xs text-gray-400 dark:text-gray-500">
+                  No links yet. Click &quot;Add link&quot; to add one.
+                </div>
+              )}
             </div>
+          </div>
+
+          <div>
+            <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Due date</label>
+            <input
+              type="date"
+              value={draft.dueDate ? draft.dueDate.slice(0, 10) : ""}
+              onChange={(e) =>
+                update({ dueDate: e.target.value ? new Date(e.target.value).toISOString() : undefined })
+              }
+              onClick={(e) => (e.target as HTMLInputElement).showPicker?.()}
+              className="mt-1.5 w-full rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+            />
           </div>
 
           <div>

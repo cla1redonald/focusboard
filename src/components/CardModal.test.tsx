@@ -58,7 +58,7 @@ describe("CardModal", () => {
       expect(screen.getByText(/title/i)).toBeInTheDocument();
       expect(screen.getByText(/icon/i)).toBeInTheDocument();
       expect(screen.getByText(/notes/i)).toBeInTheDocument();
-      expect(screen.getByText(/link/i)).toBeInTheDocument();
+      expect(screen.getByText("Links")).toBeInTheDocument();
       expect(screen.getByText(/due date/i)).toBeInTheDocument();
       expect(screen.getByText(/tags/i)).toBeInTheDocument();
     });
@@ -97,12 +97,13 @@ describe("CardModal", () => {
       expect(screen.getByDisplayValue("Some important notes")).toBeInTheDocument();
     });
 
-    it("displays card link when present", () => {
-      const card = createCard({ link: "https://example.com" });
+    it("displays card links when present", () => {
+      const card = createCard({ links: [{ id: "link-1", url: "https://example.com", label: "Example" }] });
 
       render(<CardModal {...defaultProps} card={card} />);
 
       expect(screen.getByDisplayValue("https://example.com")).toBeInTheDocument();
+      expect(screen.getByDisplayValue("Example")).toBeInTheDocument();
     });
 
     it("displays selected tags with visual indication", () => {

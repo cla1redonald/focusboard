@@ -1,4 +1,5 @@
-import type { AppState, Card, Column, Tag, TagCategory } from "./types";
+import type { AppState, Card, CardLink, Column, Tag, TagCategory } from "./types";
+import { nanoid } from "nanoid";
 import { DEFAULT_SETTINGS, DEFAULT_COLUMNS, DEFAULT_TAG_CATEGORIES, DEFAULT_TAGS } from "./constants";
 
 // Current user ID for scoped storage (set when user logs in)
@@ -273,10 +274,28 @@ export function loadState(): AppState {
         tagCategories = [...tagCategories, { id: "custom", name: "Custom", order: tagCategories.length }];
       }
       // Ensure all cards have a swimlane (migrate existing cards to "work")
-      const cards = (parsed.cards ?? []).map((card) => ({
-        ...card,
-        swimlane: card.swimlane ?? "work",
-      })) as Card[];
+      // Also migrate legacy single 'link' field to 'links' array
+      const cards = (parsed.cards ?? []).map((card) => {
+        let migratedCard = {
+          ...card,
+          swimlane: card.swimlane ?? "work",
+        };
+
+        // Migrate legacy link to links array
+        if (card.link && !card.links?.length) {
+          const newLink: CardLink = {
+            id: nanoid(),
+            url: card.link,
+          };
+          migratedCard = {
+            ...migratedCard,
+            links: [newLink],
+            link: undefined, // Clear legacy field
+          };
+        }
+
+        return migratedCard;
+      }) as Card[];
       // Migrate doing column: remove hard WIP limit of 1 (now soft warning at 3+)
       // Also migrate emoji icons to Lucide icon names
       const columns = (parsed.columns?.length ? parsed.columns : DEFAULT_COLUMNS).map((col) => {

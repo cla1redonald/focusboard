@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Calendar, ExternalLink } from "lucide-react";
-import type { Card } from "../app/types";
+import type { Card, CardLink } from "../app/types";
 import { RelationshipIndicators } from "./RelationshipPicker";
 import { getCardAgeLevel, getCardAgeDays } from "../app/metrics";
 import { getUrgencyLevel, getUrgencyColor, getUrgencyLabel, getUrgencyBackgroundColor } from "../app/urgency";
@@ -171,12 +171,10 @@ export function CardItem({
           </div>
         )}
 
-        {/* Link - clickable hyperlink (only render if URL is safe) */}
+        {/* Links - clickable hyperlinks (supports multiple links) */}
         {(() => {
-          const safeUrl = getSafeUrl(card.link);
-          if (!safeUrl) return null;
-          
-          const getLinkInfo = (url: string) => {
+          const getLinkInfo = (url: string, customLabel?: string) => {
+            if (customLabel) return { label: customLabel, icon: "🔗" };
             if (url.includes("drive.google.com")) return { label: "Google Drive", icon: "📁" };
             if (url.includes("docs.google.com")) return { label: "Google Docs", icon: "📄" };
             if (url.includes("sheets.google.com")) return { label: "Google Sheets", icon: "📊" };
@@ -193,24 +191,55 @@ export function CardItem({
               return { label: "Link", icon: "🔗" };
             }
           };
-          const { label, icon } = getLinkInfo(safeUrl);
+
+          // Collect all links: from new links array + legacy link field
+          const allLinks: CardLink[] = [];
+          if (card.links?.length) {
+            allLinks.push(...card.links);
+          } else if (card.link) {
+            // Fallback to legacy single link
+            allLinks.push({ id: "legacy", url: card.link });
+          }
+
+          // Filter to only safe URLs
+          const safeLinks = allLinks
+            .map((link) => ({ ...link, safeUrl: getSafeUrl(link.url) }))
+            .filter((link) => link.safeUrl);
+
+          if (safeLinks.length === 0) return null;
+
           return (
-            <a
-              href={safeUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              onClick={(e) => e.stopPropagation()}
-              className={`mt-2 inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium transition hover:underline ${
-                hasBackground
-                  ? "bg-white/20 text-white hover:bg-white/30"
-                  : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50"
-              }`}
-              title={safeUrl}
-            >
-              <span>{icon}</span>
-              <span className="max-w-[120px] truncate">{label}</span>
-              <ExternalLink size={10} className="opacity-60" />
-            </a>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {safeLinks.slice(0, 3).map((link) => {
+                const { label, icon } = getLinkInfo(link.safeUrl!, link.label);
+                return (
+                  <a
+                    key={link.id}
+                    href={link.safeUrl!}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    onClick={(e) => e.stopPropagation()}
+                    className={`inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-[11px] font-medium transition hover:underline ${
+                      hasBackground
+                        ? "bg-white/20 text-white hover:bg-white/30"
+                        : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50"
+                    }`}
+                    title={link.safeUrl!}
+                  >
+                    <span>{icon}</span>
+                    <span className="max-w-[100px] truncate">{label}</span>
+                    <ExternalLink size={10} className="opacity-60" />
+                  </a>
+                );
+              })}
+              {safeLinks.length > 3 && (
+                <span className={`inline-flex items-center px-2 py-1 text-[11px] ${
+                  hasBackground ? "text-white/70" : "text-gray-500 dark:text-gray-400"
+                }`}>
+                  +{safeLinks.length - 3} more
+                </span>
+              )}
+            </div>
           );
         })()}
       </div>
