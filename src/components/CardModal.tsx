@@ -1,5 +1,5 @@
 import React from "react";
-import { X, Trash2, CheckCircle, Sparkles, Loader2, Upload, Download, FileText, AlertCircle } from "lucide-react";
+import { X, Trash2, CheckCircle, Sparkles, Loader2, Upload, Download, FileText, AlertCircle, GripVertical } from "lucide-react";
 import type { Card, RelationType, SwimlaneId, Tag, TagCategory, Attachment } from "../app/types";
 import { nanoid } from "nanoid";
 import { RelationshipPicker, RelationshipBadge } from "./RelationshipPicker";
@@ -7,6 +7,211 @@ import { TAG_COLOR_PALETTE, DEFAULT_SWIMLANES } from "../app/constants";
 import { UnsplashPicker } from "./UnsplashPicker";
 import { useAI } from "../app/useAI";
 import { useAttachments, isImageType, formatFileSize } from "../app/useAttachments";
+import {
+  DndContext,
+  closestCenter,
+  KeyboardSensor,
+  PointerSensor,
+  useSensor,
+  useSensors,
+  type DragEndEvent,
+} from "@dnd-kit/core";
+import {
+  arrayMove,
+  SortableContext,
+  sortableKeyboardCoordinates,
+  useSortable,
+  verticalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { CSS } from "@dnd-kit/utilities";
+
+// Checklist types and components
+type ChecklistItem = { id: string; text: string; done: boolean };
+
+function ChecklistSection({
+  checklist,
+  onUpdate,
+}: {
+  checklist: ChecklistItem[];
+  onUpdate: (checklist: ChecklistItem[]) => void;
+}) {
+  const sensors = useSensors(
+    useSensor(PointerSensor, {
+      activationConstraint: {
+        distance: 8,
+      },
+    }),
+    useSensor(KeyboardSensor, {
+      coordinateGetter: sortableKeyboardCoordinates,
+    })
+  );
+
+  const handleDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      const oldIndex = checklist.findIndex((item) => item.id === active.id);
+      const newIndex = checklist.findIndex((item) => item.id === over.id);
+      onUpdate(arrayMove(checklist, oldIndex, newIndex));
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, idx: number, itemId: string) => {
+    const item = checklist.find((x) => x.id === itemId);
+    if (e.key === "Enter") {
+      e.preventDefault();
+      const newId = nanoid();
+      const newChecklist = [
+        ...checklist.slice(0, idx + 1),
+        { id: newId, text: "", done: false },
+        ...checklist.slice(idx + 1),
+      ];
+      onUpdate(newChecklist);
+      setTimeout(() => {
+        const inputs = document.querySelectorAll<HTMLInputElement>('[data-checklist-input]');
+        inputs[idx + 1]?.focus();
+      }, 0);
+    } else if (e.key === "Backspace" && item?.text === "") {
+      e.preventDefault();
+      if (checklist.length > 1) {
+        onUpdate(checklist.filter((x) => x.id !== itemId));
+        setTimeout(() => {
+          const inputs = document.querySelectorAll<HTMLInputElement>('[data-checklist-input]');
+          inputs[Math.max(0, idx - 1)]?.focus();
+        }, 0);
+      }
+    }
+  };
+
+  return (
+    <div>
+      <div className="flex items-center justify-between">
+        <label className="text-xs text-gray-500 dark:text-gray-400">Checklist</label>
+        <span className="text-[10px] text-gray-400">Drag to reorder • Enter to add</span>
+      </div>
+      <div className="mt-2 space-y-2">
+        <DndContext
+          sensors={sensors}
+          collisionDetection={closestCenter}
+          onDragEnd={handleDragEnd}
+        >
+          <SortableContext
+            items={checklist.map((item) => item.id)}
+            strategy={verticalListSortingStrategy}
+          >
+            {checklist.map((item, idx) => (
+              <SortableChecklistItem
+                key={item.id}
+                item={item}
+                onToggle={(done) =>
+                  onUpdate(checklist.map((x) => (x.id === item.id ? { ...x, done } : x)))
+                }
+                onTextChange={(text) =>
+                  onUpdate(checklist.map((x) => (x.id === item.id ? { ...x, text } : x)))
+                }
+                onKeyDown={(e) => handleKeyDown(e, idx, item.id)}
+                onDelete={() => onUpdate(checklist.filter((x) => x.id !== item.id))}
+              />
+            ))}
+          </SortableContext>
+        </DndContext>
+        {/* Add new item input */}
+        <div className="flex items-center gap-2 pt-1">
+          <div className="w-4" /> {/* Spacer for drag handle */}
+          <div className="h-4 w-4" /> {/* Spacer for checkbox */}
+          <input
+            placeholder="+ Add item..."
+            className="flex-1 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:bg-white dark:focus:bg-gray-600 focus:border-solid"
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                e.preventDefault();
+                const input = e.target as HTMLInputElement;
+                const text = input.value.trim();
+                if (text) {
+                  onUpdate([...checklist, { id: nanoid(), text, done: false }]);
+                  input.value = "";
+                }
+              }
+            }}
+            onBlur={(e) => {
+              const text = e.target.value.trim();
+              if (text) {
+                onUpdate([...checklist, { id: nanoid(), text, done: false }]);
+                e.target.value = "";
+              }
+            }}
+          />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// Sortable checklist item component
+
+function SortableChecklistItem({
+  item,
+  onToggle,
+  onTextChange,
+  onKeyDown,
+  onDelete,
+}: {
+  item: ChecklistItem;
+  onToggle: (done: boolean) => void;
+  onTextChange: (text: string) => void;
+  onKeyDown: (e: React.KeyboardEvent<HTMLInputElement>) => void;
+  onDelete: () => void;
+}) {
+  const {
+    attributes,
+    listeners,
+    setNodeRef,
+    transform,
+    transition,
+    isDragging,
+  } = useSortable({ id: item.id });
+
+  const style = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+  };
+
+  return (
+    <div
+      ref={setNodeRef}
+      style={style}
+      className={`flex items-center gap-2 ${isDragging ? "opacity-50" : ""}`}
+    >
+      <button
+        type="button"
+        className="cursor-grab touch-none text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+        {...attributes}
+        {...listeners}
+      >
+        <GripVertical size={16} />
+      </button>
+      <input
+        type="checkbox"
+        checked={item.done}
+        onChange={(e) => onToggle(e.target.checked)}
+        className="h-4 w-4 accent-emerald-600"
+      />
+      <input
+        value={item.text}
+        onChange={(e) => onTextChange(e.target.value)}
+        onKeyDown={onKeyDown}
+        data-checklist-input
+        placeholder="Type here..."
+        className="flex-1 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500"
+      />
+      <button
+        onClick={onDelete}
+        className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+      >
+        ✕
+      </button>
+    </div>
+  );
+}
 
 // Extended emoji palette organized by category
 const EMOJI_CHOICES = [
@@ -641,120 +846,13 @@ export function CardModal({
             )}
           </div>
 
-          <div>
-            <div className="flex items-center justify-between">
-            <label className="text-xs text-gray-500 dark:text-gray-400">Checklist</label>
-              <span className="text-[10px] text-gray-400">Press Enter to add item</span>
-            </div>
-            <div className="mt-2 space-y-2">
-              {(draft.checklist ?? []).map((it, idx) => (
-                <div key={it.id} className="flex items-center gap-2">
-                  <input
-                    type="checkbox"
-                    checked={it.done}
-                    onChange={(e) =>
-                      update({
-                        checklist: (draft.checklist ?? []).map((x) =>
-                          x.id === it.id ? { ...x, done: e.target.checked } : x
-                        ),
-                      })
-                    }
-                    className="h-4 w-4 accent-emerald-600"
-                  />
-                  <input
-                    value={it.text}
-                    onChange={(e) =>
-                      update({
-                        checklist: (draft.checklist ?? []).map((x) =>
-                          x.id === it.id ? { ...x, text: e.target.value } : x
-                        ),
-                      })
-                    }
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        const newId = nanoid();
-                        const currentChecklist = draft.checklist ?? [];
-                        const newChecklist = [
-                          ...currentChecklist.slice(0, idx + 1),
-                          { id: newId, text: "", done: false },
-                          ...currentChecklist.slice(idx + 1),
-                        ];
-                        update({ checklist: newChecklist });
-                        // Focus the new input after render
-                        setTimeout(() => {
-                          const inputs = document.querySelectorAll<HTMLInputElement>('[data-checklist-input]');
-                          inputs[idx + 1]?.focus();
-                        }, 0);
-                      } else if (e.key === "Backspace" && it.text === "") {
-                        e.preventDefault();
-                        const currentChecklist = draft.checklist ?? [];
-                        if (currentChecklist.length > 1) {
-                          update({ checklist: currentChecklist.filter((x) => x.id !== it.id) });
-                          // Focus previous input
-                          setTimeout(() => {
-                            const inputs = document.querySelectorAll<HTMLInputElement>('[data-checklist-input]');
-                            inputs[Math.max(0, idx - 1)]?.focus();
-                          }, 0);
-                        }
-                      }
-                    }}
-                    data-checklist-input
-                    placeholder="Type here..."
-                    className="flex-1 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500"
-                  />
-                  <button
-                    onClick={() =>
-                      update({
-                        checklist: (draft.checklist ?? []).filter((x) => x.id !== it.id),
-                      })
-                    }
-                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
-                  >
-                    ✕
-                  </button>
-                </div>
-              ))}
-              {/* Add new item input */}
-              <div className="flex items-center gap-2 pt-1">
-                <div className="h-4 w-4" /> {/* Spacer for checkbox alignment */}
-                <input
-                  placeholder="+ Add item..."
-                  className="flex-1 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:bg-white dark:focus:bg-gray-600 focus:border-solid"
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      const input = e.target as HTMLInputElement;
-                      const text = input.value.trim();
-                      if (text) {
-                        update({
-                          checklist: [
-                            ...(draft.checklist ?? []),
-                            { id: nanoid(), text, done: false },
-                          ],
-                        });
-                        input.value = "";
-                      }
-                    }
-                  }}
-                  onBlur={(e) => {
-                    const text = e.target.value.trim();
-                    if (text) {
-                      update({
-                        checklist: [
-                          ...(draft.checklist ?? []),
-                          { id: nanoid(), text, done: false },
-                        ],
-                      });
-                      e.target.value = "";
-                    }
-                  }}
-                />
-              </div>
-            </div>
+          <ChecklistSection
+            checklist={draft.checklist ?? []}
+            onUpdate={(newChecklist) => update({ checklist: newChecklist })}
+          />
 
-            {/* AI Task Breakdown */}
-            <div className="mt-3 flex flex-col gap-2">
+          {/* AI Task Breakdown */}
+          <div className="mt-3 flex flex-col gap-2">
               <button
                 type="button"
                 onClick={async () => {
@@ -858,7 +956,6 @@ export function CardModal({
                 </div>
               )}
             </div>
-          </div>
 
           {(draft.blockedReason || draft.lastOverrideReason) && (
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs text-gray-700">
