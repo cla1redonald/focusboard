@@ -385,8 +385,8 @@ export function SettingsPanel({
           {/* Celebrations Toggle */}
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-sm text-gray-900">Celebrations</div>
-              <div className="text-xs text-gray-500">Subtle confetti when moving to terminal column</div>
+              <div className="text-sm text-gray-900 dark:text-white">Celebrations</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Subtle confetti when moving to terminal column</div>
             </div>
             <input
               type="checkbox"
@@ -399,8 +399,8 @@ export function SettingsPanel({
           {/* Reduced Motion Toggle */}
           <div className="flex items-center justify-between gap-3">
             <div>
-              <div className="text-sm text-gray-900">Reduced motion override</div>
-              <div className="text-xs text-gray-500">Disables confetti and uses header pulse</div>
+              <div className="text-sm text-gray-900 dark:text-white">Reduced motion override</div>
+              <div className="text-xs text-gray-500 dark:text-gray-400">Disables confetti and uses header pulse</div>
             </div>
             <input
               type="checkbox"
@@ -411,15 +411,15 @@ export function SettingsPanel({
           </div>
 
           {/* Analytics Section */}
-          <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4">
-            <div className="text-sm font-semibold text-gray-900">Analytics</div>
+          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700/50 p-4">
+            <div className="text-sm font-semibold text-gray-900 dark:text-white">Analytics</div>
 
             <div className="mt-3 space-y-4">
               {/* Aging WIP Indicators Toggle */}
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-sm text-gray-900">Aging WIP indicators</div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-sm text-gray-900 dark:text-white">Aging WIP indicators</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
                     Show colored dots on cards based on age (yellow: 3d, orange: 7d, red: 14d)
                   </div>
                 </div>
@@ -434,15 +434,15 @@ export function SettingsPanel({
               {/* Stale Card Threshold */}
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-sm text-gray-900">Stale card threshold</div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-sm text-gray-900 dark:text-white">Stale card threshold</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
                     Days of inactivity before a card is considered stale
                   </div>
                 </div>
                 <select
                   value={settings.staleCardThreshold}
                   onChange={(e) => set({ staleCardThreshold: Number(e.target.value) as 3 | 7 | 14 })}
-                  className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                 >
                   <option value={3}>3 days</option>
                   <option value={7}>7 days</option>
@@ -453,8 +453,8 @@ export function SettingsPanel({
               {/* Auto Priority Toggle */}
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-sm text-gray-900">Auto-assign priority from due dates</div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-sm text-gray-900 dark:text-white">Auto-assign priority from due dates</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
                     Automatically add priority tags based on how soon cards are due
                   </div>
                 </div>
@@ -469,15 +469,15 @@ export function SettingsPanel({
               {/* Stale Backlog Threshold */}
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <div className="text-sm text-gray-900">Stale backlog warning</div>
-                  <div className="text-xs text-gray-500">
+                  <div className="text-sm text-gray-900 dark:text-white">Stale backlog warning</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
                     Show warning on backlog cards without due dates after this many days
                   </div>
                 </div>
                 <select
                   value={settings.staleBacklogThreshold}
                   onChange={(e) => set({ staleBacklogThreshold: Number(e.target.value) as 3 | 7 | 14 })}
-                  className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                 >
                   <option value={3}>3 days</option>
                   <option value={7}>7 days</option>
@@ -488,22 +488,22 @@ export function SettingsPanel({
           </div>
 
           {/* Export/Import Section */}
-          <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4">
-            <div className="mb-3 text-sm font-semibold text-gray-900">Data Management</div>
+          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700/50 p-4">
+            <div className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">Data Management</div>
             <ExportImportPanel state={state} onImport={onImport} />
           </div>
 
           {/* Account Section - only show when Supabase is configured */}
           {isSupabaseConfigured() && onSignOut && (
-            <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4">
-              <div className="mb-3 text-sm font-semibold text-gray-900">Account</div>
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700/50 p-4">
+              <div className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">Account</div>
               <div className="flex items-center justify-between">
-                <div className="text-sm text-gray-600">
+                <div className="text-sm text-gray-600 dark:text-gray-400">
                   Your data is synced to the cloud
                 </div>
                 <button
                   onClick={onSignOut}
-                  className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm text-red-700 hover:bg-red-100"
+                  className="rounded-lg border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30 px-3 py-1.5 text-sm text-red-700 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50"
                 >
                   Sign out
                 </button>
@@ -515,7 +515,7 @@ export function SettingsPanel({
         <div className="mt-6 flex justify-end">
           <button
             onClick={onClose}
-            className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+            className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-600"
           >
             Close
           </button>
@@ -525,31 +525,31 @@ export function SettingsPanel({
       {/* Column Edit Modal */}
       {editingColumn && (
         <div className="fixed inset-0 z-[1300] flex items-center justify-center">
-          <div className="absolute inset-0 bg-gray-900/30 backdrop-blur-sm" onClick={() => setEditingColumn(null)} />
-          <div className="relative w-[400px] max-w-[90vw] rounded-xl border border-gray-200 bg-white p-6 shadow-xl">
-            <div className="text-lg font-semibold text-gray-900">
+          <div className="absolute inset-0 bg-gray-900/30 dark:bg-gray-900/50 backdrop-blur-sm" onClick={() => setEditingColumn(null)} />
+          <div className="relative w-[400px] max-w-[90vw] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-xl">
+            <div className="text-lg font-semibold text-gray-900 dark:text-white">
               {editingColumn.id ? "Edit Column" : "Add Column"}
             </div>
 
             <div className="mt-4 space-y-4">
               <div>
-                <label className="text-xs text-gray-500">Title</label>
+                <label className="text-xs text-gray-500 dark:text-gray-400">Title</label>
                 <input
                   type="text"
                   value={editingColumn.title}
                   onChange={(e) => setEditingColumn({ ...editingColumn, title: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
 
               <div className="flex gap-4">
                 <div className="flex-1">
-                  <label className="text-xs text-gray-500">Icon</label>
+                  <label className="text-xs text-gray-500 dark:text-gray-400">Icon</label>
                   <input
                     type="text"
                     value={editingColumn.icon}
                     onChange={(e) => setEditingColumn({ ...editingColumn, icon: e.target.value })}
-                    className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                    className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                   />
                   <div className="mt-2 flex flex-wrap gap-1">
                     {DEFAULT_COLUMN_ICONS.map((iconName) => {
@@ -563,8 +563,8 @@ export function SettingsPanel({
                           onClick={() => setEditingColumn({ ...editingColumn, icon: iconName })}
                           className={`flex h-8 w-8 items-center justify-center rounded-md border transition ${
                             isSelected
-                              ? "border-emerald-500 bg-emerald-50 text-emerald-600"
-                              : "border-gray-200 bg-gray-50 text-gray-600 hover:border-gray-300 hover:bg-gray-100"
+                              ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400"
+                              : "border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 text-gray-600 dark:text-gray-400 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600"
                           }`}
                         >
                           <IconComponent size={16} />
@@ -575,25 +575,25 @@ export function SettingsPanel({
                 </div>
 
                 <div>
-                  <label className="text-xs text-gray-500">Color</label>
+                  <label className="text-xs text-gray-500 dark:text-gray-400">Color</label>
                   <div className="mt-1 flex gap-2">
                     <input
                       type="color"
                       value={editingColumn.color}
                       onChange={(e) => setEditingColumn({ ...editingColumn, color: e.target.value })}
-                      className="h-10 w-10 cursor-pointer rounded border border-gray-200 bg-transparent"
+                      className="h-10 w-10 cursor-pointer rounded border border-gray-200 dark:border-gray-600 bg-transparent"
                     />
                     <input
                       value={editingColumn.color}
                       onChange={(e) => setEditingColumn({ ...editingColumn, color: e.target.value })}
-                      className="w-24 rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                      className="w-24 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs text-gray-700 dark:text-gray-300 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                     />
                   </div>
                 </div>
               </div>
 
               <div>
-                <label className="text-xs text-gray-500">WIP Limit (leave empty for unlimited)</label>
+                <label className="text-xs text-gray-500 dark:text-gray-400">WIP Limit (leave empty for unlimited)</label>
                 <input
                   type="number"
                   min={1}
@@ -603,7 +603,7 @@ export function SettingsPanel({
                     wipLimit: e.target.value ? Math.max(1, Number(e.target.value)) : null,
                   })}
                   placeholder="Unlimited"
-                  className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder:text-gray-400 dark:placeholder:text-gray-500"
                 />
               </div>
 
@@ -615,7 +615,7 @@ export function SettingsPanel({
                   onChange={(e) => setEditingColumn({ ...editingColumn, isTerminal: e.target.checked })}
                   className="h-4 w-4 accent-emerald-600"
                 />
-                <label htmlFor="isTerminal" className="text-sm text-gray-900">
+                <label htmlFor="isTerminal" className="text-sm text-gray-900 dark:text-white">
                   Terminal column (triggers celebration)
                 </label>
               </div>
@@ -624,7 +624,7 @@ export function SettingsPanel({
             <div className="mt-6 flex justify-end gap-2">
               <button
                 onClick={() => setEditingColumn(null)}
-                className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-600"
               >
                 Cancel
               </button>
@@ -650,20 +650,20 @@ export function SettingsPanel({
       {/* Delete Confirmation Modal */}
       {deleteConfirm && (
         <div className="fixed inset-0 z-[1300] flex items-center justify-center">
-          <div className="absolute inset-0 bg-gray-900/30 backdrop-blur-sm" onClick={() => setDeleteConfirm(null)} />
-          <div className="relative w-[400px] max-w-[90vw] rounded-xl border border-gray-200 bg-white p-6 shadow-xl">
-            <div className="text-lg font-semibold text-gray-900">Delete Column</div>
+          <div className="absolute inset-0 bg-gray-900/30 dark:bg-gray-900/50 backdrop-blur-sm" onClick={() => setDeleteConfirm(null)} />
+          <div className="relative w-[400px] max-w-[90vw] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-xl">
+            <div className="text-lg font-semibold text-gray-900 dark:text-white">Delete Column</div>
 
-            <p className="mt-3 text-sm text-gray-600">
+            <p className="mt-3 text-sm text-gray-600 dark:text-gray-400">
               Are you sure you want to delete &quot;{deleteConfirm.column.title}&quot;?
             </p>
 
             <div className="mt-4">
-              <label className="text-xs text-gray-500">Move existing cards to:</label>
+              <label className="text-xs text-gray-500 dark:text-gray-400">Move existing cards to:</label>
               <select
                 value={deleteConfirm.migrateToId}
                 onChange={(e) => setDeleteConfirm({ ...deleteConfirm, migrateToId: e.target.value })}
-                className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
               >
                 <option value="">Delete cards too</option>
                 {sortedColumns
@@ -679,7 +679,7 @@ export function SettingsPanel({
             <div className="mt-6 flex justify-end gap-2">
               <button
                 onClick={() => setDeleteConfirm(null)}
-                className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-600"
               >
                 Cancel
               </button>
@@ -703,29 +703,29 @@ export function SettingsPanel({
       {/* Tag Edit Modal */}
       {editingTag && onAddTag && onUpdateTag && (
         <div className="fixed inset-0 z-[1300] flex items-center justify-center">
-          <div className="absolute inset-0 bg-gray-900/30 backdrop-blur-sm" onClick={() => setEditingTag(null)} />
-          <div className="relative w-[400px] max-w-[90vw] rounded-xl border border-gray-200 bg-white p-6 shadow-xl">
-            <div className="text-lg font-semibold text-gray-900">
+          <div className="absolute inset-0 bg-gray-900/30 dark:bg-gray-900/50 backdrop-blur-sm" onClick={() => setEditingTag(null)} />
+          <div className="relative w-[400px] max-w-[90vw] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-xl">
+            <div className="text-lg font-semibold text-gray-900 dark:text-white">
               {editingTag.id ? "Edit Tag" : "Add Tag"}
             </div>
 
             <div className="mt-4 space-y-4">
               <div>
-                <label className="text-xs text-gray-500">Name</label>
+                <label className="text-xs text-gray-500 dark:text-gray-400">Name</label>
                 <input
                   type="text"
                   value={editingTag.name}
                   onChange={(e) => setEditingTag({ ...editingTag, name: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
 
               <div>
-                <label className="text-xs text-gray-500">Category</label>
+                <label className="text-xs text-gray-500 dark:text-gray-400">Category</label>
                 <select
                   value={editingTag.categoryId}
                   onChange={(e) => setEditingTag({ ...editingTag, categoryId: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                 >
                   {(state.tagCategories ?? []).map((cat) => (
                     <option key={cat.id} value={cat.id}>
@@ -736,7 +736,7 @@ export function SettingsPanel({
               </div>
 
               <div>
-                <label className="text-xs text-gray-500">Color</label>
+                <label className="text-xs text-gray-500 dark:text-gray-400">Color</label>
                 <div className="mt-2 flex flex-wrap gap-2">
                   {TAG_COLOR_PALETTE.map((color) => (
                     <button
@@ -745,7 +745,7 @@ export function SettingsPanel({
                       onClick={() => setEditingTag({ ...editingTag, color })}
                       className={`h-8 w-8 rounded-full border-2 transition ${
                         editingTag.color === color
-                          ? "border-gray-900 ring-2 ring-emerald-400"
+                          ? "border-gray-900 dark:border-white ring-2 ring-emerald-400"
                           : "border-transparent hover:scale-110"
                       }`}
                       style={{ backgroundColor: color }}
@@ -757,19 +757,19 @@ export function SettingsPanel({
                     type="color"
                     value={editingTag.color}
                     onChange={(e) => setEditingTag({ ...editingTag, color: e.target.value })}
-                    className="h-8 w-8 cursor-pointer rounded border border-gray-200 bg-transparent"
+                    className="h-8 w-8 cursor-pointer rounded border border-gray-200 dark:border-gray-600 bg-transparent"
                   />
                   <input
                     value={editingTag.color}
                     onChange={(e) => setEditingTag({ ...editingTag, color: e.target.value })}
-                    className="w-24 rounded-lg border border-gray-200 bg-white px-2 py-1 text-xs text-gray-700 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                    className="w-24 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs text-gray-700 dark:text-gray-300 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                   />
                 </div>
               </div>
 
               {/* Preview */}
               <div>
-                <label className="text-xs text-gray-500">Preview</label>
+                <label className="text-xs text-gray-500 dark:text-gray-400">Preview</label>
                 <div className="mt-2">
                   <span
                     className="inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium"
@@ -791,7 +791,7 @@ export function SettingsPanel({
             <div className="mt-6 flex justify-end gap-2">
               <button
                 onClick={() => setEditingTag(null)}
-                className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-600"
               >
                 Cancel
               </button>
@@ -818,20 +818,20 @@ export function SettingsPanel({
       {/* Category Edit Modal */}
       {editingCategory && onAddTagCategory && onUpdateTagCategory && (
         <div className="fixed inset-0 z-[1300] flex items-center justify-center">
-          <div className="absolute inset-0 bg-gray-900/30 backdrop-blur-sm" onClick={() => setEditingCategory(null)} />
-          <div className="relative w-[400px] max-w-[90vw] rounded-xl border border-gray-200 bg-white p-6 shadow-xl">
-            <div className="text-lg font-semibold text-gray-900">
+          <div className="absolute inset-0 bg-gray-900/30 dark:bg-gray-900/50 backdrop-blur-sm" onClick={() => setEditingCategory(null)} />
+          <div className="relative w-[400px] max-w-[90vw] rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-xl">
+            <div className="text-lg font-semibold text-gray-900 dark:text-white">
               {editingCategory.id ? "Edit Category" : "Add Category"}
             </div>
 
             <div className="mt-4 space-y-4">
               <div>
-                <label className="text-xs text-gray-500">Name</label>
+                <label className="text-xs text-gray-500 dark:text-gray-400">Name</label>
                 <input
                   type="text"
                   value={editingCategory.name}
                   onChange={(e) => setEditingCategory({ ...editingCategory, name: e.target.value })}
-                  className="mt-1 w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+                  className="mt-1 w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
                 />
               </div>
             </div>
@@ -839,7 +839,7 @@ export function SettingsPanel({
             <div className="mt-6 flex justify-end gap-2">
               <button
                 onClick={() => setEditingCategory(null)}
-                className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-600"
               >
                 Cancel
               </button>
