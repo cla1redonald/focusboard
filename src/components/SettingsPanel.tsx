@@ -80,27 +80,27 @@ export function SettingsPanel({
 
   return (
     <div className="fixed inset-0 z-[1200] flex items-center justify-center">
-      <div className="absolute inset-0 bg-gray-900/30 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative max-h-[90vh] w-[560px] max-w-[92vw] overflow-y-auto rounded-xl border border-gray-200 bg-white p-6 shadow-xl">
+      <div className="absolute inset-0 bg-gray-900/30 dark:bg-gray-900/50 backdrop-blur-sm" onClick={onClose} />
+      <div className="relative max-h-[90vh] w-[560px] max-w-[92vw] overflow-y-auto rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-6 shadow-xl">
         <div className="flex items-center justify-between">
-          <div className="text-xl font-semibold text-gray-900">Settings</div>
-          <button onClick={onClose} className="rounded-md p-1 text-gray-400 hover:bg-gray-100 hover:text-gray-600" aria-label="Close">
+          <div className="text-xl font-semibold text-gray-900 dark:text-white">Settings</div>
+          <button onClick={onClose} className="rounded-md p-1 text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700 hover:text-gray-600 dark:hover:text-gray-300" aria-label="Close">
             <X size={20} />
           </button>
         </div>
 
         <div className="mt-5 space-y-5">
           {/* Background Section */}
-          <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4">
-            <div className="text-sm font-semibold text-gray-900">Background</div>
-            <div className="mt-2 text-xs text-gray-500">
+          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700/50 p-4">
+            <div className="text-sm font-semibold text-gray-900 dark:text-white">Background</div>
+            <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
               Upload a background image. It&apos;s saved locally in your browser.
             </div>
 
             <div className="mt-3 flex flex-wrap items-center gap-2">
               <label
                 htmlFor={fileInputId}
-                className="cursor-pointer rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                className="cursor-pointer rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-600"
               >
                 Upload image
               </label>
@@ -123,7 +123,7 @@ export function SettingsPanel({
               {settings.backgroundImage && (
                 <button
                   onClick={() => set({ backgroundImage: null })}
-                  className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-xs text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                  className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-xs text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-600"
                 >
                   Remove
                 </button>
@@ -131,7 +131,7 @@ export function SettingsPanel({
             </div>
 
             {settings.backgroundImage && (
-              <div className="mt-4 h-[140px] w-full overflow-hidden rounded-lg border border-gray-200">
+              <div className="mt-4 h-[140px] w-full overflow-hidden rounded-lg border border-gray-200 dark:border-gray-700">
                 <div
                   className="h-full w-full bg-cover bg-center"
                   style={{ backgroundImage: `url(${settings.backgroundImage})` }}
@@ -141,9 +141,9 @@ export function SettingsPanel({
           </div>
 
           {/* Appearance Section */}
-          <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4">
-            <div className="text-sm font-semibold text-gray-900">Appearance</div>
-            <div className="mt-2 text-xs text-gray-500">Choose your preferred color theme</div>
+          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700/50 p-4">
+            <div className="text-sm font-semibold text-gray-900 dark:text-white">Appearance</div>
+            <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">Choose your preferred color theme</div>
 
             <div className="mt-3 flex gap-2">
               {(
@@ -162,8 +162,8 @@ export function SettingsPanel({
                     onClick={() => set({ theme: option.value })}
                     className={`flex flex-1 items-center justify-center gap-2 rounded-lg border px-3 py-2.5 text-sm transition ${
                       isSelected
-                        ? "border-emerald-500 bg-emerald-50 text-emerald-700"
-                        : "border-gray-200 bg-white text-gray-700 hover:border-gray-300 hover:bg-gray-50"
+                        ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400"
+                        : "border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-600"
                     }`}
                   >
                     <Icon size={16} />
@@ -175,14 +175,14 @@ export function SettingsPanel({
           </div>
 
           {/* Columns Section */}
-          <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4">
+          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700/50 p-4">
             <div className="flex items-center justify-between gap-3">
-              <div className="text-sm font-semibold text-gray-900">Columns</div>
+              <div className="text-sm font-semibold text-gray-900 dark:text-white">Columns</div>
               <div className="flex gap-2">
                 <button
                   type="button"
                   onClick={handleResetColors}
-                  className="rounded-lg border border-gray-200 bg-white px-3 py-1 text-[11px] text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                  className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1 text-[11px] text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-600"
                 >
                   Reset colors
                 </button>
@@ -197,7 +197,7 @@ export function SettingsPanel({
                     isTerminal: false,
                     order: sortedColumns.length,
                   })}
-                  className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100"
+                  className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1 text-[11px] text-emerald-700 dark:text-emerald-400 hover:border-emerald-300 dark:hover:border-emerald-700 hover:bg-emerald-100 dark:hover:bg-emerald-900/50"
                 >
                   + Add column
                 </button>
@@ -208,14 +208,14 @@ export function SettingsPanel({
               {sortedColumns.map((col, idx) => (
                 <div
                   key={col.id}
-                  className="flex items-center gap-3 rounded-lg border border-gray-200 bg-white p-2"
+                  className="flex items-center gap-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 p-2"
                 >
                   <div className="flex flex-col gap-0.5">
                     <button
                       type="button"
                       disabled={idx === 0}
                       onClick={() => moveColumn(col, "up")}
-                      className="text-xs text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                      className="text-xs text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 disabled:opacity-30"
                     >
                       ▲
                     </button>
@@ -223,7 +223,7 @@ export function SettingsPanel({
                       type="button"
                       disabled={idx === sortedColumns.length - 1}
                       onClick={() => moveColumn(col, "down")}
-                      className="text-xs text-gray-400 hover:text-gray-700 disabled:opacity-30"
+                      className="text-xs text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 disabled:opacity-30"
                     >
                       ▼
                     </button>
@@ -233,7 +233,7 @@ export function SettingsPanel({
                     const IconComponent = ICON_MAP[col.icon];
                     if (IconComponent) {
                       return (
-                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-100 text-emerald-600">
+                        <div className="flex h-7 w-7 items-center justify-center rounded-md bg-emerald-100 dark:bg-emerald-900/50 text-emerald-600 dark:text-emerald-400">
                           <IconComponent size={14} />
                         </div>
                       );
@@ -243,8 +243,8 @@ export function SettingsPanel({
                   })()}
 
                   <div className="flex-1">
-                    <span className="text-sm text-gray-900">{col.title}</span>
-                    <span className="ml-2 text-xs text-gray-500">
+                    <span className="text-sm text-gray-900 dark:text-white">{col.title}</span>
+                    <span className="ml-2 text-xs text-gray-500 dark:text-gray-400">
                       WIP: {col.wipLimit ?? "∞"}
                       {col.isTerminal && " • Terminal"}
                     </span>
@@ -253,7 +253,7 @@ export function SettingsPanel({
                   <button
                     type="button"
                     onClick={() => setEditingColumn(col)}
-                    className="rounded-lg px-2 py-1 text-xs text-gray-600 hover:bg-gray-100 hover:text-gray-900"
+                    className="rounded-lg px-2 py-1 text-xs text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 hover:text-gray-900 dark:hover:text-white"
                   >
                     Edit
                   </button>
@@ -262,7 +262,7 @@ export function SettingsPanel({
                     <button
                       type="button"
                       onClick={() => setDeleteConfirm({ column: col, migrateToId: sortedColumns.find((c) => c.id !== col.id)?.id ?? "" })}
-                      className="rounded-lg px-2 py-1 text-xs text-red-500 hover:bg-red-50 hover:text-red-600"
+                      className="rounded-lg px-2 py-1 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400"
                     >
                       Delete
                     </button>
@@ -274,9 +274,9 @@ export function SettingsPanel({
 
           {/* Tags Section */}
           {onAddTag && onUpdateTag && onDeleteTag && (
-            <div className="rounded-xl border border-gray-200 bg-gray-50/50 p-4">
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700/50 p-4">
               <div className="flex items-center justify-between gap-3">
-                <div className="text-sm font-semibold text-gray-900">Tags</div>
+                <div className="text-sm font-semibold text-gray-900 dark:text-white">Tags</div>
                 <div className="flex gap-2">
                   {onAddTagCategory && (
                     <button
@@ -286,7 +286,7 @@ export function SettingsPanel({
                         name: "New Category",
                         order: (state.tagCategories?.length ?? 0),
                       })}
-                      className="rounded-lg border border-gray-200 bg-white px-3 py-1 text-[11px] text-gray-600 hover:border-gray-300 hover:bg-gray-50"
+                      className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1 text-[11px] text-gray-600 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-600"
                     >
                       + Category
                     </button>
@@ -299,7 +299,7 @@ export function SettingsPanel({
                       color: TAG_COLOR_PALETTE[0],
                       categoryId: state.tagCategories?.[0]?.id ?? "",
                     })}
-                    className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-1 text-[11px] text-emerald-700 hover:border-emerald-300 hover:bg-emerald-100"
+                    className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1 text-[11px] text-emerald-700 dark:text-emerald-400 hover:border-emerald-300 dark:hover:border-emerald-700 hover:bg-emerald-100 dark:hover:bg-emerald-900/50"
                   >
                     + Tag
                   </button>
@@ -313,9 +313,9 @@ export function SettingsPanel({
                   .map((category) => {
                     const categoryTags = (state.tags ?? []).filter((t) => t.categoryId === category.id);
                     return (
-                      <div key={category.id} className="rounded-lg border border-gray-200 bg-white p-2">
+                      <div key={category.id} className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 p-2">
                         <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium uppercase tracking-wide text-gray-500">
+                          <span className="text-xs font-medium uppercase tracking-wide text-gray-500 dark:text-gray-400">
                             {category.name}
                           </span>
                           <div className="flex gap-1">
@@ -323,7 +323,7 @@ export function SettingsPanel({
                               <button
                                 type="button"
                                 onClick={() => setEditingCategory(category)}
-                                className="rounded px-1.5 py-0.5 text-[10px] text-gray-500 hover:bg-gray-100 hover:text-gray-700"
+                                className="rounded px-1.5 py-0.5 text-[10px] text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600 hover:text-gray-700 dark:hover:text-gray-200"
                               >
                                 Edit
                               </button>
@@ -332,7 +332,7 @@ export function SettingsPanel({
                               <button
                                 type="button"
                                 onClick={() => onDeleteTagCategory(category.id)}
-                                className="rounded px-1.5 py-0.5 text-[10px] text-red-500 hover:bg-red-50 hover:text-red-600"
+                                className="rounded px-1.5 py-0.5 text-[10px] text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400"
                               >
                                 Delete
                               </button>
@@ -358,14 +358,14 @@ export function SettingsPanel({
                               <button
                                 type="button"
                                 onClick={() => setEditingTag(tag)}
-                                className="ml-1 opacity-0 group-hover:opacity-100 text-[10px] text-gray-500 hover:text-gray-700"
+                                className="ml-1 opacity-0 group-hover:opacity-100 text-[10px] text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
                               >
                                 ✎
                               </button>
                               <button
                                 type="button"
                                 onClick={() => onDeleteTag(tag.id)}
-                                className="opacity-0 group-hover:opacity-100 text-[10px] text-red-500 hover:text-red-600"
+                                className="opacity-0 group-hover:opacity-100 text-[10px] text-red-500 hover:text-red-600 dark:hover:text-red-400"
                               >
                                 ×
                               </button>

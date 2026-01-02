@@ -398,14 +398,14 @@ export function CardModal({
                 <button
                   type="button"
                   onClick={() => { setShowUnsplashPicker(true); setShowUrlInput(false); }}
-                  className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-600 hover:border-gray-400 hover:bg-gray-100"
+                  className="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-xs text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600"
                 >
                   Search Unsplash
                 </button>
                 <button
                   type="button"
                   onClick={() => { setShowUrlInput(true); setShowUnsplashPicker(false); }}
-                  className="rounded-lg border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-xs text-gray-600 hover:border-gray-400 hover:bg-gray-100"
+                  className="rounded-lg border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-xs text-gray-600 dark:text-gray-300 hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-600"
                 >
                   Paste URL
                 </button>
@@ -414,8 +414,8 @@ export function CardModal({
 
             {/* URL Input */}
             {showUrlInput && (
-              <div className="mt-3 rounded-xl border border-gray-200 bg-gray-50 p-3">
-                <div className="text-xs text-gray-500 mb-2">
+              <div className="mt-3 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 p-3">
+                <div className="text-xs text-gray-500 dark:text-gray-400 mb-2">
                   Paste an image URL (Google Drive, Dropbox, etc.)
                 </div>
                 <div className="flex gap-2">
@@ -424,7 +424,7 @@ export function CardModal({
                     value={customUrl}
                     onChange={(e) => setCustomUrl(e.target.value)}
                     placeholder="https://..."
-                    className="flex-1 rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-900 outline-none focus:border-emerald-500"
+                    className="flex-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-600 px-3 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500"
                   />
                   <button
                     type="button"
@@ -443,7 +443,7 @@ export function CardModal({
                   <button
                     type="button"
                     onClick={() => { setShowUrlInput(false); setCustomUrl(""); }}
-                    className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs text-gray-700 hover:bg-gray-50"
+                    className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
                   >
                     Cancel
                   </button>
@@ -643,7 +643,7 @@ export function CardModal({
 
           <div>
             <div className="flex items-center justify-between">
-            <label className="text-xs text-gray-500">Checklist</label>
+            <label className="text-xs text-gray-500 dark:text-gray-400">Checklist</label>
               <span className="text-[10px] text-gray-400">Press Enter to add item</span>
             </div>
             <div className="mt-2 space-y-2">
@@ -701,7 +701,7 @@ export function CardModal({
                     }}
                     data-checklist-input
                     placeholder="Type here..."
-                    className="flex-1 rounded-xl border border-gray-200 bg-white px-3 py-2 text-sm text-gray-900 outline-none focus:border-emerald-500"
+                    className="flex-1 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500"
                   />
                   <button
                     onClick={() =>
@@ -709,7 +709,7 @@ export function CardModal({
                         checklist: (draft.checklist ?? []).filter((x) => x.id !== it.id),
                       })
                     }
-                    className="text-gray-400 hover:text-gray-600"
+                    className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
                   >
                     ✕
                   </button>
@@ -720,7 +720,7 @@ export function CardModal({
                 <div className="h-4 w-4" /> {/* Spacer for checkbox alignment */}
                 <input
                   placeholder="+ Add item..."
-                  className="flex-1 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-3 py-2 text-sm text-gray-900 outline-none focus:border-emerald-500 focus:bg-white focus:border-solid"
+                  className="flex-1 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-3 py-2 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:bg-white dark:focus:bg-gray-600 focus:border-solid"
                   onKeyDown={(e) => {
                     if (e.key === "Enter") {
                       e.preventDefault();
@@ -917,11 +917,11 @@ export function CardModal({
 
           {/* Attachments Section */}
           <div>
-            <label className="text-xs font-medium text-gray-500">Attachments</label>
+            <label className="text-xs font-medium text-gray-500 dark:text-gray-400">Attachments</label>
 
             {!isStorageConfigured || !userId ? (
-              <div className="mt-2 rounded-lg border border-dashed border-gray-300 bg-gray-50 p-4">
-                <div className="flex items-center gap-2 text-gray-500">
+              <div className="mt-2 rounded-lg border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 p-4">
+                <div className="flex items-center gap-2 text-gray-500 dark:text-gray-400">
                   <AlertCircle size={16} />
                   <span className="text-sm font-medium">Cloud sync required</span>
                 </div>
@@ -935,8 +935,8 @@ export function CardModal({
                 <div
                   className={`mt-2 cursor-pointer rounded-lg border-2 border-dashed p-4 text-center transition ${
                     isDragOver
-                      ? "border-emerald-500 bg-emerald-50"
-                      : "border-gray-300 bg-gray-50 hover:border-gray-400"
+                      ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30"
+                      : "border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 hover:border-gray-400 dark:hover:border-gray-500"
                   }`}
                   onDragOver={(e) => {
                     e.preventDefault();
@@ -1042,11 +1042,11 @@ export function CardModal({
         </div>
 
         {/* Fixed Footer */}
-        <div className="flex shrink-0 flex-col gap-3 border-t border-gray-100 px-4 py-3 sm:flex-row sm:justify-between sm:px-6 sm:py-4">
+        <div className="flex shrink-0 flex-col gap-3 border-t border-gray-100 dark:border-gray-700 px-4 py-3 sm:flex-row sm:justify-between sm:px-6 sm:py-4">
           <div className="order-2 flex gap-2 sm:order-1">
             <button
               onClick={() => onDelete(draft.id)}
-              className="flex items-center justify-center gap-2 rounded-md border border-red-200 bg-red-50 px-4 py-2 text-sm text-red-600 hover:bg-red-100"
+              className="flex items-center justify-center gap-2 rounded-md border border-red-200 dark:border-red-800 bg-red-50 dark:bg-red-900/30 px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-red-100 dark:hover:bg-red-900/50"
             >
               <Trash2 size={16} />
               Delete
@@ -1054,7 +1054,7 @@ export function CardModal({
             {onMarkComplete && !isCompleted && (
               <button
                 onClick={() => onMarkComplete(draft.id)}
-                className="flex items-center justify-center gap-2 rounded-md border border-emerald-200 bg-emerald-50 px-4 py-2 text-sm text-emerald-600 hover:bg-emerald-100"
+                className="flex items-center justify-center gap-2 rounded-md border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/30 px-4 py-2 text-sm text-emerald-600 dark:text-emerald-400 hover:bg-emerald-100 dark:hover:bg-emerald-900/50"
               >
                 <CheckCircle size={16} />
                 Complete
@@ -1065,7 +1065,7 @@ export function CardModal({
           <div className="order-1 flex gap-2 sm:order-2">
             <button
               onClick={onClose}
-              className="flex-1 rounded-md border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50 sm:flex-none"
+              className="flex-1 rounded-md border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600 sm:flex-none"
             >
               Cancel
             </button>
