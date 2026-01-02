@@ -1,5 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { nowIso, isToday, groupByColumn } from "./utils";
+import { nowIso, isToday, groupByColumn, isSafeUrl, getSafeUrl } from "./utils";
 import { DEFAULT_COLUMNS } from "./constants";
 import type { Card } from "./types";
 
@@ -288,6 +288,81 @@ describe("utils", () => {
 
       expect(result.todo).toHaveLength(1);
       expect(result.backlog).toHaveLength(1);
+    });
+  });
+
+  describe("isSafeUrl", () => {
+    it("returns true for http URLs", () => {
+      expect(isSafeUrl("http://example.com")).toBe(true);
+      expect(isSafeUrl("http://localhost:3000")).toBe(true);
+      expect(isSafeUrl("http://example.com/path?query=1")).toBe(true);
+    });
+
+    it("returns true for https URLs", () => {
+      expect(isSafeUrl("https://example.com")).toBe(true);
+      expect(isSafeUrl("https://secure-site.org/page")).toBe(true);
+      expect(isSafeUrl("https://github.com/user/repo")).toBe(true);
+    });
+
+    it("returns false for javascript: protocol", () => {
+      expect(isSafeUrl("javascript:alert('xss')")).toBe(false);
+      expect(isSafeUrl("javascript:void(0)")).toBe(false);
+      expect(isSafeUrl("JAVASCRIPT:alert(1)")).toBe(false);
+    });
+
+    it("returns false for data: protocol", () => {
+      expect(isSafeUrl("data:text/html,<script>alert(1)</script>")).toBe(false);
+      expect(isSafeUrl("data:image/png;base64,abc123")).toBe(false);
+    });
+
+    it("returns false for vbscript: protocol", () => {
+      expect(isSafeUrl("vbscript:msgbox('xss')")).toBe(false);
+    });
+
+    it("returns false for file: protocol", () => {
+      expect(isSafeUrl("file:///etc/passwd")).toBe(false);
+    });
+
+    it("returns true for relative URLs starting with /", () => {
+      expect(isSafeUrl("/page")).toBe(true);
+      expect(isSafeUrl("/path/to/resource")).toBe(true);
+      expect(isSafeUrl("/api/data?id=1")).toBe(true);
+    });
+
+    it("returns false for protocol-relative URLs (//)", () => {
+      expect(isSafeUrl("//example.com")).toBe(false);
+    });
+
+    it("returns false for empty or invalid input", () => {
+      expect(isSafeUrl("")).toBe(false);
+      expect(isSafeUrl(null as unknown as string)).toBe(false);
+      expect(isSafeUrl(undefined as unknown as string)).toBe(false);
+    });
+
+    it("returns false for malformed URLs", () => {
+      expect(isSafeUrl("not a url")).toBe(false);
+      expect(isSafeUrl("://missing-protocol")).toBe(false);
+    });
+  });
+
+  describe("getSafeUrl", () => {
+    it("returns the URL if it is safe", () => {
+      expect(getSafeUrl("https://example.com")).toBe("https://example.com");
+      expect(getSafeUrl("http://localhost")).toBe("http://localhost");
+      expect(getSafeUrl("/relative/path")).toBe("/relative/path");
+    });
+
+    it("returns undefined for unsafe URLs", () => {
+      expect(getSafeUrl("javascript:alert(1)")).toBeUndefined();
+      expect(getSafeUrl("data:text/html,<script>")).toBeUndefined();
+    });
+
+    it("returns undefined for undefined input", () => {
+      expect(getSafeUrl(undefined)).toBeUndefined();
+    });
+
+    it("returns undefined for empty string", () => {
+      expect(getSafeUrl("")).toBeUndefined();
     });
   });
 });

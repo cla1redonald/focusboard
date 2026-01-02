@@ -7,6 +7,7 @@ import type { Card } from "../app/types";
 import { RelationshipIndicators } from "./RelationshipPicker";
 import { getCardAgeLevel, getCardAgeDays } from "../app/metrics";
 import { getUrgencyLevel, getUrgencyColor, getUrgencyLabel, getUrgencyBackgroundColor } from "../app/urgency";
+import { getSafeUrl } from "../app/utils";
 
 export function CardItem({
   card,
@@ -170,8 +171,11 @@ export function CardItem({
           </div>
         )}
 
-        {/* Link - clickable hyperlink */}
-        {card.link && (() => {
+        {/* Link - clickable hyperlink (only render if URL is safe) */}
+        {(() => {
+          const safeUrl = getSafeUrl(card.link);
+          if (!safeUrl) return null;
+          
           const getLinkInfo = (url: string) => {
             if (url.includes("drive.google.com")) return { label: "Google Drive", icon: "📁" };
             if (url.includes("docs.google.com")) return { label: "Google Docs", icon: "📄" };
@@ -189,10 +193,10 @@ export function CardItem({
               return { label: "Link", icon: "🔗" };
             }
           };
-          const { label, icon } = getLinkInfo(card.link);
+          const { label, icon } = getLinkInfo(safeUrl);
           return (
             <a
-              href={card.link}
+              href={safeUrl}
               target="_blank"
               rel="noopener noreferrer"
               onClick={(e) => e.stopPropagation()}
@@ -201,7 +205,7 @@ export function CardItem({
                   ? "bg-white/20 text-white hover:bg-white/30"
                   : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50"
               }`}
-              title={card.link}
+              title={safeUrl}
             >
               <span>{icon}</span>
               <span className="max-w-[120px] truncate">{label}</span>
