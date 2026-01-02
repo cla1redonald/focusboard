@@ -67,17 +67,17 @@ export function SetPasswordPage({ onComplete }: Props) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
       <div className="w-full max-w-md px-6">
-        <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-xl">
+        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-xl">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-2 mb-2">
               <div className="h-8 w-1 rounded-full bg-gradient-to-b from-emerald-400 to-teal-500" />
-              <div className="text-3xl font-bold text-gray-900">
+              <div className="text-3xl font-bold text-gray-900 dark:text-white">
                 Focusboard
               </div>
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-gray-500 dark:text-gray-400">
               Set your password
             </div>
           </div>
@@ -85,16 +85,16 @@ export function SetPasswordPage({ onComplete }: Props) {
           {status === "success" ? (
             <div className="text-center">
               <div className="mb-4 text-5xl">✅</div>
-              <div className="text-lg font-medium text-gray-900 mb-2">
+              <div className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                 Password set!
               </div>
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
                 Redirecting to your board...
               </div>
             </div>
           ) : (
             <form onSubmit={handleSubmit}>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
+              <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                 New password
               </label>
               <input
@@ -104,14 +104,14 @@ export function SetPasswordPage({ onComplete }: Props) {
                 placeholder="Min 8 chars, uppercase, lowercase, number"
                 disabled={status === "loading"}
                 autoComplete="new-password"
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-3 text-gray-900 dark:text-white placeholder:text-gray-400 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50"
                 autoFocus
               />
-              <div className="mt-1 text-xs text-gray-500">
+              <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                 At least 8 characters with uppercase, lowercase, and a number
               </div>
 
-              <label className="block mt-4 mb-2 text-sm font-medium text-gray-700">
+              <label className="block mt-4 mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                 Confirm password
               </label>
               <input
@@ -121,11 +121,11 @@ export function SetPasswordPage({ onComplete }: Props) {
                 placeholder="Enter password again"
                 disabled={status === "loading"}
                 autoComplete="new-password"
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-3 text-gray-900 dark:text-white placeholder:text-gray-400 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50"
               />
 
               {status === "error" && (
-                <div className="mt-3 text-sm text-rose-600">
+                <div className="mt-3 text-sm text-rose-600 dark:text-rose-400">
                   {errorMessage || "Something went wrong. Please try again."}
                 </div>
               )}

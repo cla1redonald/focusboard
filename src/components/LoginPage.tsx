@@ -104,17 +104,17 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
       <div className="w-full max-w-md px-6">
-        <div className="rounded-2xl border border-gray-200 bg-white p-8 shadow-xl">
+        <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-xl">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-2 mb-2">
               <div className="h-8 w-1 rounded-full bg-gradient-to-b from-emerald-400 to-teal-500" />
-              <div className="text-3xl font-bold text-gray-900">
+              <div className="text-3xl font-bold text-gray-900 dark:text-white">
                 Focusboard
               </div>
             </div>
-            <div className="text-sm text-gray-500">
+            <div className="text-sm text-gray-500 dark:text-gray-400">
               Plan with intent. Keep flow sacred.
             </div>
           </div>
@@ -124,10 +124,10 @@ export function LoginPage() {
               <div className="mb-4 text-5xl">
                 {mode === "signup" ? "✅" : "📧"}
               </div>
-              <div className="text-lg font-medium text-gray-900 mb-2">
+              <div className="text-lg font-medium text-gray-900 dark:text-white mb-2">
                 {mode === "signup" ? "Account created!" : "Check your email"}
               </div>
-              <div className="text-sm text-gray-600 mb-6">
+              <div className="text-sm text-gray-600 dark:text-gray-400 mb-6">
                 {mode === "signup"
                   ? "You can now sign in with your password."
                   : mode === "reset-password"
@@ -140,14 +140,14 @@ export function LoginPage() {
                   resetForm();
                   setMode("login");
                 }}
-                className="text-sm text-emerald-600 hover:text-emerald-700 underline"
+                className="text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300 underline"
               >
                 {mode === "signup" || mode === "reset-password" ? "Sign in now" : "Use a different email"}
               </button>
             </div>
           ) : mode === "magic-link" ? (
             <form onSubmit={handleMagicLinkSubmit}>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
+              <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                 Email address
               </label>
               <input
@@ -156,12 +156,12 @@ export function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 disabled={status === "loading"}
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-3 text-gray-900 dark:text-white placeholder:text-gray-400 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50"
                 autoFocus
               />
 
               {status === "error" && (
-                <div className="mt-3 text-sm text-rose-600">
+                <div className="mt-3 text-sm text-rose-600 dark:text-rose-400">
                   {errorMessage || "Something went wrong. Please try again."}
                 </div>
               )}
@@ -177,17 +177,17 @@ export function LoginPage() {
               <button
                 type="button"
                 onClick={() => { resetForm(); setMode("login"); }}
-                className="mt-4 w-full text-sm text-emerald-600 hover:text-emerald-700"
+                className="mt-4 w-full text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
               >
                 Back to password login
               </button>
             </form>
           ) : mode === "reset-password" ? (
             <form onSubmit={handleResetPassword}>
-              <div className="mb-4 text-sm text-gray-600">
+              <div className="mb-4 text-sm text-gray-600 dark:text-gray-400">
                 Enter your email and we'll send you a link to set your password.
               </div>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
+              <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                 Email address
               </label>
               <input
@@ -196,12 +196,12 @@ export function LoginPage() {
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="you@example.com"
                 disabled={status === "loading"}
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-3 text-gray-900 dark:text-white placeholder:text-gray-400 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50"
                 autoFocus
               />
 
               {status === "error" && (
-                <div className="mt-3 text-sm text-rose-600">
+                <div className="mt-3 text-sm text-rose-600 dark:text-rose-400">
                   {errorMessage || "Something went wrong. Please try again."}
                 </div>
               )}
@@ -217,14 +217,14 @@ export function LoginPage() {
               <button
                 type="button"
                 onClick={() => { resetForm(); setMode("login"); }}
-                className="mt-4 w-full text-sm text-emerald-600 hover:text-emerald-700"
+                className="mt-4 w-full text-sm text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
               >
                 Back to login
               </button>
             </form>
           ) : (
             <form onSubmit={handlePasswordSubmit}>
-              <label className="block mb-2 text-sm font-medium text-gray-700">
+              <label className="block mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                 Email address
               </label>
               <input
@@ -234,11 +234,11 @@ export function LoginPage() {
                 placeholder="you@example.com"
                 disabled={status === "loading"}
                 autoComplete="email"
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-3 text-gray-900 dark:text-white placeholder:text-gray-400 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50"
                 autoFocus
               />
 
-              <label className="block mt-4 mb-2 text-sm font-medium text-gray-700">
+              <label className="block mt-4 mb-2 text-sm font-medium text-gray-700 dark:text-gray-300">
                 Password
               </label>
               <input
@@ -248,10 +248,10 @@ export function LoginPage() {
                 placeholder={mode === "signup" ? "Min 8 chars, upper/lower/number" : "Enter your password"}
                 disabled={status === "loading"}
                 autoComplete={mode === "signup" ? "new-password" : "current-password"}
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50"
+                className="w-full rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-3 text-gray-900 dark:text-white placeholder:text-gray-400 outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:opacity-50"
               />
               {mode === "signup" && (
-                <div className="mt-1 text-xs text-gray-500">
+                <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
                   At least 8 characters with uppercase, lowercase, and a number
                 </div>
               )}
@@ -260,14 +260,14 @@ export function LoginPage() {
                 <button
                   type="button"
                   onClick={() => { setStatus("idle"); setErrorMessage(""); setMode("reset-password"); }}
-                  className="mt-2 text-xs text-emerald-600 hover:text-emerald-700"
+                  className="mt-2 text-xs text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
                 >
                   Forgot password? Set a new one
                 </button>
               )}
 
               {status === "error" && (
-                <div className="mt-3 text-sm text-rose-600">
+                <div className="mt-3 text-sm text-rose-600 dark:text-rose-400">
                   {errorMessage || "Something went wrong. Please try again."}
                 </div>
               )}
@@ -287,14 +287,14 @@ export function LoginPage() {
                 <button
                   type="button"
                   onClick={() => { resetForm(); setMode(mode === "signup" ? "login" : "signup"); }}
-                  className="text-emerald-600 hover:text-emerald-700"
+                  className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
                 >
                   {mode === "signup" ? "Already have an account?" : "Create an account"}
                 </button>
                 <button
                   type="button"
                   onClick={() => { resetForm(); setMode("magic-link"); }}
-                  className="text-emerald-600 hover:text-emerald-700"
+                  className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400 dark:hover:text-emerald-300"
                 >
                   Use magic link
                 </button>
