@@ -86,7 +86,8 @@ export const DEFAULT_TAG_CATEGORIES: TagCategory[] = [
   { id: "priority", name: "Priority", order: 1 },
   { id: "type", name: "Type", order: 2 },
   { id: "effort", name: "Effort", order: 3 },
-  { id: "custom", name: "Custom", order: 4 },
+  { id: "feedback", name: "Feedback", order: 4 },
+  { id: "custom", name: "Custom", order: 5 },
 ];
 
 export const DEFAULT_TAGS: Tag[] = [
@@ -105,6 +106,9 @@ export const DEFAULT_TAGS: Tag[] = [
   { id: "quick", name: "Quick win", color: "#06B6D4", categoryId: "effort" },
   { id: "medium-effort", name: "Medium", color: "#3B82F6", categoryId: "effort" },
   { id: "large", name: "Large", color: "#7C3AED", categoryId: "effort" },
+  // Feedback (for user-submitted feedback)
+  { id: "feedback-bug", name: "Bug Report", color: "#EF4444", categoryId: "feedback" },
+  { id: "feedback-feature", name: "Feature Request", color: "#8B5CF6", categoryId: "feedback" },
 ];
 
 export const TAG_COLOR_PALETTE = [

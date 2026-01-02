@@ -141,6 +141,54 @@ console.log(data);
 
 ---
 
+### Submit Feedback
+
+Submit a bug report or feature request. Requires user authentication (logged in).
+
+**Endpoint:** `POST /api/feedback/submit`
+
+**Headers:**
+
+| Header | Required | Description |
+|--------|----------|-------------|
+| `Authorization` | Yes | `Bearer <supabase_access_token>` |
+| `Content-Type` | Yes | `application/json` |
+
+**Request Body:**
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `type` | string | Yes | Either `"bug"` or `"feature"` |
+| `title` | string | Yes | Feedback title |
+| `description` | string | No | Detailed description |
+
+**Success Response (200):**
+
+```json
+{
+  "success": true,
+  "message": "Thank you for your feedback!"
+}
+```
+
+**Error Responses:**
+
+| Status | Response | Cause |
+|--------|----------|-------|
+| 400 | `{"error": "Title is required"}` | Missing or empty title |
+| 400 | `{"error": "Invalid type..."}` | Type must be "bug" or "feature" |
+| 401 | `{"error": "Authentication required"}` | Missing or invalid auth token |
+| 500 | `{"error": "FEEDBACK_OWNER_USER_ID not configured"}` | Missing env variable |
+| 500 | `{"error": "..."}` | Server configuration error |
+
+**Notes:**
+
+- Feedback is automatically added to the owner's backlog (configured via `FEEDBACK_OWNER_USER_ID`)
+- Cards are tagged with "Bug Report" or "Feature Request" tags
+- The submitter's email and timestamp are recorded in the card notes
+
+---
+
 ## Card Data Model
 
 Cards created via webhook have the following structure:
@@ -168,14 +216,21 @@ Cards created via webhook have the following structure:
 
 ## Environment Variables
 
-The webhook endpoint requires these Vercel environment variables:
+The API endpoints require these Vercel environment variables:
 
 | Variable | Description |
 |----------|-------------|
-| `WEBHOOK_SECRET` | Shared secret for authentication |
-| `FOCUSBOARD_USER_ID` | Your Supabase user UUID |
+| `WEBHOOK_SECRET` | Shared secret for webhook authentication |
+| `FOCUSBOARD_USER_ID` | Your Supabase user UUID (for webhook endpoint) |
+| `FEEDBACK_OWNER_USER_ID` | Your Supabase user UUID (receives feedback submissions) |
 | `SUPABASE_URL` | Supabase project URL |
 | `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-side) |
+
+**Finding your User ID:**
+
+1. Go to your Supabase dashboard
+2. Navigate to Authentication > Users
+3. Find your account and copy the UUID from the "UID" column
 
 See [SUPABASE.md](./SUPABASE.md) for database setup.
 
@@ -187,6 +242,8 @@ To add new endpoints, create files in the `api/` directory:
 
 ```
 api/
+├── feedback/
+│   └── submit.ts      # POST /api/feedback/submit
 └── webhook/
     └── add-card.ts    # POST /api/webhook/add-card
 ```

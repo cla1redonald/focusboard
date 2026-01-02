@@ -42,6 +42,13 @@ export type Attachment = {
   createdAt: string; // ISO date
 };
 
+// Card link type for multiple links support
+export type CardLink = {
+  id: string;
+  url: string;
+  label?: string; // Optional custom label
+};
+
 // Tag types
 export type Tag = {
   id: string;
@@ -64,7 +71,8 @@ export type Card = {
   order: number; // Position within column (lower = higher in list)
   icon?: string;
   notes?: string;
-  link?: string;
+  link?: string; // @deprecated - use links array instead (kept for backward compatibility)
+  links?: CardLink[]; // Multiple links with optional labels
   dueDate?: string; // ISO date
   tags?: string[];
   checklist?: ChecklistItem[];

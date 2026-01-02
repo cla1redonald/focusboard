@@ -410,8 +410,8 @@ describe("Security Tests", () => {
       saveState(state);
       const loaded = loadState();
 
-      // URL is stored but should be handled safely when rendered
-      expect(loaded.cards[0].link).toBe(dangerousUrl);
+      // URL is migrated to links array and should be handled safely when rendered
+      expect(loaded.cards[0].links?.[0]?.url).toBe(dangerousUrl);
     });
   });
 
