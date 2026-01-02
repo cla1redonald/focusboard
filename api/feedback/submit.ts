@@ -168,8 +168,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       .single();
 
     if (fetchError && fetchError.code !== "PGRST116") {
-      console.error("Feedback fetch error:", fetchError.message);
-      return res.status(500).json({ error: "Failed to fetch state" });
+      console.error("Feedback fetch error:", fetchError.message, fetchError.code);
+      return res.status(500).json({ error: `Failed to fetch state: ${fetchError.message}` });
     }
 
     let state: AppState = data?.state ?? getDefaultState();
@@ -204,8 +204,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     );
 
     if (upsertError) {
-      console.error("Feedback upsert error:", upsertError.message);
-      return res.status(500).json({ error: "Failed to save feedback" });
+      console.error("Feedback upsert error:", upsertError.message, upsertError.code);
+      return res.status(500).json({ error: `Failed to save feedback: ${upsertError.message}` });
     }
 
     return res.status(200).json({
