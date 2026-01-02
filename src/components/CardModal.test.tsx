@@ -114,8 +114,9 @@ describe("CardModal", () => {
 
       // The tag buttons for "High" and "Bug" should be rendered
       // They should have the ring class indicating selection
-      const highTagButton = screen.getByRole("button", { name: /high/i });
-      const bugTagButton = screen.getByRole("button", { name: /bug/i });
+      // Use exact match to avoid confusion with "Bug Report" tag
+      const highTagButton = screen.getByRole("button", { name: /^High$/i });
+      const bugTagButton = screen.getByRole("button", { name: /^Bug$/i });
 
       expect(highTagButton).toBeInTheDocument();
       expect(bugTagButton).toBeInTheDocument();
@@ -298,8 +299,9 @@ describe("CardModal", () => {
       render(<CardModal {...defaultProps} card={card} onSave={onSave} />);
 
       // Click on some tag buttons to select them
-      const highTagButton = screen.getByRole("button", { name: /high/i });
-      const bugTagButton = screen.getByRole("button", { name: /bug/i });
+      // Use exact match to avoid confusion with "Bug Report" tag
+      const highTagButton = screen.getByRole("button", { name: /^High$/i });
+      const bugTagButton = screen.getByRole("button", { name: /^Bug$/i });
 
       await user.click(highTagButton);
       await user.click(bugTagButton);

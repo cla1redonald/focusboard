@@ -20,6 +20,7 @@ import { ToastContainer } from "../components/ToastContainer";
 import { LoginPage } from "../components/LoginPage";
 import { SetPasswordPage } from "../components/SetPasswordPage";
 import { ErrorBoundary } from "../components/ErrorBoundary";
+import { FeedbackModal } from "../components/FeedbackModal";
 
 // Lazy load heavy panel components to reduce initial bundle size
 const MetricsDashboard = React.lazy(() => import("../components/MetricsDashboard").then(m => ({ default: m.MetricsDashboard })));
@@ -54,6 +55,7 @@ function AppContent() {
   const [weeklyPlanOpen, setWeeklyPlanOpen] = React.useState(false);
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = React.useState(false);
+  const [feedbackOpen, setFeedbackOpen] = React.useState(false);
   const [onboardingOpen, setOnboardingOpen] = React.useState(() => !hasSeenOnboarding());
   const [metrics, setMetrics] = React.useState<MetricsState>(() => loadMetrics());
   const hasBgImage = !!state.settings.backgroundImage;
@@ -214,6 +216,7 @@ function AppContent() {
             onOpenTimeline={() => setTimelinePanelOpen(true)}
             onOpenFocus={() => setFocusPanelOpen(true)}
             onOpenWeeklyPlan={() => setWeeklyPlanOpen(true)}
+            onOpenFeedback={() => setFeedbackOpen(true)}
             onShowTutorial={() => setOnboardingOpen(true)}
             onShowShortcuts={() => setShortcutsOpen(true)}
             canUndo={canUndo}
@@ -430,6 +433,12 @@ function AppContent() {
           setOnboardingOpen(false);
           markOnboardingSeen();
         }}
+      />
+
+      <FeedbackModal
+        open={feedbackOpen}
+        onClose={() => setFeedbackOpen(false)}
+        onSuccess={() => showToast({ type: "success", message: "Thanks for your feedback!" })}
       />
 
       <ToastContainer />

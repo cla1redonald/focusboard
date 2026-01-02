@@ -1,5 +1,5 @@
 import React from "react";
-import { Undo2, Redo2, Calendar, Sparkles, CalendarDays, HelpCircle, BookOpen, Keyboard } from "lucide-react";
+import { Undo2, Redo2, Calendar, Sparkles, CalendarDays, HelpCircle, BookOpen, Keyboard, MessageSquarePlus } from "lucide-react";
 import type { Card, MetricsState } from "../app/types";
 import { MetricsWidget } from "./MetricsWidget";
 import { PomodoroTimer } from "./PomodoroTimer";
@@ -13,6 +13,7 @@ export function TopStrip({
   onOpenTimeline,
   onOpenFocus,
   onOpenWeeklyPlan,
+  onOpenFeedback,
   onShowTutorial,
   onShowShortcuts,
   canUndo,
@@ -28,6 +29,7 @@ export function TopStrip({
   onOpenTimeline: () => void;
   onOpenFocus?: () => void;
   onOpenWeeklyPlan?: () => void;
+  onOpenFeedback?: () => void;
   onShowTutorial?: () => void;
   onShowShortcuts?: () => void;
   canUndo: boolean;
@@ -114,6 +116,17 @@ export function TopStrip({
         <span className="text-sm">Timeline</span>
       </button>
       <MetricsWidget metrics={metrics} onOpenDashboard={onOpenMetrics} />
+      {onOpenFeedback && (
+        <button
+          onClick={onOpenFeedback}
+          className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+          title="Send feedback"
+          aria-label="Feedback"
+        >
+          <MessageSquarePlus size={16} />
+          <span className="text-sm">Feedback</span>
+        </button>
+      )}
       {(onShowTutorial || onShowShortcuts) && (
         <HelpMenu onShowTutorial={onShowTutorial} onShowShortcuts={onShowShortcuts} />
       )}
