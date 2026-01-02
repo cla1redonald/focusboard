@@ -31,11 +31,11 @@ export function RelationshipPicker({
 
   if (availableCards.length === 0) {
     return (
-      <div className="rounded-xl border border-gray-200 bg-white p-4 text-sm text-gray-600">
+      <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 text-sm text-gray-600 dark:text-gray-400">
         <p>No other cards available to link.</p>
         <button
           onClick={onCancel}
-          className="mt-3 text-emerald-600 hover:text-emerald-700"
+          className="mt-3 text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300"
         >
           Close
         </button>
@@ -44,15 +44,15 @@ export function RelationshipPicker({
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-lg">
-      <div className="mb-3 text-sm font-medium text-gray-900">Add Relationship</div>
+    <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4 shadow-lg">
+      <div className="mb-3 text-sm font-medium text-gray-900 dark:text-white">Add Relationship</div>
       <div className="max-h-60 space-y-2 overflow-y-auto">
         {availableCards.map((card) => (
           <div
             key={card.id}
-            className="rounded-lg border border-gray-200 bg-gray-50 p-2"
+            className="rounded-lg border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 p-2"
           >
-            <div className="mb-2 flex items-center gap-2 text-sm text-gray-900">
+            <div className="mb-2 flex items-center gap-2 text-sm text-gray-900 dark:text-white">
               {card.icon && <span>{card.icon}</span>}
               <span className="truncate">{card.title}</span>
             </div>
@@ -62,7 +62,7 @@ export function RelationshipPicker({
                   <button
                     key={type}
                     onClick={() => onSelect(card.id, type)}
-                    className="rounded-md bg-gray-100 px-2 py-1 text-xs text-gray-700 transition hover:bg-gray-200"
+                    className="rounded-md bg-gray-100 dark:bg-gray-600 px-2 py-1 text-xs text-gray-700 dark:text-gray-300 transition hover:bg-gray-200 dark:hover:bg-gray-500"
                     title={RELATION_LABELS[type]}
                   >
                     {RELATION_ICONS[type]} {RELATION_LABELS[type]}
@@ -75,7 +75,7 @@ export function RelationshipPicker({
       </div>
       <button
         onClick={onCancel}
-        className="mt-3 text-sm text-emerald-600 hover:text-emerald-700"
+        className="mt-3 text-sm text-emerald-600 dark:text-emerald-400 hover:text-emerald-700 dark:hover:text-emerald-300"
       >
         Cancel
       </button>
@@ -98,12 +98,12 @@ export function RelationshipBadge({
 
   return (
     <div
-      className="group flex items-center gap-1 rounded-lg bg-gray-100 px-2 py-1 text-xs"
+      className="group flex items-center gap-1 rounded-lg bg-gray-100 dark:bg-gray-700 px-2 py-1 text-xs"
       onClick={onClick}
     >
-      <span className="text-emerald-600">{RELATION_ICONS[relation.type]}</span>
-      <span className="text-gray-600">{RELATION_LABELS[relation.type]}</span>
-      <span className="truncate font-medium text-gray-900" title={targetCard.title}>
+      <span className="text-emerald-600 dark:text-emerald-400">{RELATION_ICONS[relation.type]}</span>
+      <span className="text-gray-600 dark:text-gray-400">{RELATION_LABELS[relation.type]}</span>
+      <span className="truncate font-medium text-gray-900 dark:text-white" title={targetCard.title}>
         {targetCard.title.slice(0, 20)}
         {targetCard.title.length > 20 && "..."}
       </span>
@@ -126,7 +126,7 @@ export function RelationshipBadge({
             strokeWidth="2"
             strokeLinecap="round"
             strokeLinejoin="round"
-            className="text-gray-500 hover:text-red-500"
+            className="text-gray-500 dark:text-gray-400 hover:text-red-500"
           >
             <path d="M18 6 6 18" />
             <path d="m6 6 12 12" />
@@ -154,7 +154,7 @@ export function RelationshipIndicators({
     <div className="flex flex-wrap gap-1">
       {blockingCount > 0 && (
         <span
-          className="rounded bg-red-100 px-1 py-0.5 text-[10px] text-red-700"
+          className="rounded bg-red-100 dark:bg-red-900/30 px-1 py-0.5 text-[10px] text-red-700 dark:text-red-400"
           title={`Blocks ${blockingCount} card${blockingCount > 1 ? "s" : ""}`}
         >
           🚫 {blockingCount}
@@ -162,7 +162,7 @@ export function RelationshipIndicators({
       )}
       {blockedByCount > 0 && (
         <span
-          className="rounded bg-orange-100 px-1 py-0.5 text-[10px] text-orange-700"
+          className="rounded bg-orange-100 dark:bg-orange-900/30 px-1 py-0.5 text-[10px] text-orange-700 dark:text-orange-400"
           title={`Blocked by ${blockedByCount} card${blockedByCount > 1 ? "s" : ""}`}
         >
           ⛔ {blockedByCount}
@@ -170,7 +170,7 @@ export function RelationshipIndicators({
       )}
       {parentCount > 0 && (
         <span
-          className="rounded bg-blue-100 px-1 py-0.5 text-[10px] text-blue-700"
+          className="rounded bg-blue-100 dark:bg-blue-900/30 px-1 py-0.5 text-[10px] text-blue-700 dark:text-blue-400"
           title={`Parent of ${parentCount} card${parentCount > 1 ? "s" : ""}`}
         >
           📦 {parentCount}
@@ -178,7 +178,7 @@ export function RelationshipIndicators({
       )}
       {childCount > 0 && (
         <span
-          className="rounded bg-purple-100 px-1 py-0.5 text-[10px] text-purple-700"
+          className="rounded bg-purple-100 dark:bg-purple-900/30 px-1 py-0.5 text-[10px] text-purple-700 dark:text-purple-400"
           title={`Child of ${childCount} card${childCount > 1 ? "s" : ""}`}
         >
           📄 {childCount}
@@ -186,7 +186,7 @@ export function RelationshipIndicators({
       )}
       {relatedCount > 0 && (
         <span
-          className="rounded bg-gray-100 px-1 py-0.5 text-[10px] text-gray-700"
+          className="rounded bg-gray-100 dark:bg-gray-700 px-1 py-0.5 text-[10px] text-gray-700 dark:text-gray-300"
           title={`Related to ${relatedCount} card${relatedCount > 1 ? "s" : ""}`}
         >
           🔗 {relatedCount}

@@ -162,12 +162,12 @@ export function CommandPalette({
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: -20 }}
             transition={{ duration: 0.15, ease: "easeOut" }}
-            className="fixed left-1/2 top-[20%] z-[1500] w-full max-w-[560px] -translate-x-1/2 overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-2xl"
+            className="fixed left-1/2 top-[20%] z-[1500] w-full max-w-[560px] -translate-x-1/2 overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-2xl"
           >
             {/* Search Input */}
-            <div className="flex items-center gap-3 border-b border-gray-200 px-4 py-3">
+            <div className="flex items-center gap-3 border-b border-gray-200 dark:border-gray-700 px-4 py-3">
               <svg
-                className="h-5 w-5 text-gray-400"
+                className="h-5 w-5 text-gray-400 dark:text-gray-500"
                 viewBox="0 0 24 24"
                 fill="none"
                 stroke="currentColor"
@@ -185,9 +185,9 @@ export function CommandPalette({
                 onChange={(e) => setQuery(e.target.value)}
                 onKeyDown={handleKeyDown}
                 placeholder="Search cards, columns, or actions..."
-                className="flex-1 bg-transparent text-sm text-gray-900 outline-none placeholder:text-gray-400"
+                className="flex-1 bg-transparent text-sm text-gray-900 dark:text-white outline-none placeholder:text-gray-400 dark:placeholder:text-gray-500"
               />
-              <kbd className="rounded border border-gray-200 bg-gray-50 px-1.5 py-0.5 text-[10px] text-gray-500">
+              <kbd className="rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-1.5 py-0.5 text-[10px] text-gray-500 dark:text-gray-400">
                 ESC
               </kbd>
             </div>
@@ -195,7 +195,7 @@ export function CommandPalette({
             {/* Results List */}
             <div ref={listRef} className="max-h-[400px] overflow-y-auto p-2">
               {results.length === 0 ? (
-                <div className="px-3 py-8 text-center text-sm text-gray-500">
+                <div className="px-3 py-8 text-center text-sm text-gray-500 dark:text-gray-400">
                   No results found
                 </div>
               ) : (
@@ -212,18 +212,18 @@ export function CommandPalette({
                     onClick={() => executeItem(item)}
                     className={`cursor-pointer rounded-xl px-3 py-2.5 transition ${
                       selectedIndex === idx
-                        ? "bg-emerald-50"
-                        : "hover:bg-gray-50"
+                        ? "bg-emerald-50 dark:bg-emerald-900/30"
+                        : "hover:bg-gray-50 dark:hover:bg-gray-800"
                     }`}
                   >
                     {item.type === "card" && (
                       <div className="flex items-center gap-3">
                         <span className="text-lg">{item.card.icon || "📄"}</span>
                         <div className="flex-1 min-w-0">
-                          <div className="truncate text-sm font-medium text-gray-900">
+                          <div className="truncate text-sm font-medium text-gray-900 dark:text-white">
                             {item.card.title}
                           </div>
-                          <div className="flex items-center gap-1.5 text-xs text-gray-500">
+                          <div className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
                             <span
                               className="h-1.5 w-1.5 rounded-full"
                               style={{ backgroundColor: item.column.color }}
@@ -231,7 +231,7 @@ export function CommandPalette({
                             {item.column.title}
                           </div>
                         </div>
-                        <span className="text-[10px] text-gray-400 uppercase">Card</span>
+                        <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase">Card</span>
                       </div>
                     )}
 
@@ -239,11 +239,11 @@ export function CommandPalette({
                       <div className="flex items-center gap-3">
                         <span className="text-lg">{item.column.icon}</span>
                         <div className="flex-1">
-                          <div className="text-sm font-medium text-gray-900">
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">
                             Jump to {item.column.title}
                           </div>
                         </div>
-                        <span className="text-[10px] text-gray-400 uppercase">Column</span>
+                        <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase">Column</span>
                       </div>
                     )}
 
@@ -251,9 +251,9 @@ export function CommandPalette({
                       <div className="flex items-center gap-3">
                         <span className="text-lg">{item.icon}</span>
                         <div className="flex-1">
-                          <div className="text-sm font-medium text-gray-900">{item.label}</div>
+                          <div className="text-sm font-medium text-gray-900 dark:text-white">{item.label}</div>
                         </div>
-                        <span className="text-[10px] text-gray-400 uppercase">Action</span>
+                        <span className="text-[10px] text-gray-400 dark:text-gray-500 uppercase">Action</span>
                       </div>
                     )}
                   </div>
@@ -262,15 +262,15 @@ export function CommandPalette({
             </div>
 
             {/* Footer hints */}
-            <div className="flex items-center justify-between border-t border-gray-200 px-4 py-2 text-[10px] text-gray-500">
+            <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 px-4 py-2 text-[10px] text-gray-500 dark:text-gray-400">
               <div className="flex items-center gap-3">
                 <span className="flex items-center gap-1">
-                  <kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5">↑</kbd>
-                  <kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5">↓</kbd>
+                  <kbd className="rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-1 py-0.5">↑</kbd>
+                  <kbd className="rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-1 py-0.5">↓</kbd>
                   to navigate
                 </span>
                 <span className="flex items-center gap-1">
-                  <kbd className="rounded border border-gray-200 bg-gray-50 px-1 py-0.5">↵</kbd>
+                  <kbd className="rounded border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-1 py-0.5">↵</kbd>
                   to select
                 </span>
               </div>

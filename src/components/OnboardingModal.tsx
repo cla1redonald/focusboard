@@ -103,7 +103,7 @@ export function OnboardingModal({
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
         exit={{ opacity: 0 }}
-        className="absolute inset-0 bg-gray-900/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-gray-900/40 dark:bg-black/50 backdrop-blur-sm"
         onClick={onClose}
       />
       <motion.div
@@ -111,7 +111,7 @@ export function OnboardingModal({
         animate={{ opacity: 1, scale: 1, y: 0 }}
         exit={{ opacity: 0, scale: 0.95, y: 20 }}
         transition={{ duration: 0.2, ease: "easeOut" }}
-        className="relative w-[440px] max-w-[92vw] overflow-hidden rounded-2xl border border-gray-200 bg-white shadow-[0_30px_80px_rgba(0,0,0,0.25)]"
+        className="relative w-[440px] max-w-[92vw] overflow-hidden rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 shadow-[0_30px_80px_rgba(0,0,0,0.25)]"
       >
         {/* Progress dots */}
         <div className="absolute left-1/2 top-4 flex -translate-x-1/2 gap-1.5">
@@ -119,7 +119,7 @@ export function OnboardingModal({
             <div
               key={idx}
               className={`h-1.5 w-1.5 rounded-full transition-colors ${
-                idx === step ? "bg-emerald-500" : "bg-gray-200"
+                idx === step ? "bg-emerald-500" : "bg-gray-200 dark:bg-gray-700"
               }`}
             />
           ))}
@@ -137,10 +137,10 @@ export function OnboardingModal({
               className="text-center"
             >
               <div className="mb-4 text-5xl">{currentStep.emoji}</div>
-              <h2 className="display-font mb-3 text-xl text-gray-900">
+              <h2 className="display-font mb-3 text-xl text-gray-900 dark:text-white">
                 {currentStep.title}
               </h2>
-              <p className="text-sm leading-relaxed text-gray-600">
+              <p className="text-sm leading-relaxed text-gray-600 dark:text-gray-400">
                 {currentStep.description}
               </p>
             </motion.div>
@@ -148,14 +148,14 @@ export function OnboardingModal({
         </div>
 
         {/* Footer */}
-        <div className="flex items-center justify-between border-t border-gray-200 bg-gray-50 px-6 py-4">
+        <div className="flex items-center justify-between border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800 px-6 py-4">
           <button
             onClick={handleBack}
             disabled={step === 0}
             className={`rounded-lg px-4 py-2 text-sm font-medium transition ${
               step === 0
-                ? "text-gray-300 cursor-not-allowed"
-                : "text-gray-700 hover:bg-gray-100"
+                ? "text-gray-300 dark:text-gray-600 cursor-not-allowed"
+                : "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
             }`}
           >
             Back
@@ -164,7 +164,7 @@ export function OnboardingModal({
           <div className="flex items-center gap-3">
             <button
               onClick={onClose}
-              className="rounded-lg px-4 py-2 text-sm text-gray-500 transition hover:text-gray-900"
+              className="rounded-lg px-4 py-2 text-sm text-gray-500 dark:text-gray-400 transition hover:text-gray-900 dark:hover:text-white"
             >
               Skip
             </button>

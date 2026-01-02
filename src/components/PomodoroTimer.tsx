@@ -154,7 +154,7 @@ export function PomodoroTimer() {
     return (
       <button
         onClick={() => setIsExpanded(true)}
-        className="flex items-center gap-2 rounded-md px-2 py-1 text-gray-600 transition hover:bg-gray-100 hover:text-gray-900"
+        className="flex items-center gap-2 rounded-md px-2 py-1 text-gray-600 dark:text-gray-400 transition hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-900 dark:hover:text-white"
         title="Open Pomodoro Timer"
       >
         <div className="relative">
@@ -177,31 +177,31 @@ export function PomodoroTimer() {
       />
 
       {/* Timer panel */}
-      <div className="absolute right-0 top-full mt-2 z-50 w-72 rounded-xl border border-gray-200 bg-white p-4 shadow-xl">
+      <div className="absolute right-0 top-full mt-2 z-50 w-72 rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 p-4 shadow-xl">
         {/* Header */}
         <div className="flex items-center justify-between mb-4">
           <div className="flex items-center gap-2">
             <span className="text-lg">🍅</span>
-            <span className="font-semibold text-gray-900">Pomodoro</span>
+            <span className="font-semibold text-gray-900 dark:text-white">Pomodoro</span>
           </div>
           <button
             onClick={() => setIsExpanded(false)}
-            className="text-gray-400 hover:text-gray-600 transition"
+            className="text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 transition"
           >
             <X size={20} />
           </button>
         </div>
 
         {/* Mode tabs */}
-        <div className="flex gap-1 mb-4 p-1 bg-gray-100 rounded-lg">
+        <div className="flex gap-1 mb-4 p-1 bg-gray-100 dark:bg-gray-800 rounded-lg">
           {(["focus", "shortBreak", "longBreak"] as TimerMode[]).map((m) => (
             <button
               key={m}
               onClick={() => switchMode(m)}
               className={`flex-1 py-1.5 text-xs font-medium rounded-md transition ${
                 mode === m
-                  ? "bg-white text-gray-900 shadow-sm"
-                  : "text-gray-500 hover:text-gray-700"
+                  ? "bg-white dark:bg-gray-700 text-gray-900 dark:text-white shadow-sm"
+                  : "text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
               }`}
             >
               {MODE_LABELS[m]}
@@ -218,8 +218,9 @@ export function PomodoroTimer() {
               cy="64"
               r="58"
               fill="none"
-              stroke="#f3f4f6"
+              stroke="currentColor"
               strokeWidth="8"
+              className="text-gray-100 dark:text-gray-800"
             />
             <circle
               cx="64"
@@ -237,7 +238,7 @@ export function PomodoroTimer() {
             />
           </svg>
           <div className="absolute inset-0 flex flex-col items-center justify-center">
-            <span className="text-3xl font-bold text-gray-900 tabular-nums">
+            <span className="text-3xl font-bold text-gray-900 dark:text-white tabular-nums">
               {formatTime(timeLeft)}
             </span>
             <span className={`text-xs font-medium px-2 py-0.5 rounded-full mt-1 ${MODE_COLORS[mode]} text-white`}>
@@ -250,7 +251,7 @@ export function PomodoroTimer() {
         <div className="flex items-center justify-center gap-3 mb-4">
           <button
             onClick={resetTimer}
-            className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition"
+            className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 transition"
             title="Reset"
           >
             <RotateCcw size={20} />
@@ -259,7 +260,7 @@ export function PomodoroTimer() {
             onClick={toggleTimer}
             className={`flex items-center justify-center w-14 h-14 rounded-full transition ${
               isRunning
-                ? "bg-gray-100 text-gray-700 hover:bg-gray-200"
+                ? "bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-700"
                 : "bg-emerald-600 text-white hover:bg-emerald-700"
             }`}
           >
@@ -270,7 +271,7 @@ export function PomodoroTimer() {
               const newMode = mode === "focus" ? "shortBreak" : "focus";
               switchMode(newMode);
             }}
-            className="p-2 rounded-full text-gray-500 hover:bg-gray-100 hover:text-gray-700 transition"
+            className="p-2 rounded-full text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800 hover:text-gray-700 dark:hover:text-gray-300 transition"
             title="Skip"
           >
             <SkipForward size={20} />
@@ -278,7 +279,7 @@ export function PomodoroTimer() {
         </div>
 
         {/* Stats */}
-        <div className="flex items-center justify-center gap-4 text-xs text-gray-500 border-t border-gray-100 pt-3">
+        <div className="flex items-center justify-center gap-4 text-xs text-gray-500 dark:text-gray-400 border-t border-gray-100 dark:border-gray-800 pt-3">
           <div className="flex items-center gap-1">
             <span>🍅</span>
             <span>{pomodoroState.completedPomodoros} today</span>

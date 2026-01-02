@@ -74,11 +74,11 @@ export function ExportImportPanel({
     <div className="space-y-6">
       {/* Export Section */}
       <div>
-        <h3 className="mb-3 text-sm font-medium text-gray-900">Export Data</h3>
+        <h3 className="mb-3 text-sm font-medium text-gray-900 dark:text-white">Export Data</h3>
         <div className="flex flex-wrap gap-2">
           <button
             onClick={handleExportJson}
-            className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 transition hover:border-gray-300 hover:bg-gray-50"
+            className="flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 transition hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -99,7 +99,7 @@ export function ExportImportPanel({
           </button>
           <button
             onClick={handleExportCsv}
-            className="flex items-center gap-2 rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 transition hover:border-gray-300 hover:bg-gray-50"
+            className="flex items-center gap-2 rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-800 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 transition hover:border-gray-300 dark:hover:border-gray-500 hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -119,18 +119,18 @@ export function ExportImportPanel({
             Export CSV (Cards Only)
           </button>
         </div>
-        <p className="mt-2 text-xs text-gray-500">
+        <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
           JSON includes all data (cards, columns, templates, settings). CSV exports cards only for spreadsheet use.
         </p>
       </div>
 
       {/* Import Section */}
       <div>
-        <h3 className="mb-3 text-sm font-medium text-gray-900">Import Data</h3>
+        <h3 className="mb-3 text-sm font-medium text-gray-900 dark:text-white">Import Data</h3>
 
         {!validation ? (
           <div>
-            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-gray-300 bg-gray-50 px-4 py-6 text-sm text-gray-700 transition hover:border-gray-400 hover:bg-gray-100">
+            <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-dashed border-gray-300 dark:border-gray-600 bg-gray-50 dark:bg-gray-800 px-4 py-6 text-sm text-gray-700 dark:text-gray-300 transition hover:border-gray-400 dark:hover:border-gray-500 hover:bg-gray-100 dark:hover:bg-gray-700">
               <svg
                 xmlns="http://www.w3.org/2000/svg"
                 width="20"
@@ -155,16 +155,16 @@ export function ExportImportPanel({
                 className="hidden"
               />
             </label>
-            <p className="mt-2 text-xs text-gray-500">
+            <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
               Import a previously exported JSON backup file.
             </p>
           </div>
         ) : (
-          <div className="rounded-xl border border-gray-200 bg-white p-4">
+          <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-4">
             {/* Validation Results */}
             {!validation.valid ? (
               <div>
-                <div className="mb-3 flex items-center gap-2 text-rose-700">
+                <div className="mb-3 flex items-center gap-2 text-rose-700 dark:text-rose-400">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="18"
@@ -182,21 +182,21 @@ export function ExportImportPanel({
                   </svg>
                   <span className="font-medium">Import validation failed</span>
                 </div>
-                <ul className="space-y-1 text-sm text-rose-600">
+                <ul className="space-y-1 text-sm text-rose-600 dark:text-rose-400">
                   {validation.errors.map((error, i) => (
                     <li key={i}>- {error}</li>
                   ))}
                 </ul>
                 <button
                   onClick={handleCancel}
-                  className="mt-4 rounded-xl border border-gray-200 bg-gray-50 px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                  className="mt-4 rounded-xl border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
                 >
                   Try Again
                 </button>
               </div>
             ) : (
               <div>
-                <div className="mb-3 flex items-center gap-2 text-emerald-600">
+                <div className="mb-3 flex items-center gap-2 text-emerald-600 dark:text-emerald-400">
                   <svg
                     xmlns="http://www.w3.org/2000/svg"
                     width="18"
@@ -216,24 +216,24 @@ export function ExportImportPanel({
 
                 {/* Stats */}
                 {validation.stats && (
-                  <div className="mb-4 flex gap-4 text-sm text-gray-600">
+                  <div className="mb-4 flex gap-4 text-sm text-gray-600 dark:text-gray-400">
                     <div>
-                      <span className="font-medium text-gray-900">{validation.stats.cardCount}</span> cards
+                      <span className="font-medium text-gray-900 dark:text-white">{validation.stats.cardCount}</span> cards
                     </div>
                     <div>
-                      <span className="font-medium text-gray-900">{validation.stats.columnCount}</span> columns
+                      <span className="font-medium text-gray-900 dark:text-white">{validation.stats.columnCount}</span> columns
                     </div>
                     <div>
-                      <span className="font-medium text-gray-900">{validation.stats.templateCount}</span> templates
+                      <span className="font-medium text-gray-900 dark:text-white">{validation.stats.templateCount}</span> templates
                     </div>
                   </div>
                 )}
 
                 {/* Warnings */}
                 {validation.warnings.length > 0 && (
-                  <div className="mb-4 rounded-lg bg-yellow-50 p-3">
-                    <div className="mb-1 text-xs font-medium text-yellow-800">Warnings:</div>
-                    <ul className="space-y-1 text-xs text-yellow-700">
+                  <div className="mb-4 rounded-lg bg-yellow-50 dark:bg-yellow-900/30 p-3">
+                    <div className="mb-1 text-xs font-medium text-yellow-800 dark:text-yellow-400">Warnings:</div>
+                    <ul className="space-y-1 text-xs text-yellow-700 dark:text-yellow-500">
                       {validation.warnings.map((warning, i) => (
                         <li key={i}>- {warning}</li>
                       ))}
@@ -243,14 +243,14 @@ export function ExportImportPanel({
 
                 {/* Import Mode */}
                 <div className="mb-4">
-                  <div className="mb-2 text-xs font-medium text-gray-600">Import Mode:</div>
+                  <div className="mb-2 text-xs font-medium text-gray-600 dark:text-gray-400">Import Mode:</div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setImportMode("replace")}
                       className={`rounded-lg px-3 py-2 text-sm transition ${
                         importMode === "replace"
                           ? "bg-emerald-600 text-white"
-                          : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                          : "border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
                       }`}
                     >
                       Replace All
@@ -260,13 +260,13 @@ export function ExportImportPanel({
                       className={`rounded-lg px-3 py-2 text-sm transition ${
                         importMode === "merge"
                           ? "bg-emerald-600 text-white"
-                          : "border border-gray-200 bg-white text-gray-700 hover:bg-gray-50"
+                          : "border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
                       }`}
                     >
                       Merge (Add New)
                     </button>
                   </div>
-                  <p className="mt-2 text-xs text-gray-500">
+                  <p className="mt-2 text-xs text-gray-500 dark:text-gray-400">
                     {importMode === "replace"
                       ? "Replace will overwrite all existing data with the imported data."
                       : "Merge will add new cards, columns, and templates without affecting existing ones."}
@@ -277,7 +277,7 @@ export function ExportImportPanel({
                 <div className="flex gap-2">
                   <button
                     onClick={handleCancel}
-                    className="rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm text-gray-700 hover:bg-gray-50"
+                    className="rounded-xl border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-600"
                   >
                     Cancel
                   </button>

@@ -504,6 +504,71 @@ export function getCardAgeDays(card: Card): number {
 }
 
 /**
+ * Burndown data point for chart
+ */
+export interface BurndownDataPoint {
+  date: string;
+  totalRemaining: number;
+  completedCumulative: number;
+}
+
+/**
+ * Get burndown chart data from completed cards
+ * Shows total work remaining over time
+ */
+export function getBurndownData(
+  metrics: MetricsState,
+  days: 30 | 60 | 90
+): { data: BurndownDataPoint[]; startTotal: number } {
+  const cutoffDate = new Date();
+  cutoffDate.setDate(cutoffDate.getDate() - days);
+  const cutoffTime = cutoffDate.getTime();
+
+  // Filter completions within the date range
+  const completions = metrics.completedCards
+    .filter((c) => new Date(c.completedAt).getTime() >= cutoffTime)
+    .sort(
+      (a, b) =>
+        new Date(a.completedAt).getTime() - new Date(b.completedAt).getTime()
+    );
+
+  if (completions.length === 0) {
+    return { data: [], startTotal: 0 };
+  }
+
+  // Group completions by date
+  const completionsByDate = new Map<string, number>();
+  for (const card of completions) {
+    const date = card.completedAt.split("T")[0];
+    completionsByDate.set(date, (completionsByDate.get(date) ?? 0) + 1);
+  }
+
+  // Calculate starting total (remaining at start + all completions in period)
+  // This represents work that existed at the start of the period
+  const totalCompletedInPeriod = completions.length;
+
+  // Build data points
+  const data: BurndownDataPoint[] = [];
+  let cumulativeCompleted = 0;
+
+  // Get all dates in range
+  const dates = Array.from(completionsByDate.keys()).sort();
+
+  for (const date of dates) {
+    const completedOnDay = completionsByDate.get(date) ?? 0;
+    cumulativeCompleted += completedOnDay;
+
+    data.push({
+      date,
+      totalRemaining: totalCompletedInPeriod - cumulativeCompleted,
+      completedCumulative: cumulativeCompleted,
+    });
+  }
+
+  return { data, startTotal: totalCompletedInPeriod };
+}
+
+/**
  * Get backlog cards that are stale (no due date and not updated in X days)
  */
 export function getStaleBacklogCards(
