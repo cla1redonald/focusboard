@@ -27,6 +27,8 @@ A focused Kanban-style board with WIP limits, colored tags, and cloud sync.
 - **Celebrations** - Confetti animation when completing tasks (can be disabled)
 - **Custom Backgrounds** - Upload your own background image
 - **Responsive Design** - Works on desktop and tablet
+- **Error Resilience** - ErrorBoundary catches errors gracefully without crashing the app
+- **Optimized Loading** - Heavy panels are lazy-loaded to reduce initial bundle size
 - **Webhook API** - Add cards from Apple Shortcuts, Zapier, or any automation tool
 - **Pomodoro Timer** - 25-minute focus sessions with break reminders and streak tracking
 - **AI Features** (requires Anthropic API key):

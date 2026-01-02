@@ -19,7 +19,7 @@ src/
 │   ├── metrics.ts         # Analytics and metrics calculations
 │   ├── urgency.ts         # Due date urgency calculations
 │   ├── theme.ts           # Dark mode hook and theme application
-│   ├── utils.ts           # Helper functions
+│   ├── utils.ts           # Helper functions (URL validation, date utils, grouping)
 │   ├── exportImport.ts    # JSON/CSV export and import
 │   ├── supabase.ts        # Supabase client initialization
 │   ├── useKeyboardNav.ts  # Keyboard navigation hook
@@ -40,6 +40,7 @@ src/
 │   ├── PomodoroTimer.tsx  # Focus timer with breaks
 │   ├── WipModal.tsx       # WIP limit override dialog
 │   ├── ConfettiBurst.tsx  # Celebration animation
+│   ├── ErrorBoundary.tsx  # Error boundary for graceful error handling
 │   ├── LoginPage.tsx      # Authentication UI
 │   └── ...
 ├── test/                  # Test utilities and security tests
@@ -249,24 +250,25 @@ When Supabase is configured:
 
 ```
 App
-├── LoginPage (if not authenticated)
-└── (authenticated)
-    ├── Board
-    │   ├── TopStrip
-    │   │   └── PomodoroTimer
-    │   ├── FilterBar
-    │   ├── Swimlane (Work, Personal)
-    │   │   └── Column (×n)
-    │   │       └── CardItem (×n)
-    │   ├── WipModal
-    │   └── ConfettiBurst
-    ├── CardModal
-    ├── SettingsPanel
-    │   └── ExportImportPanel
-    ├── MetricsDashboard
-    ├── TimelinePanel
-    ├── FocusSuggestionPanel
-    └── WeeklyPlanPanel
+├── ErrorBoundary (catches React errors gracefully)
+│   ├── LoginPage (if not authenticated)
+│   └── (authenticated)
+│       ├── Board
+│       │   ├── TopStrip
+│       │   │   └── PomodoroTimer
+│       │   ├── FilterBar
+│       │   ├── Swimlane (Work, Personal)
+│       │   │   └── Column (×n)
+│       │   │       └── CardItem (×n)
+│       │   ├── WipModal
+│       │   └── ConfettiBurst
+│       ├── CardModal
+│       ├── SettingsPanel
+│       │   └── ExportImportPanel
+│       ├── MetricsDashboard (lazy-loaded)
+│       ├── TimelinePanel (lazy-loaded)
+│       ├── FocusSuggestionPanel (lazy-loaded)
+│       └── WeeklyPlanPanel (lazy-loaded)
 ```
 
 ### Props Flow
@@ -394,18 +396,27 @@ Requires `ANTHROPIC_API_KEY` environment variable. Uses Claude Haiku for fast, l
 
 ## Performance Considerations
 
-1. **Memoization** - Key components use React.memo where beneficial
-2. **Virtualization** - Not currently implemented (suitable for <1000 cards)
-3. **State Updates** - Immutable updates via spread operators
-4. **Storage Writes** - Debounced/throttled via useEffect dependencies
+1. **Code Splitting** - Heavy panels (Metrics, Timeline, Focus, Weekly) are lazy-loaded with `React.lazy()` and `Suspense` to reduce initial bundle size
+2. **Memoization** - Key components use React.memo where beneficial
+3. **Virtualization** - Not currently implemented (suitable for <1000 cards)
+4. **State Updates** - Immutable updates via spread operators
+5. **Storage Writes** - Debounced/throttled via useEffect dependencies
 
 ## Security
 
 - No sensitive data stored (except optional Supabase credentials in env)
 - XSS protection via React's default escaping
+- **URL sanitization** - Card links are validated with `isSafeUrl()` to block `javascript:`, `data:`, and other dangerous protocols
 - localStorage data is user-scoped when authenticated
 - Supabase RLS policies enforce complete user data isolation
 - User ID set synchronously before state initialization (prevents race conditions)
+
+## Error Handling
+
+- **ErrorBoundary** component wraps the entire app and individual lazy-loaded panels
+- Catches React rendering errors gracefully instead of crashing the entire app
+- Displays user-friendly error message with "Try Again" recovery option
+- Errors are logged to console for debugging (could be extended to error tracking services)
 
 ## Webhook API
 
