@@ -451,7 +451,7 @@ export function getBlockedTimeAnalysis(cards: Card[]): BlockedTimeStats {
 export function getCumulativeFlowData(
   snapshots: DailySnapshot[],
   columns: Column[],
-  days: 30 | 60 | 90
+  days: 7 | 14 | 30 | 60 | 90
 ): CFDDataPoint[] {
   const sortedColumns = [...columns].sort((a, b) => a.order - b.order);
   const cutoffDate = new Date();
@@ -518,7 +518,7 @@ export interface BurndownDataPoint {
  */
 export function getBurndownData(
   metrics: MetricsState,
-  days: 30 | 60 | 90
+  days: 7 | 14 | 30 | 60 | 90
 ): { data: BurndownDataPoint[]; startTotal: number } {
   const cutoffDate = new Date();
   cutoffDate.setDate(cutoffDate.getDate() - days);

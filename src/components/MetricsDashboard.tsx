@@ -117,7 +117,7 @@ function CumulativeFlowDiagram({
   metrics: MetricsState;
   columns: Column[];
 }) {
-  const [days, setDays] = React.useState<30 | 60 | 90>(30);
+  const [days, setDays] = React.useState<7 | 14 | 30 | 60 | 90>(30);
 
   const data = React.useMemo(
     () => getCumulativeFlowData(metrics.dailySnapshots, columns, days),
@@ -157,7 +157,7 @@ function CumulativeFlowDiagram({
       <div className="mb-3 flex items-center justify-between">
         <div className="text-sm font-medium text-gray-900 dark:text-white">Cumulative Flow Diagram</div>
         <div className="flex gap-1">
-          {([30, 60, 90] as const).map((d) => (
+          {([7, 14, 30, 60, 90] as const).map((d) => (
             <button
               key={d}
               onClick={() => setDays(d)}
@@ -256,7 +256,7 @@ function CumulativeFlowDiagram({
 }
 
 function BurndownChart({ metrics }: { metrics: MetricsState }) {
-  const [days, setDays] = React.useState<30 | 60 | 90>(30);
+  const [days, setDays] = React.useState<7 | 14 | 30 | 60 | 90>(30);
 
   const { data, startTotal } = React.useMemo(
     () => getBurndownData(metrics, days),
@@ -269,7 +269,7 @@ function BurndownChart({ metrics }: { metrics: MetricsState }) {
         <div className="mb-3 flex items-center justify-between">
           <div className="text-sm font-medium text-gray-900 dark:text-white">Burndown Chart</div>
           <div className="flex gap-1">
-            {([30, 60, 90] as const).map((d) => (
+            {([7, 14, 30, 60, 90] as const).map((d) => (
               <button
                 key={d}
                 onClick={() => setDays(d)}
@@ -313,7 +313,7 @@ function BurndownChart({ metrics }: { metrics: MetricsState }) {
       <div className="mb-3 flex items-center justify-between">
         <div className="text-sm font-medium text-gray-900 dark:text-white">Burndown Chart</div>
         <div className="flex gap-1">
-          {([30, 60, 90] as const).map((d) => (
+          {([7, 14, 30, 60, 90] as const).map((d) => (
             <button
               key={d}
               onClick={() => setDays(d)}
