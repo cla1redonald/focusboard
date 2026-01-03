@@ -1,6 +1,10 @@
 import React from "react";
 import type { Tag, Column } from "./types";
 import { supabase } from "./supabase";
+import { logger } from "./logger";
+
+// Default timeout for AI API requests (30 seconds)
+const DEFAULT_TIMEOUT_MS = 30000;
 
 /**
  * Get the current session access token for API authentication
@@ -21,6 +25,34 @@ async function getAuthHeaders(): Promise<HeadersInit> {
     headers["Authorization"] = `Bearer ${token}`;
   }
   return headers;
+}
+
+/**
+ * Fetch with timeout support
+ * Wraps the native fetch with an AbortController to enforce a timeout
+ */
+async function fetchWithTimeout(
+  url: string,
+  options: RequestInit,
+  timeoutMs: number = DEFAULT_TIMEOUT_MS
+): Promise<Response> {
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    const response = await fetch(url, {
+      ...options,
+      signal: controller.signal,
+    });
+    return response;
+  } catch (error) {
+    if (error instanceof Error && error.name === "AbortError") {
+      throw new Error(`Request timed out after ${timeoutMs}ms`);
+    }
+    throw error;
+  } finally {
+    clearTimeout(timeoutId);
+  }
 }
 
 type ParsedCard = {
@@ -102,7 +134,7 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
       setError(null);
 
       try {
-        const response = await fetch("/api/ai/suggest", {
+        const response = await fetchWithTimeout("/api/ai/suggest", {
           method: "POST",
           headers: await getAuthHeaders(),
           body: JSON.stringify({
@@ -131,7 +163,9 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
 
         return suggestedIds;
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
+        const message = err instanceof Error ? err.message : "Unknown error";
+        logger.error("Failed to get tag suggestions", { action: "suggestTags" }, err);
+        setError(message);
         return [];
       } finally {
         setIsLoading(false);
@@ -148,7 +182,7 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
       setError(null);
 
       try {
-        const response = await fetch("/api/ai/parse-card", {
+        const response = await fetchWithTimeout("/api/ai/parse-card", {
           method: "POST",
           headers: await getAuthHeaders(),
           body: JSON.stringify({
@@ -166,7 +200,9 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
         const data = await response.json();
         return data.card || null;
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
+        const message = err instanceof Error ? err.message : "Unknown error";
+        logger.error("Failed to parse card with AI", { action: "parseCard" }, err);
+        setError(message);
         return null;
       } finally {
         setIsLoading(false);
@@ -186,7 +222,7 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
       setError(null);
 
       try {
-        const response = await fetch("/api/ai/breakdown", {
+        const response = await fetchWithTimeout("/api/ai/breakdown", {
           method: "POST",
           headers: await getAuthHeaders(),
           body: JSON.stringify({
@@ -208,7 +244,9 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
           suggestion: data.suggestion,
         };
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
+        const message = err instanceof Error ? err.message : "Unknown error";
+        logger.error("Failed to break down task", { action: "breakdownTask" }, err);
+        setError(message);
         return null;
       } finally {
         setIsLoading(false);
@@ -228,7 +266,7 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
       setError(null);
 
       try {
-        const response = await fetch("/api/ai/daily-focus", {
+        const response = await fetchWithTimeout("/api/ai/daily-focus", {
           method: "POST",
           headers: await getAuthHeaders(),
           body: JSON.stringify({
@@ -250,7 +288,9 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
           insight: data.insight,
         };
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
+        const message = err instanceof Error ? err.message : "Unknown error";
+        logger.error("Failed to get daily focus suggestions", { action: "getDailyFocus" }, err);
+        setError(message);
         return null;
       } finally {
         setIsLoading(false);
@@ -274,7 +314,7 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
       setError(null);
 
       try {
-        const response = await fetch("/api/ai/weekly-plan", {
+        const response = await fetchWithTimeout("/api/ai/weekly-plan", {
           method: "POST",
           headers: await getAuthHeaders(),
           body: JSON.stringify({
@@ -297,7 +337,9 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
           capacityWarning: data.capacityWarning,
         };
       } catch (err) {
-        setError(err instanceof Error ? err.message : "Unknown error");
+        const message = err instanceof Error ? err.message : "Unknown error";
+        logger.error("Failed to get weekly plan", { action: "getWeeklyPlan" }, err);
+        setError(message);
         return null;
       } finally {
         setIsLoading(false);
