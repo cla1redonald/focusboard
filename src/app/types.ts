@@ -238,3 +238,37 @@ export type AuthState = {
   loading: boolean;
   initialized: boolean;
 };
+
+// Board action handlers consolidated interface
+// This improves code organization and reduces prop drilling
+export type BoardActions = {
+  // Card operations
+  onAdd: (column: ColumnId, title: string, swimlane?: SwimlaneId) => void;
+  onAddWithData?: (
+    column: ColumnId,
+    title: string,
+    swimlane: SwimlaneId,
+    data: { tags?: string[]; dueDate?: string; notes?: string }
+  ) => void;
+  onMove: (id: string, to: ColumnId, toSwimlane?: SwimlaneId, patch?: Partial<Card>) => void;
+  onDelete: (id: string) => void;
+  onOpenCard: (card: Card) => void;
+  onReorderCards: (columnId: ColumnId, cardIds: string[], swimlane?: SwimlaneId) => void;
+
+  // Panel openers
+  onSettings: () => void;
+  onOpenMetrics: () => void;
+  onOpenTimeline: () => void;
+  onOpenFocus?: () => void;
+  onOpenWeeklyPlan?: () => void;
+  onOpenFeedback?: () => void;
+  onShowTutorial?: () => void;
+  onShowShortcuts?: () => void;
+
+  // Undo/redo
+  onUndo: () => void;
+  onRedo: () => void;
+
+  // Swimlane
+  onToggleSwimlaneCollapse: (swimlaneId: SwimlaneId) => void;
+};

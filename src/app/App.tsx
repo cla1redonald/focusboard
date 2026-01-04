@@ -60,6 +60,35 @@ function AppContent() {
   const [metrics, setMetrics] = React.useState<MetricsState>(() => loadMetrics());
   const hasBgImage = !!state.settings.backgroundImage;
 
+  // Memoized calculations for FocusSuggestionPanel
+  const completedToday = React.useMemo(() => {
+    const today = new Date().toISOString().split("T")[0];
+    return metrics.completedCards.filter((c) => c.completedAt.startsWith(today)).length;
+  }, [metrics.completedCards]);
+
+  const avgCycleTime = React.useMemo(() => {
+    if (!metrics.completedCards.length) return undefined;
+    const total = metrics.completedCards.reduce((sum, c) => sum + (c.cycleTimeMs || 0), 0);
+    return total / metrics.completedCards.length;
+  }, [metrics.completedCards]);
+
+  // Memoized calculation for WeeklyPlanPanel
+  const avgThroughput = React.useMemo(() => {
+    const fourWeeksAgo = new Date();
+    fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
+    const recentCards = metrics.completedCards.filter(
+      (c) => new Date(c.completedAt) >= fourWeeksAgo
+    );
+    return recentCards.length > 0 ? Math.ceil(recentCards.length / 4) : 5;
+  }, [metrics.completedCards]);
+
+  // Memoized check for whether openCard is completed
+  const isOpenCardCompleted = React.useMemo(() => {
+    const card = openCard ? state.cards.find((c) => c.id === openCard.id) : null;
+    const col = card ? state.columns.find((c) => c.id === card.column) : null;
+    return col?.isTerminal ?? false;
+  }, [openCard, state.cards, state.columns]);
+
   // Keyboard shortcuts for ? to show help and Cmd+K for command palette
   React.useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -259,11 +288,7 @@ function AppContent() {
             showToast({ type: "success", message: `"${card.title}" marked complete!` });
           }
         }}
-        isCompleted={(() => {
-          const card = openCard ? state.cards.find((c) => c.id === openCard.id) : null;
-          const col = card ? state.columns.find((c) => c.id === card.column) : null;
-          return col?.isTerminal ?? false;
-        })()}
+        isCompleted={isOpenCardCompleted}
         onAddRelation={(cardId: string, targetCardId: string, relationType: RelationType) => {
           dispatch({ type: "ADD_RELATION", cardId, targetCardId, relationType });
         }}
@@ -347,15 +372,8 @@ function AppContent() {
                   showToast({ type: "success", message: `Started "${card.title}"` });
                 }
               }}
-              completedToday={(() => {
-                const today = new Date().toISOString().split("T")[0];
-                return metrics.completedCards.filter((c) => c.completedAt.startsWith(today)).length;
-              })()}
-              avgCycleTime={(() => {
-                if (!metrics.completedCards.length) return undefined;
-                const total = metrics.completedCards.reduce((sum, c) => sum + (c.cycleTimeMs || 0), 0);
-                return total / metrics.completedCards.length;
-              })()}
+              completedToday={completedToday}
+              avgCycleTime={avgCycleTime}
             />
           </ErrorBoundary>
         </Suspense>
@@ -379,15 +397,7 @@ function AppContent() {
                   showToast({ type: "success", message: `Set "${card.title}" due ${dueDate}` });
                 }
               }}
-              avgThroughput={(() => {
-                // Calculate weekly throughput from completed cards in last 4 weeks
-                const fourWeeksAgo = new Date();
-                fourWeeksAgo.setDate(fourWeeksAgo.getDate() - 28);
-                const recentCards = metrics.completedCards.filter(
-                  (c) => new Date(c.completedAt) >= fourWeeksAgo
-                );
-                return recentCards.length > 0 ? Math.ceil(recentCards.length / 4) : 5;
-              })()}
+              avgThroughput={avgThroughput}
             />
           </ErrorBoundary>
         </Suspense>

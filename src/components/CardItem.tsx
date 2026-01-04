@@ -36,13 +36,6 @@ export function CardItem({
       data: { cardId: card.id, column: card.column },
     });
 
-  const style: React.CSSProperties = {
-    transform: CSS.Transform.toString(transform),
-    transition,
-    opacity: isDragging ? 0.5 : 1,
-    zIndex: isDragging ? 1000 : undefined,
-  };
-
   const refFn = (el: HTMLElement | null) => {
     setNodeRef(el);
     cardRefSetter?.(card.id, el);
@@ -52,13 +45,26 @@ export function CardItem({
   const urgencyLevel = getUrgencyLevel(card);
   const urgencyBgColor = getUrgencyBackgroundColor(urgencyLevel);
 
+  // Memoize style object to prevent unnecessary re-renders
+  const cardStyle = React.useMemo<React.CSSProperties>(() => {
+    const baseStyle: React.CSSProperties = {
+      transform: CSS.Transform.toString(transform),
+      transition,
+      opacity: isDragging ? 0.5 : 1,
+      zIndex: isDragging ? 1000 : undefined,
+    };
+
+    if (urgencyBgColor && !hasBackground) {
+      return { ...baseStyle, backgroundColor: urgencyBgColor };
+    }
+
+    return baseStyle;
+  }, [transform, transition, isDragging, urgencyBgColor, hasBackground]);
+
   return (
     <motion.div
       ref={refFn}
-      style={{
-        ...style,
-        ...(urgencyBgColor && !hasBackground ? { backgroundColor: urgencyBgColor } : {}),
-      }}
+      style={cardStyle}
       layout={!reducedMotion}
       initial={reducedMotion ? false : { opacity: 0, y: -10, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
