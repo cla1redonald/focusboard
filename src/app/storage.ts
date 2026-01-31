@@ -96,6 +96,7 @@ function migrateV1ToV2(v1State: V1State): Omit<AppState, "tagCategories" | "tags
       staleBacklogThreshold: DEFAULT_SETTINGS.staleBacklogThreshold,
       collapsedSwimlanes: DEFAULT_SETTINGS.collapsedSwimlanes,
       theme: DEFAULT_SETTINGS.theme,
+      autoArchive: DEFAULT_SETTINGS.autoArchive,
     },
   };
 }

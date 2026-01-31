@@ -307,6 +307,7 @@ describe("storage", () => {
           staleBacklogThreshold: 7,
           collapsedSwimlanes: [],
           theme: "light",
+          autoArchive: true,
         },
         tagCategories: DEFAULT_TAG_CATEGORIES,
         tags: DEFAULT_TAGS,

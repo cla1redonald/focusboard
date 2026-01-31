@@ -1889,8 +1889,6 @@ describe("state reducer", () => {
         result.current.dispatch({ type: "ARCHIVE_CARD", id: result.current.state.cards[0].id });
       });
 
-      const stateBefore = result.current.state;
-
       act(() => {
         result.current.dispatch({
           type: "UNARCHIVE_CARD",
@@ -2090,8 +2088,6 @@ describe("state reducer", () => {
       expect(result.current.canUndo).toBe(true);
 
       // AUTO_ARCHIVE should not create a new history entry when nothing to archive
-      const historyLengthBefore = result.current.canUndo;
-
       act(() => {
         result.current.dispatch({ type: "AUTO_ARCHIVE_CARDS" });
       });

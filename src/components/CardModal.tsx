@@ -1,6 +1,6 @@
 import React from "react";
 import { X, Trash2, CheckCircle, Sparkles, Loader2, Upload, Download, FileText, AlertCircle, GripVertical, Plus, Link, Archive } from "lucide-react";
-import type { Card, CardLink, Column, RelationType, SwimlaneId, Tag, TagCategory, Attachment } from "../app/types";
+import type { Card, CardLink, RelationType, SwimlaneId, Tag, TagCategory, Attachment } from "../app/types";
 import { nanoid } from "nanoid";
 import { RelationshipPicker, RelationshipBadge } from "./RelationshipPicker";
 import { TAG_COLOR_PALETTE, DEFAULT_SWIMLANES } from "../app/constants";
@@ -248,7 +248,7 @@ type Props = {
   open: boolean;
   card: Card | null;
   allCards?: Card[];
-  columns?: Column[];
+
   tags?: Tag[];
   tagCategories?: TagCategory[];
   userId?: string | null;
@@ -267,7 +267,6 @@ export function CardModal({
   open,
   card,
   allCards,
-  columns = [],
   tags = [],
   tagCategories = [],
   userId,

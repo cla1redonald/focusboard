@@ -28,6 +28,7 @@ const mockAppState: AppState = {
     autoPriorityFromDueDate: false,
     staleBacklogThreshold: 7,
     collapsedSwimlanes: [],
+    autoArchive: true,
   },
   tagCategories: [],
   tags: [],

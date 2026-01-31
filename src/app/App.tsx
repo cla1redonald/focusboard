@@ -61,8 +61,6 @@ function AppContent() {
   const [onboardingOpen, setOnboardingOpen] = React.useState(() => !hasSeenOnboarding());
   const [metrics, setMetrics] = React.useState<MetricsState>(() => loadMetrics());
   const hasBgImage = !!state.settings.backgroundImage;
-
-<<<<<<< HEAD
   // Memoized calculations for FocusSuggestionPanel
   const completedToday = React.useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
@@ -314,7 +312,6 @@ function AppContent() {
         open={!!openCard}
         card={openCard ? state.cards.find((c) => c.id === openCard.id) ?? openCard : null}
         allCards={activeCards}
-        columns={state.columns}
         tags={state.tags}
         tagCategories={state.tagCategories}
         userId={user?.id}
