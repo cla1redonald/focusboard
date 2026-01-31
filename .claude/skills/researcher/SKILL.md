@@ -28,7 +28,7 @@ For each potential solution, assess:
 | **Bundle size** | How much does it add? (use bundlephobia.com) |
 | **Maintenance** | Last update? Active maintainers? |
 | **TypeScript** | Good type definitions? |
-| **React compat** | Works with React 18? Hooks-based? |
+| **React compat** | Works with React 19? Hooks-based? |
 | **Dependencies** | How many transitive deps? |
 | **Documentation** | Clear examples? Good API docs? |
 

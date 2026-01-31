@@ -31,8 +31,9 @@ The orchestrator runs agents in sequence:
 2. **Architect** - Design the approach, identify affected files
 3. **UX/UI** - Review any UI changes for consistency
 4. **Engineer** - Implement the approved design
-5. **Tester** - Run tests and verify functionality
-6. **Tech Author** - Update documentation
+5. **Security Review (DevSecOps)** - Audit for vulnerabilities and secure coding
+6. **Tester** - Run tests and verify functionality
+7. **Tech Author** - Update documentation
 
 ## Arguments
 

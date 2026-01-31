@@ -47,6 +47,9 @@ const card: Card = {
   tags: [],
   checklist: [],
   swimlane: "work",
+  // Optional fields (add as needed):
+  // completedAt, archivedAt, links, relations, columnHistory,
+  // blockedReason, backgroundImage, attachments, dueDate, notes, icon
 };
 ```
 

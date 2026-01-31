@@ -7,7 +7,7 @@ description: Software architecture guidance for FocusBoard - system design, scal
 When making architectural decisions for FocusBoard, follow these principles.
 
 ## Tech Stack
-- **Frontend**: React 18 + TypeScript + Vite
+- **Frontend**: React 19 + TypeScript + Vite
 - **Styling**: Tailwind CSS + Lucide icons
 - **State**: useReducer + Context (with undo/redo history)
 - **Storage**: localStorage with versioned migrations + Supabase sync
@@ -25,7 +25,7 @@ src/
 ```
 
 ### State Management
-- Single `AppState` object with `cards`, `columns`, `settings`, `tags`
+- Single `AppState` object with `cards`, `columns`, `templates`, `settings`, `tagCategories`, `tags`
 - Reducer pattern with action types in `state.ts`
 - History wrapper for undo/redo (max 50 states)
 - Debounced Supabase sync
@@ -34,6 +34,7 @@ src/
 - Versioned keys: `focusboard:v1` → `focusboard:v4`
 - Automatic migration on load
 - Backward compatibility for stored data
+- Storage v4 uses optional fields — no migration needed for new optional Card fields
 
 ## Decision Framework
 

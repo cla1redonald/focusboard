@@ -1,7 +1,7 @@
 /**
  * Agent Definitions for FocusBoard
  *
- * Six specialized agents with distinct responsibilities and tool access.
+ * Seven specialized agents with distinct responsibilities and tool access.
  */
 
 export type AgentDefinition = {
@@ -24,7 +24,7 @@ export const agents: Record<string, AgentDefinition> = {
 - Consider bundle size impact
 
 ## Tech Stack Context
-- React 18 + TypeScript + Vite
+- React 19 + TypeScript + Vite
 - Tailwind CSS + Lucide icons
 - State: useReducer + Context with undo/redo
 - Storage: localStorage with migrations + Supabase sync
@@ -103,13 +103,14 @@ export const agents: Record<string, AgentDefinition> = {
 - Bundle size impact (use bundlephobia.com)
 - TypeScript support
 - Maintenance activity
-- React 18 compatibility
+- React 19 compatibility
 
 ## Current Dependencies (avoid duplicating)
-- @dnd-kit/core (drag and drop)
+- @dnd-kit/core, @dnd-kit/sortable (drag and drop)
 - framer-motion (animations)
 - lucide-react (icons)
 - @supabase/supabase-js (backend)
+- nanoid (ID generation)
 
 ## Output Format
 Provide structured recommendations with pros/cons.`,
@@ -129,7 +130,7 @@ Provide structured recommendations with pros/cons.`,
 
 ## Test Stack
 - Vitest + React Testing Library
-- Current: 357 tests across 12 files
+- Current: 493 tests across 17 files
 
 ## Commands
 - npm run test:run - Run all tests

@@ -10,7 +10,7 @@ Ensure code quality through comprehensive, maintainable tests.
 
 - **Framework**: Vitest
 - **React Testing**: React Testing Library
-- **Current Coverage**: 357 tests across 12 files
+- **Current Coverage**: 493 tests across 17 files
 
 ## Running Tests
 
@@ -122,7 +122,7 @@ function createCard(overrides: Partial<Card> = {}): Card {
 - **State logic**: 90%+ coverage
 - **Utilities**: 80%+ coverage
 - **Components**: Key interactions covered
-- **Overall**: Maintain current 357+ tests
+- **Overall**: Maintain current 493+ tests
 
 ## Before Merging
 

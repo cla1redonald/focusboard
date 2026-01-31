@@ -17,7 +17,7 @@ When this command is invoked:
 3. **Evaluate options** against criteria:
    - Bundle size impact
    - TypeScript support
-   - React 18 compatibility
+   - React 19 compatibility
    - Maintenance status
    - Documentation quality
 
@@ -48,10 +48,11 @@ When this command is invoked:
 
 ## Current Dependencies
 Before recommending new libraries, check existing:
-- @dnd-kit/core (drag and drop)
+- @dnd-kit/core, @dnd-kit/sortable (drag and drop)
 - @supabase/supabase-js (backend)
 - framer-motion (animations)
 - lucide-react (icons)
+- nanoid (ID generation)
 
 ## Arguments
 Required - describe what to research:
