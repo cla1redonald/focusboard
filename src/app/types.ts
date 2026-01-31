@@ -79,6 +79,7 @@ export type Card = {
   createdAt: string;
   updatedAt: string;
   completedAt?: string; // ISO date when moved to terminal column
+  archivedAt?: string; // ISO date when card was archived. Undefined = not archived.
 
   blockedReason?: string;
   lastOverrideReason?: string;
@@ -140,6 +141,7 @@ export type Settings = {
   staleBacklogThreshold: 3 | 7 | 14; // Days before backlog cards without due dates show warning
   collapsedSwimlanes: SwimlaneId[]; // Which swimlanes are collapsed
   theme: ThemeMode; // Dark/light/system theme preference
+  autoArchive: boolean; // Whether auto-archive runs on month boundary
 };
 
 // Analytics types

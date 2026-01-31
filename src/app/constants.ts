@@ -74,6 +74,7 @@ export const DEFAULT_SETTINGS: Settings = {
   staleBacklogThreshold: 7,
   collapsedSwimlanes: [],
   theme: "light",
+  autoArchive: true,
 };
 
 export const CONFETTI_COLORS = ["#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#a78bfa"];

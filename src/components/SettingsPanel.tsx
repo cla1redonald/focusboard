@@ -484,6 +484,22 @@ export function SettingsPanel({
                   <option value={14}>14 days</option>
                 </select>
               </div>
+
+              {/* Auto-Archive Toggle */}
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <div className="text-sm text-gray-900 dark:text-white">Auto-archive completed cards</div>
+                  <div className="text-xs text-gray-500 dark:text-gray-400">
+                    Automatically archive cards in Done from previous months when the app loads
+                  </div>
+                </div>
+                <input
+                  type="checkbox"
+                  checked={settings.autoArchive}
+                  onChange={(e) => set({ autoArchive: e.target.checked })}
+                  className="h-4 w-4 accent-emerald-600"
+                />
+              </div>
             </div>
           </div>
 

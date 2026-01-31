@@ -56,6 +56,9 @@ type Action =
   | { type: "REORDER_TAG_CATEGORIES"; categories: TagCategory[] }
   | { type: "IMPORT_STATE"; state: AppState }
   | { type: "APPLY_AUTO_PRIORITIES" }
+  | { type: "ARCHIVE_CARD"; id: string }
+  | { type: "UNARCHIVE_CARD"; id: string; toColumn: ColumnId }
+  | { type: "AUTO_ARCHIVE_CARDS" }
   | { type: "UNDO" }
   | { type: "REDO" };
 
@@ -559,6 +562,104 @@ function appReducer(state: AppState, action: Action): AppState {
 
       if (!hasChanges) return state;
       return { ...state, cards: updatedCards };
+    }
+
+    case "ARCHIVE_CARD": {
+      const card = state.cards.find((c) => c.id === action.id);
+      if (!card) return state;
+      const archiveNow = nowIso();
+      return {
+        ...state,
+        cards: state.cards.map((c) =>
+          c.id === action.id
+            ? { ...c, archivedAt: archiveNow, updatedAt: archiveNow }
+            : c
+        ),
+      };
+    }
+
+    case "UNARCHIVE_CARD": {
+      const unarchiveNow = nowIso();
+      const targetColumn = state.columns.find((col) => col.id === action.toColumn);
+      if (!targetColumn) return state;
+
+      // Shift existing cards in target column to make room at top
+      const shiftedCards = state.cards.map((c) =>
+        c.column === action.toColumn && !c.archivedAt
+          ? { ...c, order: (c.order ?? 0) + 1 }
+          : c
+      );
+
+      const transition: ColumnTransition = {
+        from: null, // "from archive" - null signals non-column origin
+        to: action.toColumn,
+        at: unarchiveNow,
+      };
+
+      return {
+        ...state,
+        cards: shiftedCards.map((c) =>
+          c.id === action.id
+            ? {
+                ...c,
+                archivedAt: undefined,
+                column: action.toColumn,
+                order: 0,
+                updatedAt: unarchiveNow,
+                completedAt: targetColumn.isTerminal ? c.completedAt : undefined,
+                columnHistory: [...(c.columnHistory ?? []), transition],
+              }
+            : c
+        ),
+      };
+    }
+
+    case "AUTO_ARCHIVE_CARDS": {
+      if (!state.settings.autoArchive) return state;
+
+      const autoNow = new Date();
+      const currentMonth = autoNow.getMonth();
+      const currentYear = autoNow.getFullYear();
+
+      const terminalColumnIds = new Set(
+        state.columns.filter((c) => c.isTerminal).map((c) => c.id)
+      );
+
+      let autoHasChanges = false;
+      const archiveTimestamp = nowIso();
+
+      const autoUpdatedCards = state.cards.map((card) => {
+        // Skip already archived cards
+        if (card.archivedAt) return card;
+
+        // Only archive cards in terminal columns
+        if (!terminalColumnIds.has(card.column)) return card;
+
+        // Only archive cards completed in a PREVIOUS month
+        if (!card.completedAt) return card;
+
+        const completedDate = new Date(card.completedAt);
+        const completedMonth = completedDate.getMonth();
+        const completedYear = completedDate.getFullYear();
+
+        // Is the completion date in a previous calendar month?
+        if (
+          completedYear < currentYear ||
+          (completedYear === currentYear && completedMonth < currentMonth)
+        ) {
+          autoHasChanges = true;
+          return {
+            ...card,
+            archivedAt: archiveTimestamp,
+            updatedAt: archiveTimestamp,
+          };
+        }
+
+        return card;
+      });
+
+      if (!autoHasChanges) return state;
+      return { ...state, cards: autoUpdatedCards };
     }
 
     default:

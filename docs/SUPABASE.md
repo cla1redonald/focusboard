@@ -68,20 +68,27 @@ type AppState = {
 type Card = {
   id: string;
   column: string;
+  swimlane?: "work" | "personal"; // Defaults to "work"
   title: string;
   order: number;
   createdAt: string;
   updatedAt: string;
   icon?: string;
   notes?: string;
-  link?: string;
+  link?: string;          // @deprecated - use links array instead
+  links?: Array<{ id: string; url: string; label?: string }>;
   dueDate?: string;
   tags?: string[];
   checklist?: Array<{ id: string; text: string; done: boolean }>;
   columnHistory?: Array<{ from: string | null; to: string; at: string }>;
   relations?: Array<{ id: string; type: string; targetCardId: string }>;
   blockedReason?: string;
-  completedAt?: string;
+  lastOverrideReason?: string;
+  lastOverrideAt?: string;
+  completedAt?: string;   // ISO date when moved to terminal column
+  archivedAt?: string;    // ISO date when card was archived (undefined = not archived)
+  backgroundImage?: string;
+  attachments?: Array<{ id: string; name: string; size: number; type: string; storagePath: string; createdAt: string }>;
 };
 
 type Column = {
@@ -100,6 +107,11 @@ type Settings = {
   backgroundImage: string | null;
   showAgingIndicators: boolean;
   staleCardThreshold: 3 | 7 | 14;
+  autoPriorityFromDueDate: boolean;   // Auto-assign priority tags based on due dates
+  staleBacklogThreshold: 3 | 7 | 14;  // Days before backlog cards show warning
+  collapsedSwimlanes: string[];        // Which swimlanes are collapsed
+  theme: "light" | "dark" | "system";  // Dark/light/system theme preference
+  autoArchive: boolean;                // Whether auto-archive runs on month boundary
 };
 ```
 

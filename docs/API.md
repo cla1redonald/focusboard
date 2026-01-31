@@ -209,6 +209,11 @@ Cards created via webhook have the following structure:
     to: column,
     at: timestamp
   }];
+  // The following fields exist on the Card type but are NOT set by the webhook:
+  // archivedAt?: string;    // Set when card is archived (manually or auto-archive)
+  // completedAt?: string;   // Set when card moves to a terminal column
+  // links?: CardLink[];     // Multiple links with labels
+  // attachments?: Attachment[]; // File attachments
 }
 ```
 

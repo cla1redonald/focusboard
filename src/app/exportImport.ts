@@ -51,6 +51,7 @@ export function exportToCsv(cards: Card[], columns: Column[]): string {
     "createdAt",
     "updatedAt",
     "completedAt",
+    "archivedAt",
     "blockedReason",
   ];
 
@@ -83,6 +84,7 @@ export function exportToCsv(cards: Card[], columns: Column[]): string {
       escapeCell(card.createdAt),
       escapeCell(card.updatedAt),
       escapeCell(card.completedAt),
+      escapeCell(card.archivedAt),
       escapeCell(card.blockedReason),
     ].join(",");
   });
@@ -304,6 +306,7 @@ function validateCards(arr: unknown[]): { cards: Card[]; errors: string[]; warni
     if (typeof card.link === "string") validCard.link = card.link;
     if (typeof card.dueDate === "string") validCard.dueDate = card.dueDate;
     if (typeof card.completedAt === "string") validCard.completedAt = card.completedAt;
+    if (typeof card.archivedAt === "string") validCard.archivedAt = card.archivedAt;
     if (typeof card.blockedReason === "string") validCard.blockedReason = card.blockedReason;
     if (typeof card.lastOverrideReason === "string") validCard.lastOverrideReason = card.lastOverrideReason;
     if (typeof card.lastOverrideAt === "string") validCard.lastOverrideAt = card.lastOverrideAt;
@@ -498,6 +501,8 @@ function validateSettings(obj: Record<string, unknown>): Settings {
       obj.theme === "light" || obj.theme === "dark" || obj.theme === "system"
         ? obj.theme
         : DEFAULT_SETTINGS.theme,
+    autoArchive:
+      typeof obj.autoArchive === "boolean" ? obj.autoArchive : DEFAULT_SETTINGS.autoArchive,
   };
 }
 

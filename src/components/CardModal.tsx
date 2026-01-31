@@ -1,6 +1,6 @@
 import React from "react";
-import { X, Trash2, CheckCircle, Sparkles, Loader2, Upload, Download, FileText, AlertCircle, GripVertical, Plus, Link } from "lucide-react";
-import type { Card, CardLink, RelationType, SwimlaneId, Tag, TagCategory, Attachment } from "../app/types";
+import { X, Trash2, CheckCircle, Sparkles, Loader2, Upload, Download, FileText, AlertCircle, GripVertical, Plus, Link, Archive } from "lucide-react";
+import type { Card, CardLink, Column, RelationType, SwimlaneId, Tag, TagCategory, Attachment } from "../app/types";
 import { nanoid } from "nanoid";
 import { RelationshipPicker, RelationshipBadge } from "./RelationshipPicker";
 import { TAG_COLOR_PALETTE, DEFAULT_SWIMLANES } from "../app/constants";
@@ -248,6 +248,7 @@ type Props = {
   open: boolean;
   card: Card | null;
   allCards?: Card[];
+  columns?: Column[];
   tags?: Tag[];
   tagCategories?: TagCategory[];
   userId?: string | null;
@@ -255,6 +256,7 @@ type Props = {
   onSave: (card: Card) => void;
   onDelete: (id: string) => void;
   onMarkComplete?: (id: string) => void;
+  onArchive?: (id: string) => void;
   isCompleted?: boolean;
   onAddRelation?: (cardId: string, targetCardId: string, relationType: RelationType) => void;
   onRemoveRelation?: (cardId: string, relationId: string) => void;
@@ -265,6 +267,7 @@ export function CardModal({
   open,
   card,
   allCards,
+  columns = [],
   tags = [],
   tagCategories = [],
   userId,
@@ -272,6 +275,7 @@ export function CardModal({
   onSave,
   onDelete,
   onMarkComplete,
+  onArchive,
   isCompleted = false,
   onAddRelation,
   onRemoveRelation,
@@ -1203,6 +1207,15 @@ export function CardModal({
               <Trash2 size={16} />
               Delete
             </button>
+            {onArchive && (
+              <button
+                onClick={() => onArchive(draft.id)}
+                className="flex items-center justify-center gap-2 rounded-md border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-4 py-2 text-sm text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-600"
+              >
+                <Archive size={16} />
+                Archive
+              </button>
+            )}
             {onMarkComplete && !isCompleted && (
               <button
                 onClick={() => onMarkComplete(draft.id)}

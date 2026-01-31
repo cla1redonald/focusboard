@@ -34,6 +34,7 @@ export function Board({
   settings,
   metrics,
   tagDefinitions = [],
+  archivedCount = 0,
   onAdd,
   onAddWithData,
   onMove,
@@ -45,6 +46,7 @@ export function Board({
   onOpenFocus,
   onOpenWeeklyPlan,
   onOpenFeedback,
+  onOpenArchive,
   onShowTutorial,
   onShowShortcuts,
   canUndo,
@@ -59,6 +61,7 @@ export function Board({
   settings: Settings;
   metrics: MetricsState;
   tagDefinitions?: Tag[];
+  archivedCount?: number;
   onAdd: (column: ColumnId, title: string, swimlane?: SwimlaneId) => void;
   onAddWithData?: (column: ColumnId, title: string, swimlane: SwimlaneId, data: { tags?: string[]; dueDate?: string; notes?: string }) => void;
   onMove: (id: string, to: ColumnId, toSwimlane?: SwimlaneId, patch?: Partial<Card>) => void;
@@ -70,6 +73,7 @@ export function Board({
   onOpenFocus?: () => void;
   onOpenWeeklyPlan?: () => void;
   onOpenFeedback?: () => void;
+  onOpenArchive?: () => void;
   onShowTutorial?: () => void;
   onShowShortcuts?: () => void;
   canUndo: boolean;
@@ -424,11 +428,13 @@ export function Board({
         blockedCount={blockedCount}
         dueTodayCount={dueTodayCount}
         metrics={metrics}
+        archivedCount={archivedCount}
         onOpenMetrics={onOpenMetrics}
         onOpenTimeline={onOpenTimeline}
         onOpenFocus={onOpenFocus}
         onOpenWeeklyPlan={onOpenWeeklyPlan}
         onOpenFeedback={onOpenFeedback}
+        onOpenArchive={onOpenArchive}
         onShowTutorial={onShowTutorial}
         onShowShortcuts={onShowShortcuts}
         canUndo={canUndo}

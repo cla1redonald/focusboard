@@ -1,5 +1,5 @@
 import React from "react";
-import { Undo2, Redo2, Calendar, Sparkles, CalendarDays, HelpCircle, BookOpen, Keyboard, MessageSquarePlus } from "lucide-react";
+import { Undo2, Redo2, Calendar, Sparkles, CalendarDays, HelpCircle, BookOpen, Keyboard, MessageSquarePlus, Archive } from "lucide-react";
 import type { Card, MetricsState } from "../app/types";
 import { MetricsWidget } from "./MetricsWidget";
 import { PomodoroTimer } from "./PomodoroTimer";
@@ -9,11 +9,13 @@ export function TopStrip({
   blockedCount,
   dueTodayCount,
   metrics,
+  archivedCount = 0,
   onOpenMetrics,
   onOpenTimeline,
   onOpenFocus,
   onOpenWeeklyPlan,
   onOpenFeedback,
+  onOpenArchive,
   onShowTutorial,
   onShowShortcuts,
   canUndo,
@@ -25,11 +27,13 @@ export function TopStrip({
   blockedCount: number;
   dueTodayCount: number;
   metrics: MetricsState;
+  archivedCount?: number;
   onOpenMetrics: () => void;
   onOpenTimeline: () => void;
   onOpenFocus?: () => void;
   onOpenWeeklyPlan?: () => void;
   onOpenFeedback?: () => void;
+  onOpenArchive?: () => void;
   onShowTutorial?: () => void;
   onShowShortcuts?: () => void;
   canUndo: boolean;
@@ -116,6 +120,22 @@ export function TopStrip({
         <span className="text-sm">Timeline</span>
       </button>
       <MetricsWidget metrics={metrics} onOpenDashboard={onOpenMetrics} />
+      {onOpenArchive && (
+        <button
+          onClick={onOpenArchive}
+          className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-gray-600 transition hover:bg-gray-100 hover:text-gray-900 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white"
+          title="Open Archive"
+          aria-label="Archive"
+        >
+          <Archive size={16} />
+          <span className="text-sm">Archive</span>
+          {archivedCount > 0 && (
+            <span className="rounded-full bg-gray-200 dark:bg-gray-600 px-1.5 py-0.5 text-[10px] font-medium text-gray-600 dark:text-gray-300">
+              {archivedCount}
+            </span>
+          )}
+        </button>
+      )}
       {onOpenFeedback && (
         <button
           onClick={onOpenFeedback}

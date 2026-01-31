@@ -525,6 +525,7 @@ describe("state reducer", () => {
         staleBacklogThreshold: 7,
         collapsedSwimlanes: [],
         theme: "dark",
+        autoArchive: false,
       };
 
       act(() => {
@@ -1687,6 +1688,420 @@ describe("state reducer", () => {
       expect(result.current.state.tagCategories[0].name).toBe(reordered[0].name);
       expect(result.current.state.tagCategories[0].order).toBe(0);
       expect(result.current.state.tagCategories[lastIndex].order).toBe(lastIndex);
+    });
+  });
+
+  describe("ARCHIVE_CARD action", () => {
+    it("sets archivedAt on the card", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "done", title: "Done Card" });
+      });
+
+      const cardId = result.current.state.cards[0].id;
+
+      act(() => {
+        result.current.dispatch({ type: "ARCHIVE_CARD", id: cardId });
+      });
+
+      expect(result.current.state.cards[0].archivedAt).toBeDefined();
+      expect(typeof result.current.state.cards[0].archivedAt).toBe("string");
+    });
+
+    it("preserves existing card fields", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "done", title: "Task to Archive" });
+      });
+
+      const card = result.current.state.cards[0];
+      const originalColumn = card.column;
+      const originalTitle = card.title;
+      const cardId = card.id;
+
+      act(() => {
+        result.current.dispatch({ type: "ARCHIVE_CARD", id: cardId });
+      });
+
+      expect(result.current.state.cards[0].column).toBe(originalColumn);
+      expect(result.current.state.cards[0].title).toBe(originalTitle);
+    });
+
+    it("updates updatedAt timestamp", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "done", title: "Card" });
+      });
+
+      const originalUpdatedAt = result.current.state.cards[0].updatedAt;
+
+      vi.useFakeTimers();
+      vi.advanceTimersByTime(1000);
+
+      act(() => {
+        result.current.dispatch({ type: "ARCHIVE_CARD", id: result.current.state.cards[0].id });
+      });
+
+      expect(result.current.state.cards[0].updatedAt).not.toBe(originalUpdatedAt);
+      vi.useRealTimers();
+    });
+
+    it("is undoable", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "done", title: "Undoable" });
+      });
+
+      act(() => {
+        result.current.dispatch({ type: "ARCHIVE_CARD", id: result.current.state.cards[0].id });
+      });
+
+      expect(result.current.state.cards[0].archivedAt).toBeDefined();
+
+      act(() => {
+        result.current.dispatch({ type: "UNDO" });
+      });
+
+      expect(result.current.state.cards[0].archivedAt).toBeUndefined();
+    });
+  });
+
+  describe("UNARCHIVE_CARD action", () => {
+    it("clears archivedAt and moves card to target column", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "done", title: "Archived Card" });
+      });
+
+      act(() => {
+        result.current.dispatch({ type: "ARCHIVE_CARD", id: result.current.state.cards[0].id });
+      });
+
+      expect(result.current.state.cards[0].archivedAt).toBeDefined();
+
+      act(() => {
+        result.current.dispatch({
+          type: "UNARCHIVE_CARD",
+          id: result.current.state.cards[0].id,
+          toColumn: "todo",
+        });
+      });
+
+      expect(result.current.state.cards[0].archivedAt).toBeUndefined();
+      expect(result.current.state.cards[0].column).toBe("todo");
+    });
+
+    it("clears completedAt when restoring to non-terminal column", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Task" });
+      });
+
+      // Move to done (terminal)
+      act(() => {
+        result.current.dispatch({
+          type: "MOVE_CARD",
+          id: result.current.state.cards[0].id,
+          to: "done",
+        });
+      });
+
+      expect(result.current.state.cards[0].completedAt).toBeDefined();
+
+      // Archive it
+      act(() => {
+        result.current.dispatch({ type: "ARCHIVE_CARD", id: result.current.state.cards[0].id });
+      });
+
+      // Restore to non-terminal column
+      act(() => {
+        result.current.dispatch({
+          type: "UNARCHIVE_CARD",
+          id: result.current.state.cards[0].id,
+          toColumn: "todo",
+        });
+      });
+
+      expect(result.current.state.cards[0].completedAt).toBeUndefined();
+    });
+
+    it("places card at order 0 (top of column)", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "done", title: "Card to Restore" });
+      });
+
+      act(() => {
+        result.current.dispatch({ type: "ARCHIVE_CARD", id: result.current.state.cards[0].id });
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: "UNARCHIVE_CARD",
+          id: result.current.state.cards[0].id,
+          toColumn: "todo",
+        });
+      });
+
+      expect(result.current.state.cards[0].order).toBe(0);
+    });
+
+    it("adds columnHistory entry with from: null", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "done", title: "Card" });
+      });
+
+      act(() => {
+        result.current.dispatch({ type: "ARCHIVE_CARD", id: result.current.state.cards[0].id });
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: "UNARCHIVE_CARD",
+          id: result.current.state.cards[0].id,
+          toColumn: "backlog",
+        });
+      });
+
+      const history = result.current.state.cards[0].columnHistory;
+      const lastEntry = history?.[history.length - 1];
+      expect(lastEntry?.from).toBeNull();
+      expect(lastEntry?.to).toBe("backlog");
+    });
+
+    it("returns unchanged state for invalid target column", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "done", title: "Card" });
+      });
+
+      act(() => {
+        result.current.dispatch({ type: "ARCHIVE_CARD", id: result.current.state.cards[0].id });
+      });
+
+      const stateBefore = result.current.state;
+
+      act(() => {
+        result.current.dispatch({
+          type: "UNARCHIVE_CARD",
+          id: result.current.state.cards[0].id,
+          toColumn: "non-existent-column",
+        });
+      });
+
+      // State should not have changed (no new history entry created)
+      expect(result.current.state.cards[0].archivedAt).toBeDefined();
+    });
+  });
+
+  describe("AUTO_ARCHIVE_CARDS action", () => {
+    it("archives cards completed in previous months", () => {
+      const { result } = renderHook(() => useAppState());
+
+      // Create a card that is "completed" last month
+      const lastMonth = new Date();
+      lastMonth.setMonth(lastMonth.getMonth() - 1);
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Old Done Card" });
+      });
+
+      // Move to done and set completedAt to last month
+      act(() => {
+        result.current.dispatch({
+          type: "MOVE_CARD",
+          id: result.current.state.cards[0].id,
+          to: "done",
+        });
+      });
+
+      // Manually set completedAt to last month
+      act(() => {
+        result.current.dispatch({
+          type: "UPDATE_CARD",
+          card: {
+            ...result.current.state.cards[0],
+            completedAt: lastMonth.toISOString(),
+          },
+        });
+      });
+
+      act(() => {
+        result.current.dispatch({ type: "AUTO_ARCHIVE_CARDS" });
+      });
+
+      expect(result.current.state.cards[0].archivedAt).toBeDefined();
+    });
+
+    it("does not archive cards completed this month", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Recent Card" });
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: "MOVE_CARD",
+          id: result.current.state.cards[0].id,
+          to: "done",
+        });
+      });
+
+      // completedAt is now (this month)
+
+      act(() => {
+        result.current.dispatch({ type: "AUTO_ARCHIVE_CARDS" });
+      });
+
+      expect(result.current.state.cards[0].archivedAt).toBeUndefined();
+    });
+
+    it("skips already archived cards", () => {
+      const { result } = renderHook(() => useAppState());
+
+      const lastMonth = new Date();
+      lastMonth.setMonth(lastMonth.getMonth() - 1);
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Already Archived" });
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: "MOVE_CARD",
+          id: result.current.state.cards[0].id,
+          to: "done",
+        });
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: "UPDATE_CARD",
+          card: {
+            ...result.current.state.cards[0],
+            completedAt: lastMonth.toISOString(),
+          },
+        });
+      });
+
+      act(() => {
+        result.current.dispatch({ type: "ARCHIVE_CARD", id: result.current.state.cards[0].id });
+      });
+
+      const firstArchivedAt = result.current.state.cards[0].archivedAt;
+
+      act(() => {
+        result.current.dispatch({ type: "AUTO_ARCHIVE_CARDS" });
+      });
+
+      // archivedAt should not have changed
+      expect(result.current.state.cards[0].archivedAt).toBe(firstArchivedAt);
+    });
+
+    it("respects autoArchive setting when disabled", () => {
+      const { result } = renderHook(() => useAppState());
+
+      // Disable auto-archive
+      act(() => {
+        result.current.dispatch({
+          type: "SET_SETTINGS",
+          settings: { ...result.current.state.settings, autoArchive: false },
+        });
+      });
+
+      const lastMonth = new Date();
+      lastMonth.setMonth(lastMonth.getMonth() - 1);
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Should Not Archive" });
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: "MOVE_CARD",
+          id: result.current.state.cards[0].id,
+          to: "done",
+        });
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: "UPDATE_CARD",
+          card: {
+            ...result.current.state.cards[0],
+            completedAt: lastMonth.toISOString(),
+          },
+        });
+      });
+
+      act(() => {
+        result.current.dispatch({ type: "AUTO_ARCHIVE_CARDS" });
+      });
+
+      expect(result.current.state.cards[0].archivedAt).toBeUndefined();
+    });
+
+    it("does not archive cards in non-terminal columns", () => {
+      const { result } = renderHook(() => useAppState());
+
+      const lastMonth = new Date();
+      lastMonth.setMonth(lastMonth.getMonth() - 1);
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "doing", title: "Still Working" });
+      });
+
+      act(() => {
+        result.current.dispatch({
+          type: "UPDATE_CARD",
+          card: {
+            ...result.current.state.cards[0],
+            completedAt: lastMonth.toISOString(),
+          },
+        });
+      });
+
+      act(() => {
+        result.current.dispatch({ type: "AUTO_ARCHIVE_CARDS" });
+      });
+
+      expect(result.current.state.cards[0].archivedAt).toBeUndefined();
+    });
+
+    it("returns same state reference when nothing to archive", () => {
+      const { result } = renderHook(() => useAppState());
+
+      act(() => {
+        result.current.dispatch({ type: "ADD_CARD", column: "todo", title: "Active Card" });
+      });
+
+      // canUndo is true because we added a card
+      expect(result.current.canUndo).toBe(true);
+
+      // AUTO_ARCHIVE should not create a new history entry when nothing to archive
+      const historyLengthBefore = result.current.canUndo;
+
+      act(() => {
+        result.current.dispatch({ type: "AUTO_ARCHIVE_CARDS" });
+      });
+
+      // Undo should still go back to the ADD_CARD, not an empty auto-archive
+      act(() => {
+        result.current.dispatch({ type: "UNDO" });
+      });
+
+      expect(result.current.state.cards).toHaveLength(0);
     });
   });
 });

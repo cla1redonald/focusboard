@@ -2,7 +2,7 @@ import React, { Suspense } from "react";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { useAppState } from "./state";
-import type { AppState, Card, Column, MetricsState, RelationType } from "./types";
+import type { AppState, Card, Column, ColumnId, MetricsState, RelationType } from "./types";
 import { loadMetrics, saveMetrics, recordCompletedCard, takeDailySnapshot } from "./metrics";
 import { hasSeenOnboarding, markOnboardingSeen } from "./storage";
 import { AuthProvider, useRequireAuth, useAuth } from "./AuthContext";
@@ -27,6 +27,7 @@ const MetricsDashboard = React.lazy(() => import("../components/MetricsDashboard
 const TimelinePanel = React.lazy(() => import("../components/TimelinePanel").then(m => ({ default: m.TimelinePanel })));
 const FocusSuggestionPanel = React.lazy(() => import("../components/FocusSuggestionPanel").then(m => ({ default: m.FocusSuggestionPanel })));
 const WeeklyPlanPanel = React.lazy(() => import("../components/WeeklyPlanPanel").then(m => ({ default: m.WeeklyPlanPanel })));
+const ArchivePanel = React.lazy(() => import("../components/ArchivePanel").then(m => ({ default: m.ArchivePanel })));
 
 // Loading fallback for lazy-loaded panels
 function PanelLoadingFallback() {
@@ -56,10 +57,12 @@ function AppContent() {
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = React.useState(false);
   const [feedbackOpen, setFeedbackOpen] = React.useState(false);
+  const [archivePanelOpen, setArchivePanelOpen] = React.useState(false);
   const [onboardingOpen, setOnboardingOpen] = React.useState(() => !hasSeenOnboarding());
   const [metrics, setMetrics] = React.useState<MetricsState>(() => loadMetrics());
   const hasBgImage = !!state.settings.backgroundImage;
 
+<<<<<<< HEAD
   // Memoized calculations for FocusSuggestionPanel
   const completedToday = React.useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
@@ -88,6 +91,18 @@ function AppContent() {
     const col = card ? state.columns.find((c) => c.id === card.column) : null;
     return col?.isTerminal ?? false;
   }, [openCard, state.cards, state.columns]);
+
+  // Compute active (non-archived) cards for the board
+  const activeCards = React.useMemo(
+    () => state.cards.filter((c) => !c.archivedAt),
+    [state.cards]
+  );
+
+  // Compute archived cards once, reuse for count and ArchivePanel
+  const archivedCards = React.useMemo(
+    () => state.cards.filter((c) => !!c.archivedAt),
+    [state.cards]
+  );
 
   // Keyboard shortcuts for ? to show help and Cmd+K for command palette
   React.useEffect(() => {
@@ -123,7 +138,7 @@ function AppContent() {
 
   // Take daily snapshot on mount
   React.useEffect(() => {
-    const updated = takeDailySnapshot(state.cards, state.columns, metrics);
+    const updated = takeDailySnapshot(activeCards, state.columns, metrics);
     if (updated !== metrics) {
       setMetrics(updated);
       saveMetrics(updated);
@@ -186,6 +201,41 @@ function AppContent() {
     return () => clearInterval(interval);
   }, [state.settings.autoPriorityFromDueDate, dispatch]);
 
+  // Auto-archive completed cards from previous months (single effect: compute, dispatch, toast)
+  const autoArchiveToastShown = React.useRef(false);
+  React.useEffect(() => {
+    if (autoArchiveToastShown.current) return;
+    if (!state.settings.autoArchive) return;
+
+    // Count cards that would be auto-archived before dispatch
+    const now = new Date();
+    const currentMonth = now.getMonth();
+    const currentYear = now.getFullYear();
+    const terminalColumnIds = new Set(
+      state.columns.filter((c) => c.isTerminal).map((c) => c.id)
+    );
+
+    const eligibleCount = state.cards.filter((card) => {
+      if (card.archivedAt) return false;
+      if (!terminalColumnIds.has(card.column)) return false;
+      if (!card.completedAt) return false;
+      const d = new Date(card.completedAt);
+      return d.getFullYear() < currentYear ||
+        (d.getFullYear() === currentYear && d.getMonth() < currentMonth);
+    }).length;
+
+    autoArchiveToastShown.current = true;
+    dispatch({ type: "AUTO_ARCHIVE_CARDS" });
+
+    if (eligibleCount > 0) {
+      showToast({
+        type: "info",
+        message: `Auto-archived ${eligibleCount} completed card${eligibleCount !== 1 ? "s" : ""} from previous months`,
+        undoAction: () => dispatch({ type: "UNDO" }),
+      });
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
   return (
     <div className="app-bg">
       {hasBgImage && (
@@ -203,11 +253,13 @@ function AppContent() {
       <div className="app-shell h-full px-3 py-4 sm:px-6 sm:py-8">
         <div className="mx-auto flex h-full w-full max-w-[1500px] flex-col">
           <Board
-            cards={state.cards}
+            cards={activeCards}
             columns={state.columns}
             settings={state.settings}
             metrics={metrics}
             tagDefinitions={state.tags}
+            archivedCount={archivedCards.length}
+            onOpenArchive={() => setArchivePanelOpen(true)}
             onAdd={(column, title, swimlane) => {
               dispatch({ type: "ADD_CARD", column, title, swimlane });
               showToast({ type: "success", message: `Card "${title}" added` });
@@ -261,7 +313,8 @@ function AppContent() {
       <CardModal
         open={!!openCard}
         card={openCard ? state.cards.find((c) => c.id === openCard.id) ?? openCard : null}
-        allCards={state.cards}
+        allCards={activeCards}
+        columns={state.columns}
         tags={state.tags}
         tagCategories={state.tagCategories}
         userId={user?.id}
@@ -289,6 +342,18 @@ function AppContent() {
           }
         }}
         isCompleted={isOpenCardCompleted}
+        onArchive={(id) => {
+          const card = state.cards.find((c) => c.id === id);
+          dispatch({ type: "ARCHIVE_CARD", id });
+          setOpenCard(null);
+          if (card) {
+            showToast({
+              type: "info",
+              message: `Archived "${card.title}"`,
+              undoAction: () => dispatch({ type: "UNDO" }),
+            });
+          }
+        }}
         onAddRelation={(cardId: string, targetCardId: string, relationType: RelationType) => {
           dispatch({ type: "ADD_RELATION", cardId, targetCardId, relationType });
         }}
@@ -326,7 +391,7 @@ function AppContent() {
             <MetricsDashboard
               open={metricsDashboardOpen}
               metrics={metrics}
-              cards={state.cards}
+              cards={activeCards}
               columns={state.columns}
               settings={state.settings}
               onClose={() => setMetricsDashboardOpen(false)}
@@ -344,7 +409,7 @@ function AppContent() {
           <ErrorBoundary>
             <TimelinePanel
               open={timelinePanelOpen}
-              cards={state.cards}
+              cards={activeCards}
               columns={state.columns}
               onClose={() => setTimelinePanelOpen(false)}
               onOpenCard={(card) => {
@@ -361,7 +426,7 @@ function AppContent() {
           <ErrorBoundary>
             <FocusSuggestionPanel
               open={focusPanelOpen}
-              cards={state.cards}
+              cards={activeCards}
               columns={state.columns}
               onClose={() => setFocusPanelOpen(false)}
               onStartTask={(cardId) => {
@@ -384,7 +449,7 @@ function AppContent() {
           <ErrorBoundary>
             <WeeklyPlanPanel
               open={weeklyPlanOpen}
-              cards={state.cards}
+              cards={activeCards}
               columns={state.columns}
               onClose={() => setWeeklyPlanOpen(false)}
               onSetDueDate={(cardId, dueDate) => {
@@ -403,6 +468,36 @@ function AppContent() {
         </Suspense>
       )}
 
+      {archivePanelOpen && (
+        <Suspense fallback={<PanelLoadingFallback />}>
+          <ErrorBoundary>
+            <ArchivePanel
+              open={archivePanelOpen}
+              archivedCards={archivedCards}
+              columns={state.columns}
+              tags={state.tags}
+              onClose={() => setArchivePanelOpen(false)}
+              onUnarchive={(id: string, toColumn: ColumnId) => {
+                const card = state.cards.find((c) => c.id === id);
+                dispatch({ type: "UNARCHIVE_CARD", id, toColumn });
+                if (card) {
+                  const col = state.columns.find((c) => c.id === toColumn);
+                  showToast({
+                    type: "success",
+                    message: `Restored "${card.title}" to ${col?.title ?? "column"}`,
+                    undoAction: () => dispatch({ type: "UNDO" }),
+                  });
+                }
+              }}
+              onOpenCard={(card) => {
+                setArchivePanelOpen(false);
+                setOpenCard(card);
+              }}
+            />
+          </ErrorBoundary>
+        </Suspense>
+      )}
+
       <KeyboardShortcutsModal
         open={shortcutsOpen}
         onClose={() => setShortcutsOpen(false)}
@@ -410,7 +505,7 @@ function AppContent() {
 
       <CommandPalette
         open={commandPaletteOpen}
-        cards={state.cards}
+        cards={activeCards}
         columns={state.columns}
         onClose={() => setCommandPaletteOpen(false)}
         onOpenCard={(card) => {
@@ -428,6 +523,10 @@ function AppContent() {
         onOpenTimeline={() => {
           setCommandPaletteOpen(false);
           setTimelinePanelOpen(true);
+        }}
+        onOpenArchive={() => {
+          setCommandPaletteOpen(false);
+          setArchivePanelOpen(true);
         }}
         onJumpToColumn={(columnId) => {
           const columnEl = document.querySelector(`[data-column-id="${columnId}"]`);
