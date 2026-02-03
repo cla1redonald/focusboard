@@ -132,7 +132,7 @@ export function subscribeToStateChanges(
     .subscribe();
 
   return () => {
-    client.removeChannel(channel);
+    void client.removeChannel(channel);
   };
 }
 
@@ -140,22 +140,56 @@ export function subscribeToStateChanges(
 // Separate timeouts for state and metrics to prevent interference
 let stateTimeout: ReturnType<typeof setTimeout> | null = null;
 let metricsTimeout: ReturnType<typeof setTimeout> | null = null;
+let queuedState: AppState | null = null;
+let queuedMetrics: MetricsState | null = null;
 const SAVE_DEBOUNCE_MS = 1000;
 
 export function debouncedSaveToSupabase(state: AppState): void {
+  queuedState = state;
   if (stateTimeout) {
     clearTimeout(stateTimeout);
   }
   stateTimeout = setTimeout(() => {
-    saveStateToSupabase(state);
+    if (queuedState) {
+      void saveStateToSupabase(queuedState);
+      queuedState = null;
+    }
+    stateTimeout = null;
   }, SAVE_DEBOUNCE_MS);
 }
 
 export function debouncedSaveMetricsToSupabase(metrics: MetricsState): void {
+  queuedMetrics = metrics;
   if (metricsTimeout) {
     clearTimeout(metricsTimeout);
   }
   metricsTimeout = setTimeout(() => {
-    saveMetricsToSupabase(metrics);
+    if (queuedMetrics) {
+      void saveMetricsToSupabase(queuedMetrics);
+      queuedMetrics = null;
+    }
+    metricsTimeout = null;
   }, SAVE_DEBOUNCE_MS);
+}
+
+export function flushSaveToSupabase(): void {
+  if (stateTimeout) {
+    clearTimeout(stateTimeout);
+    stateTimeout = null;
+  }
+  if (queuedState) {
+    void saveStateToSupabase(queuedState);
+    queuedState = null;
+  }
+}
+
+export function flushSaveMetricsToSupabase(): void {
+  if (metricsTimeout) {
+    clearTimeout(metricsTimeout);
+    metricsTimeout = null;
+  }
+  if (queuedMetrics) {
+    void saveMetricsToSupabase(queuedMetrics);
+    queuedMetrics = null;
+  }
 }

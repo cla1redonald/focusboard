@@ -649,7 +649,9 @@ export function SettingsPanel({
                   if (editingColumn.id) {
                     onUpdateColumn(editingColumn);
                   } else {
-                    const { id, order, ...rest } = editingColumn;
+                    const { id: _id, order: _order, ...rest } = editingColumn;
+                    void _id;
+                    void _order;
                     onAddColumn(rest);
                   }
                   setEditingColumn(null);
@@ -816,7 +818,8 @@ export function SettingsPanel({
                   if (editingTag.id) {
                     onUpdateTag(editingTag);
                   } else {
-                    const { id, ...rest } = editingTag;
+                    const { id: _id, ...rest } = editingTag;
+                    void _id;
                     onAddTag(rest);
                   }
                   setEditingTag(null);
@@ -864,7 +867,9 @@ export function SettingsPanel({
                   if (editingCategory.id) {
                     onUpdateTagCategory(editingCategory);
                   } else {
-                    const { id, order, ...rest } = editingCategory;
+                    const { id: _id, order: _order, ...rest } = editingCategory;
+                    void _id;
+                    void _order;
                     onAddTagCategory(rest);
                   }
                   setEditingCategory(null);

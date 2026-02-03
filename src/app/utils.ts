@@ -101,7 +101,7 @@ export function groupBySwimlaneAndColumn(
 export function suggestEmojiForTitle(title: string): string | undefined {
   const lower = title.toLowerCase();
 
-  const keywordMap: Array<{ keywords: string[]; emoji: string }> = [
+  const keywordMap: { keywords: string[]; emoji: string }[] = [
     // Actions & Tasks
     { keywords: ["meeting", "meet", "call", "sync"], emoji: "📞" },
     { keywords: ["email", "mail", "send", "reply"], emoji: "📧" },

@@ -45,8 +45,6 @@ export function ArchivePanel({
     }
   }, [open, onClose]);
 
-  if (!open) return null;
-
   // Sort by archivedAt descending (newest first)
   const sorted = [...archivedCards].sort((a, b) => {
     const aDate = a.archivedAt ? new Date(a.archivedAt).getTime() : 0;
@@ -66,6 +64,8 @@ export function ArchivePanel({
     }
     return Array.from(monthSet).sort().reverse();
   }, [archivedCards]);
+
+  if (!open) return null;
 
   // Apply search and month filter
   const filtered = sorted.filter((card) => {
@@ -197,7 +197,7 @@ export function ArchivePanel({
                       onClick={() => onOpenCard(card)}
                       className="flex flex-1 items-start gap-2 text-left min-w-0"
                     >
-                      <span className="text-base shrink-0 mt-0.5">{card.icon || "📄"}</span>
+                      <span className="text-base shrink-0 mt-0.5">{card.icon ?? "📄"}</span>
                       <div className="min-w-0 flex-1">
                         <div className="text-sm font-medium text-gray-900 dark:text-white truncate">
                           {card.title}

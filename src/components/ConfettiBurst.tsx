@@ -12,6 +12,7 @@ type Particle = {
   id: string;
   dx: number;
   dy: number;
+  fall: number;
   size: number;
   shape: "rect" | "dot";
   color: string;
@@ -26,6 +27,7 @@ function makeParticles(colors: string[]): Particle[] {
     const dx = (Math.random() - 0.5) * 90;        // subtle spread
     const dy = up * (40 + Math.random() * 50);     // up then fall via keyframes
     const size = 3 + Math.random() * 3;
+    const fall = 20 + Math.random() * 40;
     const shape = Math.random() < 0.7 ? "rect" : "dot";
     const rot = (Math.random() - 0.5) * 120;
     const color = colors[Math.floor(Math.random() * colors.length)];
@@ -33,6 +35,7 @@ function makeParticles(colors: string[]): Particle[] {
       id: `${i}-${Math.random().toString(16).slice(2)}`,
       dx,
       dy,
+      fall,
       size,
       shape,
       color,
@@ -43,7 +46,10 @@ function makeParticles(colors: string[]): Particle[] {
 }
 
 export function ConfettiBurst({ x, y, colors, active }: Props) {
-  const particles = React.useMemo(() => makeParticles(colors), [colors, active]);
+  const particles = React.useMemo(
+    () => (active ? makeParticles(colors) : []),
+    [colors, active]
+  );
 
   return (
     <AnimatePresence>
@@ -61,7 +67,7 @@ export function ConfettiBurst({ x, y, colors, active }: Props) {
               animate={{
                 opacity: [0.9, 0.9, 0],
                 x: x + p.dx,
-                y: [y, y + p.dy, y + 20 + Math.random() * 40], // gentle fall
+                y: [y, y + p.dy, y + p.fall], // gentle fall
                 rotate: p.rot,
               }}
               exit={{ opacity: 0 }}

@@ -177,11 +177,11 @@ export type BlockedCardInfo = {
 export type BlockedTimeStats = {
   avgBlockedTimeMs: number;
   currentlyBlocked: BlockedCardInfo[];
-  frequentlyBlocked: Array<{
+  frequentlyBlocked: {
     cardId: string;
     title: string;
     blockCount: number;
-  }>;
+  }[];
 };
 
 export type CFDDataPoint = {

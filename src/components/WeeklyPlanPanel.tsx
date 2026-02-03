@@ -112,7 +112,7 @@ export function WeeklyPlanPanel({
       }
     };
 
-    loadSuggestions();
+    void loadSuggestions();
   }, [open, hasLoaded, cards, getWeeklyPlan, weekStart, avgThroughput]);
 
   // Reset when panel closes or week changes

@@ -22,7 +22,7 @@ async function getAuthHeaders(): Promise<HeadersInit> {
   const token = await getAuthToken();
   const headers: HeadersInit = { "Content-Type": "application/json" };
   if (token) {
-    headers["Authorization"] = `Bearer ${token}`;
+    headers.Authorization = `Bearer ${token}`;
   }
   return headers;
 }
@@ -145,14 +145,14 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
 
         if (!response.ok) {
           const data = await response.json();
-          throw new Error(data.error || "Failed to get suggestions");
+          throw new Error(data.error ?? "Failed to get suggestions");
         }
 
         const data = await response.json();
 
         // Map suggested tag names to IDs
         const suggestedIds: string[] = [];
-        for (const tagName of data.suggestedTags || []) {
+        for (const tagName of data.suggestedTags ?? []) {
           const tag = availableTags.find(
             (t) => t.name.toLowerCase() === tagName.toLowerCase() || t.id === tagName
           );
@@ -194,11 +194,11 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
 
         if (!response.ok) {
           const data = await response.json();
-          throw new Error(data.error || "Failed to parse card");
+          throw new Error(data.error ?? "Failed to parse card");
         }
 
         const data = await response.json();
-        return data.card || null;
+        return data.card ?? null;
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
         logger.error("Failed to parse card with AI", { action: "parseCard" }, err);
@@ -235,12 +235,12 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
 
         if (!response.ok) {
           const data = await response.json();
-          throw new Error(data.error || "Failed to break down task");
+          throw new Error(data.error ?? "Failed to break down task");
         }
 
         const data = await response.json();
         return {
-          subtasks: data.subtasks || [],
+          subtasks: data.subtasks ?? [],
           suggestion: data.suggestion,
         };
       } catch (err) {
@@ -279,12 +279,12 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
 
         if (!response.ok) {
           const data = await response.json();
-          throw new Error(data.error || "Failed to get daily focus");
+          throw new Error(data.error ?? "Failed to get daily focus");
         }
 
         const data = await response.json();
         return {
-          suggestions: data.suggestions || [],
+          suggestions: data.suggestions ?? [],
           insight: data.insight,
         };
       } catch (err) {
@@ -305,7 +305,7 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
       options?: {
         weekStart?: string;
         avgThroughput?: number;
-        existingCommitments?: Array<{ date: string; count: number }>;
+        existingCommitments?: { date: string; count: number }[];
       }
     ): Promise<WeeklyPlanResult | null> => {
       if (!cards.length) return { suggestions: [], weeklyGoal: "No tasks to plan" };
@@ -327,12 +327,12 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
 
         if (!response.ok) {
           const data = await response.json();
-          throw new Error(data.error || "Failed to get weekly plan");
+          throw new Error(data.error ?? "Failed to get weekly plan");
         }
 
         const data = await response.json();
         return {
-          suggestions: data.suggestions || [],
+          suggestions: data.suggestions ?? [],
           weeklyGoal: data.weeklyGoal,
           capacityWarning: data.capacityWarning,
         };

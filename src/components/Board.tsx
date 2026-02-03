@@ -104,7 +104,7 @@ export function Board({
 
       // Use parsed column if provided and valid, otherwise use the column user was adding to
       const targetColumn = parsed.column && columns.some((c) => c.id === parsed.column)
-        ? (parsed.column as ColumnId)
+        ? parsed.column
         : columnId;
 
       // Use parsed swimlane if provided, otherwise use the swimlane user was adding to
@@ -216,13 +216,13 @@ export function Board({
     onDeleteCard: onDelete,
     onAddCard: (columnId) => {
       // Focus the add input for the column
-      const input = document.querySelector(`[data-column-input="${columnId}"]`) as HTMLInputElement;
+      const input = document.querySelector<HTMLInputElement>(`[data-column-input="${columnId}"]`);
       input?.focus();
     },
     onMoveToColumn: (cardId, columnId) => {
       const card = cards.find((c) => c.id === cardId);
       if (card) {
-        onMove(cardId, columnId as ColumnId, card.swimlane);
+        onMove(cardId, columnId, card.swimlane);
       }
     },
     enabled: !modal, // Disable when modal is open
@@ -347,7 +347,7 @@ export function Board({
       const [swimlaneId, columnId] = id.split(":") as [SwimlaneId, ColumnId];
       return { swimlaneId, columnId };
     }
-    return { columnId: id as ColumnId };
+    return { columnId: id };
   };
 
   const onDragStart = (e: DragStartEvent) => {
@@ -373,7 +373,7 @@ export function Board({
     const { swimlaneId: toSwimlane, columnId: toColumn } = parseDroppableId(overId);
 
     // If dropping on a card in the same column and same swimlane, it's a reorder
-    if (overCard && overCard.column === from && (overCard.swimlane ?? "work") === fromSwimlane) {
+    if (overCard?.column === from && (overCard?.swimlane ?? "work") === fromSwimlane) {
       const columnCards = bySwimlaneAndCol[fromSwimlane][from] ?? [];
       const oldIndex = columnCards.findIndex((c) => c.id === cardId);
       const newIndex = columnCards.findIndex((c) => c.id === overId);

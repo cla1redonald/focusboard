@@ -1,11 +1,11 @@
 import React from "react";
 import { nanoid } from "nanoid";
 import type { AppState, Card, CardRelation, CardTemplate, Column, ColumnId, ColumnTransition, RelationType, Settings, SwimlaneId, Tag, TagCategory } from "./types";
-import { loadState, saveState, setStorageUserId } from "./storage";
+import { debouncedSaveState, flushSaveState, loadState, setStorageUserId } from "./storage";
 import { DEFAULT_COLUMNS, DEFAULT_SETTINGS, DEFAULT_TAG_CATEGORIES, DEFAULT_TAGS } from "./constants";
 import { nowIso, suggestEmojiForTitle, suggestTagsForTitle } from "./utils";
 import { calculateAutoPriority } from "./urgency";
-import { loadStateFromSupabase, debouncedSaveToSupabase, subscribeToStateChanges } from "./sync";
+import { debouncedSaveToSupabase, flushSaveToSupabase, loadStateFromSupabase, subscribeToStateChanges } from "./sync";
 import { supabase } from "./supabase";
 
 const MAX_HISTORY = 50;
@@ -763,7 +763,7 @@ export function useAppState(userId?: string | null) {
       }
     };
 
-    loadFromCloud();
+    void loadFromCloud();
     return () => { isMounted = false; };
   }, []);
 
@@ -791,7 +791,7 @@ export function useAppState(userId?: string | null) {
 
   // Save to localStorage and Supabase when state changes
   React.useEffect(() => {
-    saveState(state);
+    debouncedSaveState(state);
 
     // Don't save to cloud if this was an external update (to avoid loops)
     if (isExternalUpdate.current) {
@@ -805,6 +805,29 @@ export function useAppState(userId?: string | null) {
       debouncedSaveToSupabase(state);
     }
   }, [state]);
+
+  // Flush pending saves on tab close or backgrounding
+  React.useEffect(() => {
+    const handlePageHide = () => {
+      flushSaveState();
+      flushSaveToSupabase();
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "hidden") {
+        flushSaveState();
+        flushSaveToSupabase();
+      }
+    };
+
+    window.addEventListener("pagehide", handlePageHide);
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      window.removeEventListener("pagehide", handlePageHide);
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
 
   // Keyboard shortcuts for undo/redo
   React.useEffect(() => {

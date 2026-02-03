@@ -722,6 +722,7 @@ describe("state reducer", () => {
 
   describe("state persistence", () => {
     it("saves state to localStorage on every state change", () => {
+      vi.useFakeTimers();
       const { result } = renderHook(() => useAppState());
 
       act(() => {
@@ -732,11 +733,16 @@ describe("state reducer", () => {
         });
       });
 
+      act(() => {
+        vi.runAllTimers();
+      });
+
       // Check that localStorage.setItem was called
       expect(localStorage.setItem).toHaveBeenCalledWith(
         "focusboard:v4",
         expect.any(String)
       );
+      vi.useRealTimers();
     });
   });
 

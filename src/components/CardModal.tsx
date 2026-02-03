@@ -1,6 +1,6 @@
 import React from "react";
 import { X, Trash2, CheckCircle, Sparkles, Loader2, Upload, Download, FileText, AlertCircle, GripVertical, Plus, Link, Archive } from "lucide-react";
-import type { Card, CardLink, RelationType, SwimlaneId, Tag, TagCategory, Attachment } from "../app/types";
+import type { Card, CardLink, RelationType, Tag, TagCategory, Attachment } from "../app/types";
 import { nanoid } from "nanoid";
 import { RelationshipPicker, RelationshipBadge } from "./RelationshipPicker";
 import { TAG_COLOR_PALETTE, DEFAULT_SWIMLANES } from "../app/constants";
@@ -293,7 +293,7 @@ export function CardModal({
 
   // AI task breakdown
   const { breakdownTask, isLoading: aiLoading } = useAI();
-  const [aiSuggestions, setAiSuggestions] = React.useState<Array<{ text: string; estimatedEffort?: string }>>([]);
+  const [aiSuggestions, setAiSuggestions] = React.useState<{ text: string; estimatedEffort?: string }[]>([]);
   const [aiSuggestion, setAiSuggestion] = React.useState<string | undefined>();
 
   // File attachments
@@ -348,7 +348,7 @@ export function CardModal({
         setSignedUrls((prev) => ({ ...prev, ...urls }));
       }
     };
-    loadUrls();
+    void loadUrls();
     return () => { isMounted = false; };
   }, [draft?.attachments]); // Removed getSignedUrl - it's stable
 
@@ -379,7 +379,7 @@ export function CardModal({
   const handleDrop = (e: React.DragEvent) => {
     e.preventDefault();
     setIsDragOver(false);
-    handleFiles(e.dataTransfer.files);
+    void handleFiles(e.dataTransfer.files);
   };
 
   const handleDeleteAttachment = async (attachment: Attachment) => {
@@ -596,7 +596,7 @@ export function CardModal({
                 <button
                   key={s.id}
                   type="button"
-                  onClick={() => update({ swimlane: s.id as SwimlaneId })}
+                  onClick={() => update({ swimlane: s.id })}
                   className={`flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition ${
                     (draft.swimlane ?? "work") === s.id
                       ? "border-emerald-500 bg-emerald-50 dark:bg-emerald-900/30"
@@ -1015,6 +1015,7 @@ export function CardModal({
               )}
             </div>
 
+          {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing */}
           {(draft.blockedReason || draft.lastOverrideReason) && (
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs text-gray-700">
               {draft.blockedReason && <div>Blocked: {draft.blockedReason}</div>}
