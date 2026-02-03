@@ -32,11 +32,11 @@ export function useKeyboardNav({
   );
 
   const getFocusedCard = React.useCallback((): Card | null => {
-    if (!focusPosition || focusPosition.cardIndex === null) return null;
-    const column = sortedColumns[focusPosition.columnIndex];
-    if (!column) return null;
+    const cardIndex = focusPosition?.cardIndex;
+    const column = focusPosition ? sortedColumns[focusPosition.columnIndex] : undefined;
+    if (cardIndex === null || cardIndex === undefined || !column) return null;
     const cards = cardsByColumn[column.id] ?? [];
-    return cards[focusPosition.cardIndex] ?? null;
+    return cards[cardIndex] ?? null;
   }, [focusPosition, sortedColumns, cardsByColumn]);
 
   const getFocusedColumnId = React.useCallback((): string | null => {

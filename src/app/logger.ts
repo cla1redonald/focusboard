@@ -50,7 +50,16 @@ function createLogEntry(
   }
 
   if (error) {
-    entry.error = error instanceof Error ? error : new Error(String(error));
+    const messageText = (() => {
+      if (error instanceof Error) return error.message;
+      if (typeof error === "string") return error;
+      try {
+        return JSON.stringify(error);
+      } catch {
+        return "Unknown error";
+      }
+    })();
+    entry.error = error instanceof Error ? error : new Error(messageText);
   }
 
   return entry;
@@ -73,7 +82,7 @@ function outputLog(entry: LogEntry): void {
   const prefix = `[${entry.level.toUpperCase()}]`;
   const contextStr = entry.context
     ? ` [${Object.entries(entry.context)
-        .map(([k, v]) => `${k}=${v}`)
+        .map(([k, v]) => `${k}=${String(v)}`)
         .join(", ")}]`
     : "";
 
@@ -81,16 +90,16 @@ function outputLog(entry: LogEntry): void {
 
   switch (entry.level) {
     case "debug":
-      if (isDev) console.debug(logMessage, entry.error || "");
+      if (isDev) console.debug(logMessage, entry.error ?? "");
       break;
     case "info":
       console.info(logMessage);
       break;
     case "warn":
-      console.warn(logMessage, entry.error || "");
+      console.warn(logMessage, entry.error ?? "");
       break;
     case "error":
-      console.error(logMessage, entry.error || "");
+      console.error(logMessage, entry.error ?? "");
       break;
   }
 }

@@ -102,7 +102,7 @@ export function recordCompletedCard(
   columns: Column[],
   metrics: MetricsState
 ): MetricsState {
-  const completedAt = card.completedAt || new Date().toISOString();
+  const completedAt = card.completedAt ?? new Date().toISOString();
   const createdAt = card.createdAt;
 
   // Calculate lead time (creation to completion)
@@ -213,7 +213,7 @@ export function calculateAverageCycleTime(metrics: MetricsState): number | null 
   return total / metrics.completedCards.length;
 }
 
-export function calculateThroughput(metrics: MetricsState, days: number = 7): number {
+export function calculateThroughput(metrics: MetricsState, days = 7): number {
   const cutoff = new Date();
   cutoff.setDate(cutoff.getDate() - days);
   const cutoffTime = cutoff.getTime();
@@ -506,11 +506,11 @@ export function getCardAgeDays(card: Card): number {
 /**
  * Burndown data point for chart
  */
-export interface BurndownDataPoint {
+export type BurndownDataPoint = {
   date: string;
   totalRemaining: number;
   completedCumulative: number;
-}
+};
 
 /**
  * Get burndown chart data from completed cards

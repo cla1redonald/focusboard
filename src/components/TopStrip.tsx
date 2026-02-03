@@ -147,7 +147,7 @@ export function TopStrip({
           <span className="text-sm">Feedback</span>
         </button>
       )}
-      {(onShowTutorial || onShowShortcuts) && (
+      {(onShowTutorial ?? onShowShortcuts) && (
         <HelpMenu onShowTutorial={onShowTutorial} onShowShortcuts={onShowShortcuts} />
       )}
     </div>

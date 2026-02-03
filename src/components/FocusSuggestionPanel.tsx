@@ -69,7 +69,7 @@ export function FocusSuggestionPanel({
       }
     };
 
-    loadSuggestions();
+    void loadSuggestions();
   }, [open, hasLoaded, cards, getDailyFocus, completedToday, avgCycleTime, wipLimit]);
 
   // Reset when panel closes
@@ -134,7 +134,7 @@ export function FocusSuggestionPanel({
             <div className="flex flex-col items-center justify-center py-12 text-center">
               <div className="mb-3 text-4xl">🎉</div>
               <p className="text-gray-600 dark:text-gray-400">
-                {insight || "No tasks to focus on. Great job!"}
+                {insight ?? "No tasks to focus on. Great job!"}
               </p>
             </div>
           ) : (

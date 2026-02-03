@@ -45,21 +45,13 @@ export function CardItem({
   const urgencyLevel = getUrgencyLevel(card);
   const urgencyBgColor = getUrgencyBackgroundColor(urgencyLevel);
 
-  // Memoize style object to prevent unnecessary re-renders
-  const cardStyle = React.useMemo<React.CSSProperties>(() => {
-    const baseStyle: React.CSSProperties = {
-      transform: CSS.Transform.toString(transform),
-      transition,
-      opacity: isDragging ? 0.5 : 1,
-      zIndex: isDragging ? 1000 : undefined,
-    };
-
-    if (urgencyBgColor && !hasBackground) {
-      return { ...baseStyle, backgroundColor: urgencyBgColor };
-    }
-
-    return baseStyle;
-  }, [transform, transition, isDragging, urgencyBgColor, hasBackground]);
+  const cardStyle: React.CSSProperties = {
+    transform: CSS.Transform.toString(transform),
+    transition,
+    opacity: isDragging ? 0.5 : 1,
+    zIndex: isDragging ? 1000 : undefined,
+    ...(urgencyBgColor && !hasBackground ? { backgroundColor: urgencyBgColor } : {}),
+  };
 
   return (
     <motion.div
@@ -210,18 +202,18 @@ export function CardItem({
           // Filter to only safe URLs
           const safeLinks = allLinks
             .map((link) => ({ ...link, safeUrl: getSafeUrl(link.url) }))
-            .filter((link) => link.safeUrl);
+            .filter((link): link is typeof link & { safeUrl: string } => Boolean(link.safeUrl));
 
           if (safeLinks.length === 0) return null;
 
           return (
             <div className="mt-2 flex flex-wrap gap-1.5">
               {safeLinks.slice(0, 3).map((link) => {
-                const { label, icon } = getLinkInfo(link.safeUrl!, link.label);
+                const { label, icon } = getLinkInfo(link.safeUrl, link.label);
                 return (
                   <a
                     key={link.id}
-                    href={link.safeUrl!}
+                    href={link.safeUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     onClick={(e) => e.stopPropagation()}
@@ -230,7 +222,7 @@ export function CardItem({
                         ? "bg-white/20 text-white hover:bg-white/30"
                         : "bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50"
                     }`}
-                    title={link.safeUrl!}
+                    title={link.safeUrl}
                   >
                     <span>{icon}</span>
                     <span className="max-w-[100px] truncate">{label}</span>

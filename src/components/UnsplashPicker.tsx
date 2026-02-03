@@ -68,7 +68,7 @@ export function UnsplashPicker({ onSelect, onCancel }: Props) {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    searchImages(query);
+    void searchImages(query);
   };
 
   if (!UNSPLASH_ACCESS_KEY) {
@@ -129,7 +129,7 @@ export function UnsplashPicker({ onSelect, onCancel }: Props) {
               type="button"
               onClick={() => {
                 setQuery(suggestion);
-                searchImages(suggestion);
+                void searchImages(suggestion);
               }}
               className="rounded-full border border-gray-200 dark:border-gray-600 bg-gray-50 dark:bg-gray-700 px-2.5 py-1 text-xs text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600"
             >
@@ -155,7 +155,7 @@ export function UnsplashPicker({ onSelect, onCancel }: Props) {
             >
               <img
                 src={image.urls.thumb}
-                alt={image.alt_description || "Unsplash image"}
+                alt={image.alt_description ?? "Unsplash image"}
                 className="h-full w-full object-cover transition group-hover:scale-105"
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent opacity-0 group-hover:opacity-100 transition">

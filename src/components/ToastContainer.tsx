@@ -1,4 +1,3 @@
-import React from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { useToast, type Toast, type ToastType } from "../app/ToastContext";
 
@@ -75,7 +74,6 @@ function ToastIcon({ type }: { type: ToastType }) {
 function ToastItem({ toast }: { toast: Toast }) {
   const { dismissToast } = useToast();
   const colors = TOAST_COLORS[toast.type];
-  const [_isPaused, setIsPaused] = React.useState(false);
 
   const handleUndo = () => {
     if (toast.undoAction) {
@@ -91,8 +89,6 @@ function ToastItem({ toast }: { toast: Toast }) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={{ opacity: 0, x: 100, scale: 0.95 }}
       transition={{ duration: 0.2, ease: "easeOut" }}
-      onMouseEnter={() => setIsPaused(true)}
-      onMouseLeave={() => setIsPaused(false)}
       className={`flex items-center gap-3 rounded-xl border ${colors.border} ${colors.bg} px-4 py-3 shadow-lg backdrop-blur-sm`}
     >
       <div className={colors.text}>

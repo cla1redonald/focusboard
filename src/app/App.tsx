@@ -324,7 +324,7 @@ function AppContent() {
           const card = state.cards.find((c) => c.id === id);
           // Cleanup attachments from Supabase Storage
           if (card?.attachments?.length) {
-            cleanupCardAttachments(card.attachments);
+            void cleanupCardAttachments(card.attachments);
           }
           dispatch({ type: "DELETE_CARD", id });
           setOpenCard(null);

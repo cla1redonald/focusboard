@@ -1,33 +1,21 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";
+import type { AppState, Card, ColumnId, SwimlaneId } from "../../src/app/types";
+import {
+  DEFAULT_COLUMNS,
+  DEFAULT_SETTINGS,
+  DEFAULT_TAG_CATEGORIES,
+  DEFAULT_TAGS,
+} from "../../src/app/defaults";
 import { setCorsHeaders, handlePreflight } from "../_lib/cors.js";
 
-// Inline types
-type Card = {
-  id: string;
-  column: string;
-  title: string;
-  order: number;
-  createdAt: string;
-  updatedAt: string;
-  tags?: string[];
-  checklist?: Array<{ id: string; text: string; done: boolean }>;
-  notes?: string;
-  columnHistory?: Array<{ from: string | null; to: string; at: string }>;
-  swimlane?: "work" | "personal";
-};
-
-type AppState = {
-  cards: Card[];
-  columns: Array<{ id: string; title: string; icon: string; color: string; wipLimit: number | null; isTerminal: boolean; order: number }>;
-  templates: unknown[];
-  settings: { celebrations: boolean; reducedMotionOverride: boolean; backgroundImage: string | null; showAgingIndicators: boolean; staleCardThreshold: number };
-  tagCategories: Array<{ id: string; name: string; order: number }>;
-  tags: Array<{ id: string; name: string; color: string; categoryId: string }>;
-};
-
-function createCard(title: string, column = "backlog", source?: string, swimlane: "work" | "personal" = "work"): Card {
+function createCard(
+  title: string,
+  column: ColumnId = "backlog",
+  source?: string,
+  swimlane: SwimlaneId = "work"
+): Card {
   const now = new Date().toISOString();
   return {
     id: nanoid(),
@@ -47,27 +35,11 @@ function createCard(title: string, column = "backlog", source?: string, swimlane
 function getDefaultState(): AppState {
   return {
     cards: [],
-    columns: [
-      { id: "backlog", title: "Backlog", icon: "🗂️", color: "#F59E0B", wipLimit: null, isTerminal: false, order: 0 },
-      { id: "design", title: "Design & Planning", icon: "🎨", color: "#FBBF24", wipLimit: 5, isTerminal: false, order: 1 },
-      { id: "todo", title: "To Do", icon: "📝", color: "#FCD34D", wipLimit: 12, isTerminal: false, order: 2 },
-      { id: "doing", title: "Doing", icon: "⚡", color: "#FB923C", wipLimit: 1, isTerminal: false, order: 3 },
-      { id: "blocked", title: "Blocked", icon: "⛔", color: "#F87171", wipLimit: 5, isTerminal: false, order: 4 },
-      { id: "done", title: "Done", icon: "✅", color: "#34D399", wipLimit: null, isTerminal: true, order: 5 },
-    ],
+    columns: DEFAULT_COLUMNS.map((col) => ({ ...col })),
     templates: [],
-    settings: { celebrations: true, reducedMotionOverride: false, backgroundImage: null, showAgingIndicators: false, staleCardThreshold: 7 },
-    tagCategories: [
-      { id: "priority", name: "Priority", order: 0 },
-      { id: "type", name: "Type", order: 1 },
-      { id: "effort", name: "Effort", order: 2 },
-    ],
-    tags: [
-      { id: "urgent", name: "Urgent", color: "#EF4444", categoryId: "priority" },
-      { id: "high", name: "High", color: "#F97316", categoryId: "priority" },
-      { id: "medium", name: "Medium", color: "#EAB308", categoryId: "priority" },
-      { id: "low", name: "Low", color: "#22C55E", categoryId: "priority" },
-    ],
+    settings: { ...DEFAULT_SETTINGS },
+    tagCategories: DEFAULT_TAG_CATEGORIES.map((category) => ({ ...category })),
+    tags: DEFAULT_TAGS.map((tag) => ({ ...tag })),
   };
 }
 

@@ -56,7 +56,7 @@ type V1Settings = {
 };
 
 type V1State = {
-  cards: Array<{ id: string; column: string; title: string; [key: string]: unknown }>;
+  cards: { id: string; column: string; title: string; [key: string]: unknown }[];
   settings: Partial<V1Settings>;
 };
 
@@ -390,6 +390,35 @@ export function saveState(state: AppState) {
   // Save to user-scoped key (or global if not logged in)
   const scopedKey = getStorageKey(KEY_V4);
   localStorage.setItem(scopedKey, JSON.stringify(state));
+}
+
+let saveTimeout: ReturnType<typeof setTimeout> | null = null;
+let queuedState: AppState | null = null;
+const LOCAL_SAVE_DEBOUNCE_MS = 250;
+
+export function debouncedSaveState(state: AppState): void {
+  queuedState = state;
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+  }
+  saveTimeout = setTimeout(() => {
+    if (queuedState) {
+      saveState(queuedState);
+      queuedState = null;
+    }
+    saveTimeout = null;
+  }, LOCAL_SAVE_DEBOUNCE_MS);
+}
+
+export function flushSaveState(): void {
+  if (saveTimeout) {
+    clearTimeout(saveTimeout);
+    saveTimeout = null;
+  }
+  if (queuedState) {
+    saveState(queuedState);
+    queuedState = null;
+  }
 }
 
 const KEY_ONBOARDING = "focusboard:onboarding_seen";

@@ -650,6 +650,8 @@ export function SettingsPanel({
                     onUpdateColumn(editingColumn);
                   } else {
                     const { id, order, ...rest } = editingColumn;
+                    void id;
+                    void order;
                     onAddColumn(rest);
                   }
                   setEditingColumn(null);
@@ -817,6 +819,7 @@ export function SettingsPanel({
                     onUpdateTag(editingTag);
                   } else {
                     const { id, ...rest } = editingTag;
+                    void id;
                     onAddTag(rest);
                   }
                   setEditingTag(null);
@@ -865,6 +868,8 @@ export function SettingsPanel({
                     onUpdateTagCategory(editingCategory);
                   } else {
                     const { id, order, ...rest } = editingCategory;
+                    void id;
+                    void order;
                     onAddTagCategory(rest);
                   }
                   setEditingCategory(null);

@@ -222,7 +222,7 @@ export function CommandPalette({
                   >
                     {item.type === "card" && (
                       <div className="flex items-center gap-3">
-                        <span className="text-lg">{item.card.icon || "📄"}</span>
+                        <span className="text-lg">{item.card.icon ?? "📄"}</span>
                         <div className="flex-1 min-w-0">
                           <div className="truncate text-sm font-medium text-gray-900 dark:text-white">
                             {item.card.title}
