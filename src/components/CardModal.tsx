@@ -1015,7 +1015,8 @@ export function CardModal({
               )}
             </div>
 
-          {(draft.blockedReason ?? draft.lastOverrideReason) && (
+          {/* eslint-disable-next-line @typescript-eslint/prefer-nullish-coalescing */}
+          {(draft.blockedReason || draft.lastOverrideReason) && (
             <div className="rounded-xl border border-gray-200 bg-gray-50 p-3 text-xs text-gray-700">
               {draft.blockedReason && <div>Blocked: {draft.blockedReason}</div>}
               {draft.lastOverrideReason && (

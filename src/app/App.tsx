@@ -46,7 +46,7 @@ function PanelLoadingFallback() {
 function AppContent() {
   const { user, signOut } = useAuth();
   // Pass userId to useAppState to fix race condition - ensures storage is user-scoped
-  const { state, dispatch, canUndo, canRedo } = useAppState(user?.id ?? null);
+  const { state, dispatch, canUndo, canRedo } = useAppState(user?.id);
   const { showToast } = useToast();
   const [openCard, setOpenCard] = React.useState<Card | null>(null);
   const [settingsOpen, setSettingsOpen] = React.useState(false);

@@ -720,31 +720,31 @@ describe("state reducer", () => {
     });
   });
 
-    describe("state persistence", () => {
-      it("saves state to localStorage on every state change", () => {
-        vi.useFakeTimers();
-        const { result } = renderHook(() => useAppState());
+  describe("state persistence", () => {
+    it("saves state to localStorage on every state change", () => {
+      vi.useFakeTimers();
+      const { result } = renderHook(() => useAppState());
 
-        act(() => {
-          result.current.dispatch({
-            type: "ADD_CARD",
-            column: "todo",
-            title: "New Card",
-          });
+      act(() => {
+        result.current.dispatch({
+          type: "ADD_CARD",
+          column: "todo",
+          title: "New Card",
         });
-
-        act(() => {
-          vi.runAllTimers();
-        });
-
-        // Check that localStorage.setItem was called
-        expect(localStorage.setItem).toHaveBeenCalledWith(
-          "focusboard:v4",
-          expect.any(String)
-        );
-        vi.useRealTimers();
       });
+
+      act(() => {
+        vi.runAllTimers();
+      });
+
+      // Check that localStorage.setItem was called
+      expect(localStorage.setItem).toHaveBeenCalledWith(
+        "focusboard:v4",
+        expect.any(String)
+      );
+      vi.useRealTimers();
     });
+  });
 
   describe("UNDO action", () => {
     it("restores previous state after adding a card", () => {
