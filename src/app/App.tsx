@@ -150,11 +150,12 @@ function AppContent() {
     );
 
     const prevCards = prevCardsRef.current;
+    const prevCardMap = new Map(prevCards.map((c) => [c.id, c]));
     let updatedMetrics = metrics;
 
     for (const card of state.cards) {
       if (terminalColumnIds.has(card.column)) {
-        const prevCard = prevCards.find((c) => c.id === card.id);
+        const prevCard = prevCardMap.get(card.id);
         // If card just moved to terminal column
         if (prevCard && !terminalColumnIds.has(prevCard.column)) {
           updatedMetrics = recordCompletedCard(card, state.columns, updatedMetrics);

@@ -184,39 +184,32 @@ function appReducer(state: AppState, action: Action): AppState {
       const fromSwimlane = movingCard?.swimlane ?? "work";
       const toSwimlane = action.toSwimlane ?? fromSwimlane;
 
-      // Shift cards in destination column AND swimlane to make room at top
-      const shiftedCards = state.cards.map((c) => {
-        if (c.id === action.id) return c; // Will be updated below
-        if (c.column === action.to && (c.swimlane ?? "work") === toSwimlane) {
-          return { ...c, order: (c.order ?? 0) + 1 };
-        }
-        return c;
-      });
-
-      return {
-        ...state,
-        cards: shiftedCards.map((c) => {
-          if (c.id !== action.id) return c;
-
+      // Single pass: update moved card + shift destination siblings, return others by reference
+      const newCards = state.cards.map((c) => {
+        if (c.id === action.id) {
           const transition: ColumnTransition = {
             from: fromColumn ?? null,
             to: action.to,
             at: now,
           };
-          const columnHistory = [...(c.columnHistory ?? []), transition];
-
           return {
             ...c,
             column: action.to,
             swimlane: toSwimlane,
-            order: 0, // Move to top of new column
+            order: 0,
             ...action.patch,
             updatedAt: now,
-            columnHistory,
+            columnHistory: [...(c.columnHistory ?? []), transition],
             completedAt: isTerminal ? now : c.completedAt,
           };
-        }),
-      };
+        }
+        if (c.column === action.to && (c.swimlane ?? "work") === toSwimlane) {
+          return { ...c, order: (c.order ?? 0) + 1 };
+        }
+        return c; // Unchanged — preserves reference for React.memo
+      });
+
+      return { ...state, cards: newCards };
     }
     case "REORDER_CARDS": {
       const { columnId, cardIds, swimlane } = action;
