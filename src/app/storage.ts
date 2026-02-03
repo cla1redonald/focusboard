@@ -391,20 +391,31 @@ export function saveState(state: AppState) {
   localStorage.setItem(scopedKey, JSON.stringify(state));
 }
 
-const scheduleIdle =
-  typeof requestIdleCallback === "function"
-    ? requestIdleCallback
-    : (cb: () => void) => setTimeout(cb, 0);
+const hasIdleCallback = typeof requestIdleCallback === "function";
 
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
+let idleHandle: number | null = null;
 let queuedState: AppState | null = null;
-const LOCAL_SAVE_DEBOUNCE_MS = 250;
+const LOCAL_SAVE_DEBOUNCE_MS = 1000;
+
+function cancelPendingIdle(): void {
+  if (idleHandle !== null) {
+    if (hasIdleCallback) {
+      cancelIdleCallback(idleHandle);
+    } else {
+      clearTimeout(idleHandle);
+    }
+    idleHandle = null;
+  }
+}
 
 export function debouncedSaveState(state: AppState): void {
   queuedState = state;
   if (saveTimeout) {
     clearTimeout(saveTimeout);
   }
+  // Cancel any pending idle callback so we don't pile up blocking writes
+  cancelPendingIdle();
   // After debounce delay, defer the actual write to an idle callback
   // so JSON.stringify + localStorage.setItem never block drag animations
   saveTimeout = setTimeout(() => {
@@ -412,7 +423,17 @@ export function debouncedSaveState(state: AppState): void {
     queuedState = null;
     saveTimeout = null;
     if (pending) {
-      scheduleIdle(() => saveState(pending));
+      if (hasIdleCallback) {
+        idleHandle = requestIdleCallback(() => {
+          idleHandle = null;
+          saveState(pending);
+        });
+      } else {
+        idleHandle = window.setTimeout(() => {
+          idleHandle = null;
+          saveState(pending);
+        }, 0) as unknown as number;
+      }
     }
   }, LOCAL_SAVE_DEBOUNCE_MS);
 }
@@ -422,6 +443,7 @@ export function flushSaveState(): void {
     clearTimeout(saveTimeout);
     saveTimeout = null;
   }
+  cancelPendingIdle();
   if (queuedState) {
     saveState(queuedState);
     queuedState = null;
