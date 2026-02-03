@@ -1,3 +1,4 @@
+import React from "react";
 import { SortableContext, horizontalListSortingStrategy } from "@dnd-kit/sortable";
 import type { Card, Column as ColumnType, ColumnId, SwimlaneId } from "../app/types";
 import { Column } from "./Column";
@@ -58,6 +59,16 @@ export function Swimlane({
   void _onReorderCards; // Will be used for reordering within swimlane
   const cardCount = Object.values(cardsByColumn).flat().length;
 
+  // Memoize callbacks so Column's React.memo isn't defeated by new references
+  const handleAdd = React.useCallback(
+    (colId: ColumnId, cardTitle: string) => onAdd(colId, cardTitle, swimlaneId),
+    [onAdd, swimlaneId]
+  );
+  const handleAIAdd = React.useMemo(
+    () => onAIAdd ? (colId: ColumnId, input: string) => onAIAdd(colId, input, swimlaneId) : undefined,
+    [onAIAdd, swimlaneId]
+  );
+
   return (
     <div className="swimlane mb-6 border-b border-gray-200 pb-6 last:border-b-0 last:pb-0 dark:border-gray-700">
       {/* Swimlane Header - Always visible */}
@@ -98,8 +109,8 @@ export function Swimlane({
                   icon={col.icon}
                   countLabel={countLabel(col.id)}
                   headerState={headerState(col.id)}
-                  onAdd={(colId, cardTitle) => onAdd(colId, cardTitle, swimlaneId)}
-                  onAIAdd={onAIAdd ? (colId, input) => onAIAdd(colId, input, swimlaneId) : undefined}
+                  onAdd={handleAdd}
+                  onAIAdd={handleAIAdd}
                   onOpenCard={onOpenCard}
                   cardRefSetter={cardRefSetter}
                   columnFocused={isColFocused}

@@ -8,7 +8,7 @@ import { ICON_MAP } from "../app/constants";
 import { CardItem } from "./CardItem";
 import { EmptyColumnState } from "./EmptyColumnState";
 
-export function Column({
+export const Column = React.memo(function Column({
   id,
   swimlaneId,
   title,
@@ -112,7 +112,7 @@ export function Column({
           {cards.length === 0 ? (
             <EmptyColumnState columnId={id} />
           ) : (
-            <AnimatePresence mode="popLayout">
+            <AnimatePresence>
               {cards.map((c, idx) => (
                 <CardItem
                   key={c.id}
@@ -174,4 +174,4 @@ export function Column({
       </div>
     </div>
   );
-}
+});

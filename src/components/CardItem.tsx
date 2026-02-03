@@ -9,7 +9,7 @@ import { getCardAgeLevel, getCardAgeDays } from "../app/metrics";
 import { getUrgencyLevel, getUrgencyColor, getUrgencyLabel, getUrgencyBackgroundColor } from "../app/urgency";
 import { getSafeUrl } from "../app/utils";
 
-export function CardItem({
+export const CardItem = React.memo(function CardItem({
   card,
   onOpen,
   cardRefSetter,
@@ -57,7 +57,6 @@ export function CardItem({
     <motion.div
       ref={refFn}
       style={cardStyle}
-      layout={!reducedMotion}
       initial={reducedMotion ? false : { opacity: 0, y: -10, scale: 0.95 }}
       animate={{ opacity: 1, y: 0, scale: 1 }}
       exit={reducedMotion ? undefined : { opacity: 0, scale: 0.95 }}
@@ -243,4 +242,4 @@ export function CardItem({
       </div>
     </motion.div>
   );
-}
+});

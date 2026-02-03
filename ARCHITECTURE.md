@@ -164,10 +164,12 @@ The app uses React's `useReducer` with a custom wrapper for undo/redo support:
 
 | Category | Actions |
 |----------|---------|
-| Cards | `ADD_CARD`, `UPDATE_CARD`, `DELETE_CARD`, `MOVE_CARD`, `REORDER_CARDS` |
+| Cards | `ADD_CARD`, `ADD_CARD_WITH_DATA`, `ADD_CARD_FROM_TEMPLATE`, `UPDATE_CARD`, `DELETE_CARD`, `MOVE_CARD`, `REORDER_CARDS` |
+| Archive | `ARCHIVE_CARD`, `UNARCHIVE_CARD`, `AUTO_ARCHIVE_CARDS` |
 | Columns | `ADD_COLUMN`, `UPDATE_COLUMN`, `DELETE_COLUMN`, `REORDER_COLUMNS` |
+| Templates | `ADD_TEMPLATE`, `UPDATE_TEMPLATE`, `DELETE_TEMPLATE` |
 | Tags | `ADD_TAG`, `UPDATE_TAG`, `DELETE_TAG` |
-| Tag Categories | `ADD_TAG_CATEGORY`, `UPDATE_TAG_CATEGORY`, `DELETE_TAG_CATEGORY` |
+| Tag Categories | `ADD_TAG_CATEGORY`, `UPDATE_TAG_CATEGORY`, `DELETE_TAG_CATEGORY`, `REORDER_TAG_CATEGORIES` |
 | Relations | `ADD_RELATION`, `REMOVE_RELATION` |
 | Swimlanes | `TOGGLE_SWIMLANE_COLLAPSE` |
 | Settings | `SET_SETTINGS` |
@@ -288,6 +290,13 @@ DndContext (Board.tsx)
 └── useDraggable (CardItem.tsx) - Draggable cards
 ```
 
+**Performance:** Drag-and-drop is the most render-intensive path in the application. Moving a card triggers a state update that flows through the entire component tree: `App -> Board -> Swimlane -> Column -> CardItem`. The optimizations described in the [Performance](#performance) section below were specifically designed to minimize re-renders along this path. Key points:
+
+- `CardItem` and `Column` are wrapped in `React.memo` so only cards/columns whose props actually changed re-render
+- The `MOVE_CARD` reducer preserves object references for unchanged cards, enabling `React.memo` to bail out
+- Callback references passed from `Swimlane` to `Column` are stabilized with `useCallback`/`useMemo`
+- Framer Motion's `layout` prop is intentionally omitted from `CardItem` to avoid GPU layout recalculation on every sibling
+
 ## Key Features Implementation
 
 ### Filtering
@@ -394,13 +403,113 @@ Requires `ANTHROPIC_API_KEY` environment variable. Uses Claude Haiku for fast, l
 - Compact view in TopStrip, expands on click
 - Stats persisted to localStorage
 
-## Performance Considerations
+## Performance
 
-1. **Code Splitting** - Heavy panels (Metrics, Timeline, Focus, Weekly) are lazy-loaded with `React.lazy()` and `Suspense` to reduce initial bundle size
-2. **Memoization** - Key components use React.memo where beneficial
+### General Strategies
+
+1. **Code Splitting** - Heavy panels (Metrics, Timeline, Focus, Weekly, Archive) are lazy-loaded with `React.lazy()` and `Suspense` to reduce initial bundle size
+2. **Memoization** - Key components use `React.memo`; expensive derivations use `useMemo`
 3. **Virtualization** - Not currently implemented (suitable for <1000 cards)
-4. **State Updates** - Immutable updates via spread operators
+4. **State Updates** - Immutable updates via spread operators; unchanged objects returned by reference
 5. **Storage Writes** - Debounced/throttled via useEffect dependencies
+
+### Drag-and-Drop Render Optimizations
+
+Drag-and-drop is the most render-sensitive code path. Moving a card dispatches `MOVE_CARD`, which updates state and re-renders the board. Without care, every card on the board re-renders even if only one card moved. The following optimizations minimize this:
+
+#### 1. Component Memoization (`CardItem.tsx`, `Column.tsx`)
+
+Both `CardItem` and `Column` are wrapped in `React.memo`:
+
+```typescript
+// CardItem.tsx
+export const CardItem = React.memo(function CardItem({ card, ... }) { ... });
+
+// Column.tsx
+export const Column = React.memo(function Column({ id, cards, ... }) { ... });
+```
+
+`React.memo` performs a shallow comparison of props. If a card's object reference has not changed, the component skips re-rendering entirely. This is why reference stability in the reducer matters (see below).
+
+#### 2. Reference-Preserving Reducer (`state.ts` -- `MOVE_CARD`)
+
+The `MOVE_CARD` reducer uses a single-pass `.map()` that returns unchanged card objects by reference:
+
+```typescript
+case "MOVE_CARD": {
+  const newCards = state.cards.map((c) => {
+    if (c.id === action.id) {
+      return { ...c, column: action.to, order: 0, ... }; // New object for moved card
+    }
+    if (c.column === action.to && ...) {
+      return { ...c, order: (c.order ?? 0) + 1 };        // New object for shifted siblings
+    }
+    return c; // Same reference -- React.memo skips re-render
+  });
+  return { ...state, cards: newCards };
+}
+```
+
+Cards in unaffected columns are returned as the same object reference (`return c`). When `React.memo` compares `prevProps.card === nextProps.card`, the check succeeds and the component bails out. This means moving a card between two columns only re-renders cards in those two columns, not the entire board.
+
+**Previous implementation** used a two-pass approach (remove from source, insert at destination) that created new object references for every card in both columns. The single-pass approach reduces unnecessary allocations and enables downstream memo bailouts.
+
+#### 3. Stable Callback References (`Swimlane.tsx`)
+
+`Swimlane` creates wrapper callbacks for `onAdd` and `onAIAdd` that bind the swimlane ID. Without memoization, these would be new function references on every render, defeating `Column`'s `React.memo`:
+
+```typescript
+// Swimlane.tsx
+const handleAdd = React.useCallback(
+  (colId: ColumnId, cardTitle: string) => onAdd(colId, cardTitle, swimlaneId),
+  [onAdd, swimlaneId]
+);
+const handleAIAdd = React.useMemo(
+  () => onAIAdd ? (colId: ColumnId, input: string) => onAIAdd(colId, input, swimlaneId) : undefined,
+  [onAIAdd, swimlaneId]
+);
+```
+
+`handleAdd` uses `useCallback` for a stable reference. `handleAIAdd` uses `useMemo` because it may be `undefined` (AI features are optional), and `useCallback` cannot return `undefined`.
+
+#### 4. Framer Motion Layout Prop Removed (`CardItem.tsx`)
+
+Framer Motion's `layout` prop triggers GPU layout recalculation on every sibling card whenever any card in the same `AnimatePresence` group changes position. During drag-and-drop, this caused visible jank as every card in the column re-measured its layout. The `layout` prop was removed from `CardItem`'s `<motion.div>`, and `AnimatePresence` in `Column.tsx` was changed from `mode="popLayout"` to the default mode. Cards still animate on enter/exit via `initial`/`animate`/`exit` props, but sibling cards no longer trigger expensive layout recalculations.
+
+#### 5. Metrics Completion Tracking (`App.tsx`)
+
+The `useEffect` that detects newly completed cards (moved to a terminal column) previously used an O(n^2) pattern:
+
+```typescript
+// Before: O(n^2) -- prevCards.find() inside a loop over state.cards
+for (const card of state.cards) {
+  const prevCard = prevCards.find((c) => c.id === card.id);
+  ...
+}
+```
+
+This was replaced with an O(n) Map-based lookup:
+
+```typescript
+// After: O(n) -- build Map once, look up by ID
+const prevCardMap = new Map(prevCards.map((c) => [c.id, c]));
+for (const card of state.cards) {
+  const prevCard = prevCardMap.get(card.id);
+  ...
+}
+```
+
+For boards with hundreds of cards, this eliminates a meaningful amount of per-render work.
+
+### Optimization Summary
+
+| File | Optimization | Effect |
+|------|-------------|--------|
+| `CardItem.tsx` | `React.memo` wrapper; removed Framer Motion `layout` prop | Cards skip re-render when their props are unchanged; no GPU layout recalc on siblings |
+| `Column.tsx` | `React.memo` wrapper; `AnimatePresence` default mode | Columns skip re-render when their cards array reference is stable |
+| `Swimlane.tsx` | `useCallback` for `handleAdd`; `useMemo` for `handleAIAdd` | Stable callback references prevent `Column` memo invalidation |
+| `state.ts` | Single-pass `MOVE_CARD` preserving object references | Unchanged cards keep the same identity, enabling memo bailouts |
+| `App.tsx` | Map-based lookup for completion tracking | O(n) instead of O(n^2) per state change |
 
 ## Security
 
