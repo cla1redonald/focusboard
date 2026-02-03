@@ -61,6 +61,87 @@ function AppContent() {
   const [onboardingOpen, setOnboardingOpen] = React.useState(() => !hasSeenOnboarding());
   const [metrics, setMetrics] = React.useState<MetricsState>(() => loadMetrics());
   const hasBgImage = !!state.settings.backgroundImage;
+
+  // Ref for accessing current state in stable callbacks without creating deps
+  const stateRef = React.useRef(state);
+  stateRef.current = state;
+
+  // --- Stable callbacks (never change identity) ---
+  const handleOpenCard = React.useCallback((c: Card) => setOpenCard(c), []);
+  const handleSettings = React.useCallback(() => setSettingsOpen(true), []);
+  const handleOpenMetrics = React.useCallback(() => setMetricsDashboardOpen(true), []);
+  const handleOpenTimeline = React.useCallback(() => setTimelinePanelOpen(true), []);
+  const handleOpenFocus = React.useCallback(() => setFocusPanelOpen(true), []);
+  const handleOpenWeeklyPlan = React.useCallback(() => setWeeklyPlanOpen(true), []);
+  const handleOpenFeedback = React.useCallback(() => setFeedbackOpen(true), []);
+  const handleShowTutorial = React.useCallback(() => setOnboardingOpen(true), []);
+  const handleShowShortcuts = React.useCallback(() => setShortcutsOpen(true), []);
+  const handleOpenArchive = React.useCallback(() => setArchivePanelOpen(true), []);
+  const handleUndo = React.useCallback(() => dispatch({ type: "UNDO" }), [dispatch]);
+  const handleRedo = React.useCallback(() => dispatch({ type: "REDO" }), [dispatch]);
+
+  const handleAdd = React.useCallback(
+    (column: ColumnId, title: string, swimlane?: SwimlaneId) => {
+      dispatch({ type: "ADD_CARD", column, title, swimlane });
+      showToast({ type: "success", message: `Card "${title}" added` });
+    },
+    [dispatch, showToast]
+  );
+
+  const handleAddWithData = React.useCallback(
+    (column: ColumnId, title: string, swimlane: SwimlaneId, data: { tags?: string[]; dueDate?: string; notes?: string }) => {
+      dispatch({ type: "ADD_CARD_WITH_DATA", column, title, swimlane, data });
+      showToast({ type: "success", message: `Card "${title}" added with AI` });
+    },
+    [dispatch, showToast]
+  );
+
+  const handleMove = React.useCallback(
+    (id: string, to: ColumnId, toSwimlane?: SwimlaneId, patch?: Partial<Card>) => {
+      const card = stateRef.current.cards.find((c) => c.id === id);
+      const toColumn = stateRef.current.columns.find((c) => c.id === to);
+      dispatch({ type: "MOVE_CARD", id, to, toSwimlane, patch });
+      if (card && toColumn) {
+        requestAnimationFrame(() => {
+          showToast({
+            type: "info",
+            message: `Moved "${card.title}" to ${toColumn.title}`,
+            undoAction: () => dispatch({ type: "UNDO" }),
+          });
+        });
+      }
+    },
+    [dispatch, showToast]
+  );
+
+  const handleDelete = React.useCallback(
+    (id: string) => {
+      const card = stateRef.current.cards.find((c) => c.id === id);
+      dispatch({ type: "DELETE_CARD", id });
+      if (card) {
+        showToast({
+          type: "warning",
+          message: `Deleted "${card.title}"`,
+          undoAction: () => dispatch({ type: "UNDO" }),
+        });
+      }
+    },
+    [dispatch, showToast]
+  );
+
+  const handleReorderCards = React.useCallback(
+    (columnId: ColumnId, cardIds: string[], swimlane?: SwimlaneId) => {
+      dispatch({ type: "REORDER_CARDS", columnId, cardIds, swimlane });
+    },
+    [dispatch]
+  );
+
+  const handleToggleSwimlaneCollapse = React.useCallback(
+    (swimlaneId: SwimlaneId) => {
+      dispatch({ type: "TOGGLE_SWIMLANE_COLLAPSE", swimlaneId });
+    },
+    [dispatch]
+  );
   // Memoized calculations for FocusSuggestionPanel
   const completedToday = React.useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
@@ -259,56 +340,26 @@ function AppContent() {
             metrics={metrics}
             tagDefinitions={state.tags}
             archivedCount={archivedCards.length}
-            onOpenArchive={() => setArchivePanelOpen(true)}
-            onAdd={(column, title, swimlane) => {
-              dispatch({ type: "ADD_CARD", column, title, swimlane });
-              showToast({ type: "success", message: `Card "${title}" added` });
-            }}
-            onAddWithData={(column, title, swimlane, data) => {
-              dispatch({ type: "ADD_CARD_WITH_DATA", column, title, swimlane, data });
-              showToast({ type: "success", message: `Card "${title}" added with AI` });
-            }}
-            onMove={(id, to, toSwimlane, patch) => {
-              const card = state.cards.find((c) => c.id === id);
-              const toColumn = state.columns.find((c) => c.id === to);
-              dispatch({ type: "MOVE_CARD", id, to, toSwimlane, patch });
-              // Defer toast to next frame so it doesn't block drag animation
-              if (card && toColumn) {
-                requestAnimationFrame(() => {
-                  showToast({
-                    type: "info",
-                    message: `Moved "${card.title}" to ${toColumn.title}`,
-                    undoAction: () => dispatch({ type: "UNDO" }),
-                  });
-                });
-              }
-            }}
-            onDelete={(id) => {
-              const card = state.cards.find((c) => c.id === id);
-              dispatch({ type: "DELETE_CARD", id });
-              if (card) {
-                showToast({
-                  type: "warning",
-                  message: `Deleted "${card.title}"`,
-                  undoAction: () => dispatch({ type: "UNDO" }),
-                });
-              }
-            }}
-            onOpenCard={(c) => setOpenCard(c)}
-            onSettings={() => setSettingsOpen(true)}
-            onOpenMetrics={() => setMetricsDashboardOpen(true)}
-            onOpenTimeline={() => setTimelinePanelOpen(true)}
-            onOpenFocus={() => setFocusPanelOpen(true)}
-            onOpenWeeklyPlan={() => setWeeklyPlanOpen(true)}
-            onOpenFeedback={() => setFeedbackOpen(true)}
-            onShowTutorial={() => setOnboardingOpen(true)}
-            onShowShortcuts={() => setShortcutsOpen(true)}
+            onOpenArchive={handleOpenArchive}
+            onAdd={handleAdd}
+            onAddWithData={handleAddWithData}
+            onMove={handleMove}
+            onDelete={handleDelete}
+            onOpenCard={handleOpenCard}
+            onSettings={handleSettings}
+            onOpenMetrics={handleOpenMetrics}
+            onOpenTimeline={handleOpenTimeline}
+            onOpenFocus={handleOpenFocus}
+            onOpenWeeklyPlan={handleOpenWeeklyPlan}
+            onOpenFeedback={handleOpenFeedback}
+            onShowTutorial={handleShowTutorial}
+            onShowShortcuts={handleShowShortcuts}
             canUndo={canUndo}
             canRedo={canRedo}
-            onUndo={() => dispatch({ type: "UNDO" })}
-            onRedo={() => dispatch({ type: "REDO" })}
-            onReorderCards={(columnId, cardIds, swimlane) => dispatch({ type: "REORDER_CARDS", columnId, cardIds, swimlane })}
-            onToggleSwimlaneCollapse={(swimlaneId) => dispatch({ type: "TOGGLE_SWIMLANE_COLLAPSE", swimlaneId })}
+            onUndo={handleUndo}
+            onRedo={handleRedo}
+            onReorderCards={handleReorderCards}
+            onToggleSwimlaneCollapse={handleToggleSwimlaneCollapse}
           />
         </div>
       </div>

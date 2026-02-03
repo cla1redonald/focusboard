@@ -174,4 +174,25 @@ export const Column = React.memo(function Column({
       </div>
     </div>
   );
+}, (prev, next) => {
+  // Custom comparator: cards array may be a new reference but contain the same
+  // card objects (reducer preserves references for unchanged cards). Compare
+  // element-by-element to avoid re-rendering columns where nothing changed.
+  if (prev.cards.length !== next.cards.length) return false;
+  for (let i = 0; i < prev.cards.length; i++) {
+    if (prev.cards[i] !== next.cards[i]) return false;
+  }
+  return (
+    prev.id === next.id &&
+    prev.title === next.title &&
+    prev.accentColor === next.accentColor &&
+    prev.countLabel === next.countLabel &&
+    prev.headerState === next.headerState &&
+    prev.columnFocused === next.columnFocused &&
+    prev.focusedCardIndex === next.focusedCardIndex &&
+    prev.showAgingIndicators === next.showAgingIndicators &&
+    prev.showUrgencyIndicators === next.showUrgencyIndicators &&
+    prev.reducedMotion === next.reducedMotion &&
+    prev.aiLoading === next.aiLoading
+  );
 });

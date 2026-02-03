@@ -276,10 +276,10 @@ export function Board({
 
   // card element refs to locate confetti origin
   const cardEls = React.useRef(new Map<string, HTMLElement>());
-  const setCardEl = (id: string, el: HTMLElement | null) => {
+  const setCardEl = React.useCallback((id: string, el: HTMLElement | null) => {
     if (!el) cardEls.current.delete(id);
     else cardEls.current.set(id, el);
-  };
+  }, []);
 
   // celebration state
   const [confetti, setConfetti] = React.useState<{ x: number; y: number; active: boolean }>({
