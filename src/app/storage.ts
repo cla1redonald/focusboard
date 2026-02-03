@@ -387,10 +387,14 @@ export function loadState(): AppState {
 }
 
 export function saveState(state: AppState) {
-  // Save to user-scoped key (or global if not logged in)
   const scopedKey = getStorageKey(KEY_V4);
   localStorage.setItem(scopedKey, JSON.stringify(state));
 }
+
+const scheduleIdle =
+  typeof requestIdleCallback === "function"
+    ? requestIdleCallback
+    : (cb: () => void) => setTimeout(cb, 0);
 
 let saveTimeout: ReturnType<typeof setTimeout> | null = null;
 let queuedState: AppState | null = null;
@@ -401,12 +405,15 @@ export function debouncedSaveState(state: AppState): void {
   if (saveTimeout) {
     clearTimeout(saveTimeout);
   }
+  // After debounce delay, defer the actual write to an idle callback
+  // so JSON.stringify + localStorage.setItem never block drag animations
   saveTimeout = setTimeout(() => {
-    if (queuedState) {
-      saveState(queuedState);
-      queuedState = null;
-    }
+    const pending = queuedState;
+    queuedState = null;
     saveTimeout = null;
+    if (pending) {
+      scheduleIdle(() => saveState(pending));
+    }
   }, LOCAL_SAVE_DEBOUNCE_MS);
 }
 

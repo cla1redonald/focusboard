@@ -165,7 +165,8 @@ function AppContent() {
 
     if (updatedMetrics !== metrics) {
       setMetrics(updatedMetrics);
-      saveMetrics(updatedMetrics);
+      // Defer localStorage write so it doesn't block drag animations
+      requestAnimationFrame(() => saveMetrics(updatedMetrics));
     }
 
     prevCardsRef.current = state.cards;
@@ -271,11 +272,14 @@ function AppContent() {
               const card = state.cards.find((c) => c.id === id);
               const toColumn = state.columns.find((c) => c.id === to);
               dispatch({ type: "MOVE_CARD", id, to, toSwimlane, patch });
+              // Defer toast to next frame so it doesn't block drag animation
               if (card && toColumn) {
-                showToast({
-                  type: "info",
-                  message: `Moved "${card.title}" to ${toColumn.title}`,
-                  undoAction: () => dispatch({ type: "UNDO" }),
+                requestAnimationFrame(() => {
+                  showToast({
+                    type: "info",
+                    message: `Moved "${card.title}" to ${toColumn.title}`,
+                    undoAction: () => dispatch({ type: "UNDO" }),
+                  });
                 });
               }
             }}
