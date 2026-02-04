@@ -101,13 +101,13 @@ function AppContent() {
       const card = stateRef.current.cards.find((c) => c.id === id);
       const toColumn = stateRef.current.columns.find((c) => c.id === to);
       dispatch({ type: "MOVE_CARD", id, to, toSwimlane, patch });
+      // Toast context is split — showToast only triggers ToastContainer re-render,
+      // not AppContent, so it's safe to call synchronously (React 18 batches it)
       if (card && toColumn) {
-        requestAnimationFrame(() => {
-          showToast({
-            type: "info",
-            message: `Moved "${card.title}" to ${toColumn.title}`,
-            undoAction: () => dispatch({ type: "UNDO" }),
-          });
+        showToast({
+          type: "info",
+          message: `Moved "${card.title}" to ${toColumn.title}`,
+          undoAction: () => dispatch({ type: "UNDO" }),
         });
       }
     },

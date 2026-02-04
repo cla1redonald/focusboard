@@ -156,23 +156,35 @@ export function Board({
     const container = scrollContainerRef.current;
     if (!container) return;
 
+    let rafId: number | null = null;
+
     const checkScroll = () => {
       const hasMoreContent = container.scrollHeight > container.clientHeight;
       const isNotAtBottom = container.scrollTop < container.scrollHeight - container.clientHeight - 20;
       setCanScrollDown(hasMoreContent && isNotAtBottom);
     };
 
+    // Coalesce rapid events (scroll, resize, DOM mutations) into one check per frame
+    const throttledCheckScroll = () => {
+      if (rafId !== null) return;
+      rafId = requestAnimationFrame(() => {
+        rafId = null;
+        checkScroll();
+      });
+    };
+
     checkScroll();
-    container.addEventListener("scroll", checkScroll);
-    window.addEventListener("resize", checkScroll);
+    container.addEventListener("scroll", throttledCheckScroll, { passive: true });
+    window.addEventListener("resize", throttledCheckScroll);
 
     // Re-check when swimlanes collapse/expand
-    const observer = new MutationObserver(checkScroll);
+    const observer = new MutationObserver(throttledCheckScroll);
     observer.observe(container, { childList: true, subtree: true });
 
     return () => {
-      container.removeEventListener("scroll", checkScroll);
-      window.removeEventListener("resize", checkScroll);
+      if (rafId !== null) cancelAnimationFrame(rafId);
+      container.removeEventListener("scroll", throttledCheckScroll);
+      window.removeEventListener("resize", throttledCheckScroll);
       observer.disconnect();
     };
   }, []);
