@@ -10,13 +10,14 @@ export type Toast = {
   undoAction?: () => void;
 };
 
-type ToastContextValue = {
-  toasts: Toast[];
+type ToastActions = {
   showToast: (toast: Omit<Toast, "id">) => void;
   dismissToast: (id: string) => void;
 };
 
-const ToastContext = React.createContext<ToastContextValue | null>(null);
+// Separate contexts: actions (stable, never triggers re-renders) vs data (volatile)
+const ToastActionContext = React.createContext<ToastActions | null>(null);
+const ToastDataContext = React.createContext<Toast[]>([]);
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
   const [toasts, setToasts] = React.useState<Toast[]>([]);
@@ -39,20 +40,31 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
     setToasts((prev) => prev.filter((t) => t.id !== id));
   }, []);
 
-  const value = React.useMemo(
-    () => ({ toasts, showToast, dismissToast }),
-    [toasts, showToast, dismissToast]
+  // Actions object is stable (both functions are useCallback with empty deps)
+  const actions = React.useMemo(
+    () => ({ showToast, dismissToast }),
+    [showToast, dismissToast]
   );
 
   return (
-    <ToastContext.Provider value={value}>{children}</ToastContext.Provider>
+    <ToastActionContext.Provider value={actions}>
+      <ToastDataContext.Provider value={toasts}>
+        {children}
+      </ToastDataContext.Provider>
+    </ToastActionContext.Provider>
   );
 }
 
+/** Use in components that SHOW toasts — stable, never causes re-render */
 export function useToast() {
-  const context = React.useContext(ToastContext);
+  const context = React.useContext(ToastActionContext);
   if (!context) {
     throw new Error("useToast must be used within a ToastProvider");
   }
   return context;
+}
+
+/** Use in components that DISPLAY toasts — re-renders when toasts change */
+export function useToastData() {
+  return React.useContext(ToastDataContext);
 }

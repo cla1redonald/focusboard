@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from "framer-motion";
-import { useToast, type Toast, type ToastType } from "../app/ToastContext";
+import { useToast, useToastData, type Toast, type ToastType } from "../app/ToastContext";
 
 const TOAST_ICONS: Record<ToastType, string> = {
   success: "checkmark",
@@ -119,7 +119,7 @@ function ToastItem({ toast }: { toast: Toast }) {
 }
 
 export function ToastContainer() {
-  const { toasts } = useToast();
+  const toasts = useToastData();
 
   return (
     <div className="fixed bottom-6 right-6 z-[1600] flex flex-col gap-2">
