@@ -30,7 +30,7 @@ type SwimlaneProps = {
   aiLoading?: boolean;
 };
 
-export function Swimlane({
+export const Swimlane = React.memo(function Swimlane({
   swimlaneId,
   title,
   icon,
@@ -129,4 +129,30 @@ export function Swimlane({
       )}
     </div>
   );
-}
+}, (prev, next) => {
+  // Compare cardsByColumn element-by-element per column (like Column's comparator)
+  const prevCols = Object.keys(prev.cardsByColumn);
+  const nextCols = Object.keys(next.cardsByColumn);
+  if (prevCols.length !== nextCols.length) return false;
+  for (const col of prevCols) {
+    const pc = prev.cardsByColumn[col] ?? [];
+    const nc = next.cardsByColumn[col] ?? [];
+    if (pc.length !== nc.length) return false;
+    for (let i = 0; i < pc.length; i++) {
+      if (pc[i] !== nc[i]) return false;
+    }
+  }
+  return (
+    prev.swimlaneId === next.swimlaneId &&
+    prev.title === next.title &&
+    prev.collapsed === next.collapsed &&
+    prev.columnFocused === next.columnFocused &&
+    prev.focusedColumnIndex === next.focusedColumnIndex &&
+    prev.focusedCardIndex === next.focusedCardIndex &&
+    prev.showAgingIndicators === next.showAgingIndicators &&
+    prev.showUrgencyIndicators === next.showUrgencyIndicators &&
+    prev.reducedMotion === next.reducedMotion &&
+    prev.aiLoading === next.aiLoading &&
+    prev.columns === next.columns
+  );
+});

@@ -433,6 +433,15 @@ export function Board({
     setActiveCard(null);
   };
 
+  // Stable per-swimlane toggle callbacks (avoids inline arrows that defeat Swimlane memo)
+  const toggleCallbacks = React.useMemo(() => {
+    const map = new Map<string, () => void>();
+    for (const swimlane of DEFAULT_SWIMLANES) {
+      map.set(swimlane.id, () => onToggleSwimlaneCollapse(swimlane.id));
+    }
+    return map;
+  }, [onToggleSwimlaneCollapse]);
+
   return (
     <div className="h-full flex flex-col">
       <TopStrip
@@ -504,7 +513,7 @@ export function Board({
                 columns={sortedColumns}
                 cardsByColumn={bySwimlaneAndCol[swimlane.id]}
                 collapsed={settings.collapsedSwimlanes?.includes(swimlane.id) ?? false}
-                onToggleCollapse={() => onToggleSwimlaneCollapse(swimlane.id)}
+                onToggleCollapse={toggleCallbacks.get(swimlane.id)!}
                 onAdd={onAdd}
                 onAIAdd={onAddWithData ? handleAIAdd : undefined}
                 onOpenCard={onOpenCard}
@@ -539,7 +548,7 @@ export function Board({
         )}
 
         {/* Drag overlay shows a preview of the card being dragged */}
-        <DragOverlay>
+        <DragOverlay dropAnimation={null}>
           {activeCard && (
             <div className="w-[280px] rounded-xl border border-emerald-500 bg-white px-3 py-2.5 shadow-xl rotate-2 dark:bg-gray-800 dark:border-emerald-400">
               <div className="flex items-center gap-2 text-sm font-medium text-gray-900 dark:text-white">

@@ -9,7 +9,7 @@ import { AuthProvider, useRequireAuth, useAuth } from "./AuthContext";
 import { ToastProvider, useToast } from "./ToastContext";
 import { isSupabaseConfigured } from "./supabase";
 import { cleanupCardAttachments } from "./attachmentCleanup";
-import { debouncedSaveToSupabase, debouncedSaveMetricsToSupabase } from "./sync";
+import { debouncedSaveMetricsToSupabase } from "./sync";
 import { Board } from "../components/Board";
 import { CardModal } from "../components/CardModal";
 import { SettingsPanel } from "../components/SettingsPanel";
@@ -253,14 +253,8 @@ function AppContent() {
     prevCardsRef.current = state.cards;
   }, [state.cards, state.columns]); // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Sync state to Supabase when it changes
-  React.useEffect(() => {
-    if (isSupabaseConfigured()) {
-      debouncedSaveToSupabase(state);
-    }
-  }, [state]);
-
-  // Sync metrics to Supabase when they change
+  // Note: Supabase sync for state is handled in useAppState (state.ts)
+  // with echo suppression. Only metrics need syncing here.
   React.useEffect(() => {
     if (isSupabaseConfigured()) {
       debouncedSaveMetricsToSupabase(metrics);
