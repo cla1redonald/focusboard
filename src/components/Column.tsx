@@ -1,5 +1,4 @@
 import React from "react";
-import { AnimatePresence } from "framer-motion";
 import { useDroppable } from "@dnd-kit/core";
 import { SortableContext, verticalListSortingStrategy } from "@dnd-kit/sortable";
 import { Sparkles, Loader2 } from "lucide-react";
@@ -112,22 +111,20 @@ export const Column = React.memo(function Column({
           {cards.length === 0 ? (
             <EmptyColumnState columnId={id} />
           ) : (
-            <AnimatePresence>
-              {cards.map((c, idx) => (
-                <CardItem
-                  key={c.id}
-                  card={c}
-                  onOpen={onOpenCard}
-                  cardRefSetter={cardRefSetter}
-                  focused={columnFocused && focusedCardIndex === idx}
-                  showAgingIndicator={showAgingIndicators}
-                  showUrgencyIndicator={showUrgencyIndicators}
-                  isStaleBacklog={staleCardIds.has(c.id)}
-                  staleBacklogDays={staleCardDays[c.id] ?? 0}
-                  reducedMotion={reducedMotion}
-                />
-              ))}
-            </AnimatePresence>
+            cards.map((c, idx) => (
+              <CardItem
+                key={c.id}
+                card={c}
+                onOpen={onOpenCard}
+                cardRefSetter={cardRefSetter}
+                focused={columnFocused && focusedCardIndex === idx}
+                showAgingIndicator={showAgingIndicators}
+                showUrgencyIndicator={showUrgencyIndicators}
+                isStaleBacklog={staleCardIds.has(c.id)}
+                staleBacklogDays={staleCardDays[c.id] ?? 0}
+                reducedMotion={reducedMotion}
+              />
+            ))
           )}
         </SortableContext>
 

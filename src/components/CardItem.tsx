@@ -1,5 +1,4 @@
 import React from "react";
-import { motion } from "framer-motion";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { GripVertical, Calendar, ExternalLink } from "lucide-react";
@@ -54,17 +53,13 @@ export const CardItem = React.memo(function CardItem({
   };
 
   return (
-    <motion.div
+    <div
       ref={refFn}
       style={cardStyle}
-      initial={reducedMotion ? false : { opacity: 0, y: -10, scale: 0.95 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      exit={reducedMotion ? undefined : { opacity: 0, scale: 0.95 }}
-      transition={{ duration: reducedMotion ? 0 : 0.2, ease: "easeOut" }}
       onClick={() => onOpen(card)}
       {...listeners}
       {...attributes}
-      className={`group relative cursor-grab overflow-hidden rounded-xl border shadow-sm transition-all duration-150 hover:-translate-y-0.5 hover:shadow-md hover:shadow-emerald-100 active:cursor-grabbing dark:hover:shadow-emerald-900/20 ${
+      className={`group relative cursor-grab overflow-hidden rounded-xl border shadow-sm transition-shadow duration-150 hover:-translate-y-0.5 hover:shadow-md hover:shadow-emerald-100 active:cursor-grabbing dark:hover:shadow-emerald-900/20 ${
         focused
           ? "border-emerald-500 ring-2 ring-emerald-500/20"
           : "border-gray-200 hover:border-emerald-200 dark:border-gray-700 dark:hover:border-emerald-600"
@@ -240,6 +235,6 @@ export const CardItem = React.memo(function CardItem({
           );
         })()}
       </div>
-    </motion.div>
+    </div>
   );
 });
