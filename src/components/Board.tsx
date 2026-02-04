@@ -240,6 +240,12 @@ export function Board({
     enabled: !modal, // Disable when modal is open
   });
 
+  // Memoize pending task count for subtitle (avoids O(n*m) inline double-filter)
+  const pendingCount = React.useMemo(() => {
+    const terminalIds = new Set(columns.filter((c) => c.isTerminal).map((c) => c.id));
+    return cards.filter((c) => !terminalIds.has(c.column)).length;
+  }, [cards, columns]);
+
   // Memoize header stats
   const { doingCard, blockedCount, dueTodayCount } = React.useMemo(() => {
     const doingCol = sortedColumns.find((c) => c.id === "doing");
@@ -473,9 +479,9 @@ export function Board({
                 FocusBoard
               </div>
               <div className="text-sm text-gray-500 dark:text-gray-400">
-                {cards.filter(c => !columns.find(col => col.id === c.column)?.isTerminal).length === 0
+                {pendingCount === 0
                   ? "No tasks pending. Time to plan your next goal!"
-                  : `${cards.filter(c => !columns.find(col => col.id === c.column)?.isTerminal).length} tasks in progress`}
+                  : `${pendingCount} tasks in progress`}
               </div>
             </div>
           </div>

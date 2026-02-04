@@ -184,7 +184,17 @@ function appReducer(state: AppState, action: Action): AppState {
       const fromSwimlane = movingCard?.swimlane ?? "work";
       const toSwimlane = action.toSwimlane ?? fromSwimlane;
 
-      // Single pass: update moved card + shift destination siblings, return others by reference
+      // Find minimum order in destination so moved card sorts first without
+      // touching existing cards (preserves references for React.memo).
+      let minOrder = 0;
+      for (const c of state.cards) {
+        if (c.id !== action.id && c.column === action.to && (c.swimlane ?? "work") === toSwimlane) {
+          const o = c.order ?? 0;
+          if (o < minOrder) minOrder = o;
+        }
+      }
+
+      // Single pass: only the moved card gets a new object; all others returned by reference
       const newCards = state.cards.map((c) => {
         if (c.id === action.id) {
           const transition: ColumnTransition = {
@@ -196,15 +206,12 @@ function appReducer(state: AppState, action: Action): AppState {
             ...c,
             column: action.to,
             swimlane: toSwimlane,
-            order: 0,
+            order: minOrder - 1,
             ...action.patch,
             updatedAt: now,
             columnHistory: [...(c.columnHistory ?? []), transition],
             completedAt: isTerminal ? now : c.completedAt,
           };
-        }
-        if (c.column === action.to && (c.swimlane ?? "work") === toSwimlane) {
-          return { ...c, order: (c.order ?? 0) + 1 };
         }
         return c; // Unchanged — preserves reference for React.memo
       });
