@@ -346,11 +346,11 @@ describe("sync.ts with Supabase configured", () => {
   });
 
   it("subscribeToStateChanges calls callback on state change", async () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+     
     let changeHandler: any = null;
 
     const mockChannel = {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+       
       on: vi.fn((_event: string, _config: unknown, handler: any) => {
         changeHandler = handler;
         return mockChannel;
@@ -433,8 +433,9 @@ describe("debounced sync functions", () => {
     // Should not have saved yet
     expect(mockFrom).not.toHaveBeenCalled();
 
-    // Advance timer past debounce period
+    // Advance timer past debounce period + idle callback fallback
     await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(1);
 
     // Should have saved only once
     expect(mockFrom).toHaveBeenCalledTimes(1);
@@ -460,8 +461,9 @@ describe("debounced sync functions", () => {
     debouncedSaveToSupabase(mockAppState);
     debouncedSaveMetricsToSupabase(mockMetrics);
 
-    // Advance timer
+    // Advance timer past debounce period + idle callback fallback for state
     await vi.advanceTimersByTimeAsync(1000);
+    await vi.advanceTimersByTimeAsync(1);
 
     // Both should have saved
     expect(mockFrom).toHaveBeenCalledWith("app_state");

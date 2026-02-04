@@ -137,32 +137,50 @@ export function subscribeToStateChanges(
 }
 
 // Debounced save to avoid too many writes
-// Separate timeouts for state and metrics to prevent interference
+// Uses requestIdleCallback after debounce so JSON.stringify (inside Supabase
+// client's fetch body serialization) never blocks drag interactions.
+const hasIdleCallback = typeof requestIdleCallback === "function";
+
 let stateTimeout: ReturnType<typeof setTimeout> | null = null;
+let stateIdleHandle: number | null = null;
 let metricsTimeout: ReturnType<typeof setTimeout> | null = null;
 let queuedState: AppState | null = null;
 let queuedMetrics: MetricsState | null = null;
 const SAVE_DEBOUNCE_MS = 1000;
 
+function cancelStateIdle(): void {
+  if (stateIdleHandle !== null) {
+    if (hasIdleCallback) cancelIdleCallback(stateIdleHandle);
+    else clearTimeout(stateIdleHandle);
+    stateIdleHandle = null;
+  }
+}
+
+function scheduleIdle(fn: () => void): number {
+  if (hasIdleCallback) return requestIdleCallback(fn);
+  return window.setTimeout(fn, 0) as unknown as number;
+}
+
 export function debouncedSaveToSupabase(state: AppState): void {
   queuedState = state;
-  if (stateTimeout) {
-    clearTimeout(stateTimeout);
-  }
+  if (stateTimeout) clearTimeout(stateTimeout);
+  cancelStateIdle();
   stateTimeout = setTimeout(() => {
-    if (queuedState) {
-      void saveStateToSupabase(queuedState);
-      queuedState = null;
-    }
+    const pending = queuedState;
+    queuedState = null;
     stateTimeout = null;
+    if (pending) {
+      stateIdleHandle = scheduleIdle(() => {
+        stateIdleHandle = null;
+        void saveStateToSupabase(pending);
+      });
+    }
   }, SAVE_DEBOUNCE_MS);
 }
 
 export function debouncedSaveMetricsToSupabase(metrics: MetricsState): void {
   queuedMetrics = metrics;
-  if (metricsTimeout) {
-    clearTimeout(metricsTimeout);
-  }
+  if (metricsTimeout) clearTimeout(metricsTimeout);
   metricsTimeout = setTimeout(() => {
     if (queuedMetrics) {
       void saveMetricsToSupabase(queuedMetrics);
@@ -177,6 +195,7 @@ export function flushSaveToSupabase(): void {
     clearTimeout(stateTimeout);
     stateTimeout = null;
   }
+  cancelStateIdle();
   if (queuedState) {
     void saveStateToSupabase(queuedState);
     queuedState = null;

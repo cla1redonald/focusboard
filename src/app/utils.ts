@@ -7,11 +7,14 @@ export const nowIso = () => new Date().toISOString();
  * Cards with due dates come before cards without.
  */
 export function compareCardsByDueDate(a: Card, b: Card): number {
-  const aDue = a.dueDate ? new Date(a.dueDate).getTime() : null;
-  const bDue = b.dueDate ? new Date(b.dueDate).getTime() : null;
+  // ISO date strings sort lexicographically in chronological order,
+  // so we can compare them directly without allocating Date objects.
+  const aDue = a.dueDate ?? null;
+  const bDue = b.dueDate ?? null;
 
   if (aDue !== null && bDue !== null) {
-    if (aDue !== bDue) return aDue - bDue;
+    if (aDue < bDue) return -1;
+    if (aDue > bDue) return 1;
   } else if (aDue !== null) {
     return -1;
   } else if (bDue !== null) {
