@@ -30,6 +30,7 @@ A focused Kanban-style board with WIP limits, colored tags, and cloud sync.
 - **Error Resilience** - ErrorBoundary catches errors gracefully without crashing the app
 - **Optimized Loading** - Heavy panels are lazy-loaded to reduce initial bundle size
 - **Webhook API** - Add cards from Apple Shortcuts, Zapier, or any automation tool
+- **Capture Hub** - Send tasks from Slack, email, browser, or Shortcuts and let AI parse them into structured cards
 - **Pomodoro Timer** - 25-minute focus sessions with break reminders and streak tracking
 - **AI Features** (requires Anthropic API key):
   - **Natural Language Cards** - Type "urgent bug fix login page by friday" and AI parses title, tags, due date
@@ -83,6 +84,22 @@ curl -X POST https://your-app.vercel.app/api/webhook/add-card \
 
 See [docs/API.md](docs/API.md) for full documentation.
 
+## Capture Hub
+
+Send tasks to FocusBoard from anywhere -- AI parses raw text into structured, categorized cards.
+
+**Capture channels:**
+
+- **Slack** -- React with `:focusboard:` emoji; Zapier sends the message to FocusBoard
+- **Email** -- Forward to your `+focusboard` address; Zapier forwards subject and body
+- **Browser** -- Chrome extension: highlight text and click "Send to FocusBoard"
+- **Shortcuts** -- iOS/Mac Shortcut accepts Share Sheet input from any app
+- **In-app** -- Press `Cmd+Shift+C` to open quick capture
+
+High-confidence tasks (>= 0.8) are added to the board automatically. Lower-confidence items land in the Capture Inbox for review.
+
+See [docs/API.md](docs/API.md) for the Capture API reference.
+
 ## Keyboard Shortcuts
 
 | Shortcut | Action |
@@ -96,6 +113,7 @@ See [docs/API.md](docs/API.md) for full documentation.
 | `D` | Mark focused card as Done |
 | `Delete/Backspace` | Delete selected card |
 | `Escape` | Close modal / clear search |
+| `Cmd/Ctrl + Shift + C` | Open quick capture |
 | `?` | Show keyboard shortcuts |
 
 ## Tech Stack
@@ -114,7 +132,7 @@ See [docs/API.md](docs/API.md) for full documentation.
 |----------|-------------|
 | [ARCHITECTURE.md](ARCHITECTURE.md) | Technical architecture and data model |
 | [TESTING.md](TESTING.md) | Testing strategy and guidelines |
-| [docs/API.md](docs/API.md) | Webhook API for external integrations |
+| [docs/API.md](docs/API.md) | API reference: Webhook, Capture Hub, and Feedback endpoints |
 | [docs/SUPABASE.md](docs/SUPABASE.md) | Database schema and RLS setup |
 
 ## License

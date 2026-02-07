@@ -47,6 +47,8 @@ export function Board({
   onOpenWeeklyPlan,
   onOpenFeedback,
   onOpenArchive,
+  onOpenCapture,
+  captureCount = 0,
   onShowTutorial,
   onShowShortcuts,
   canUndo,
@@ -74,6 +76,8 @@ export function Board({
   onOpenWeeklyPlan?: () => void;
   onOpenFeedback?: () => void;
   onOpenArchive?: () => void;
+  onOpenCapture?: () => void;
+  captureCount?: number;
   onShowTutorial?: () => void;
   onShowShortcuts?: () => void;
   canUndo: boolean;
@@ -462,6 +466,8 @@ export function Board({
         onOpenWeeklyPlan={onOpenWeeklyPlan}
         onOpenFeedback={onOpenFeedback}
         onOpenArchive={onOpenArchive}
+        onOpenCapture={onOpenCapture}
+        captureCount={captureCount}
         onShowTutorial={onShowTutorial}
         onShowShortcuts={onShowShortcuts}
         canUndo={canUndo}

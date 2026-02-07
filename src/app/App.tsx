@@ -10,6 +10,8 @@ import { ToastProvider, useToast } from "./ToastContext";
 import { isSupabaseConfigured } from "./supabase";
 import { cleanupCardAttachments } from "./attachmentCleanup";
 import { debouncedSaveMetricsToSupabase } from "./sync";
+import { useCaptureQueue } from "./useCaptureQueue";
+import type { ParsedCaptureCard } from "./captureTypes";
 import { Board } from "../components/Board";
 import { CardModal } from "../components/CardModal";
 import { SettingsPanel } from "../components/SettingsPanel";
@@ -28,6 +30,7 @@ const TimelinePanel = React.lazy(() => import("../components/TimelinePanel").the
 const FocusSuggestionPanel = React.lazy(() => import("../components/FocusSuggestionPanel").then(m => ({ default: m.FocusSuggestionPanel })));
 const WeeklyPlanPanel = React.lazy(() => import("../components/WeeklyPlanPanel").then(m => ({ default: m.WeeklyPlanPanel })));
 const ArchivePanel = React.lazy(() => import("../components/ArchivePanel").then(m => ({ default: m.ArchivePanel })));
+const CaptureInbox = React.lazy(() => import("../components/CaptureInbox").then(m => ({ default: m.CaptureInbox })));
 
 // Loading fallback for lazy-loaded panels
 function PanelLoadingFallback() {
@@ -58,8 +61,10 @@ function AppContent() {
   const [commandPaletteOpen, setCommandPaletteOpen] = React.useState(false);
   const [feedbackOpen, setFeedbackOpen] = React.useState(false);
   const [archivePanelOpen, setArchivePanelOpen] = React.useState(false);
+  const [captureInboxOpen, setCaptureInboxOpen] = React.useState(false);
   const [onboardingOpen, setOnboardingOpen] = React.useState(() => !hasSeenOnboarding());
   const [metrics, setMetrics] = React.useState<MetricsState>(() => loadMetrics());
+  const { reviewItems, processingItems, autoAddedItems, pendingCount, dismissItem, deleteItem } = useCaptureQueue(user?.id ?? null);
   const hasBgImage = !!state.settings.backgroundImage;
 
   // Ref for accessing current state in stable callbacks without creating deps
@@ -77,6 +82,7 @@ function AppContent() {
   const handleShowTutorial = React.useCallback(() => setOnboardingOpen(true), []);
   const handleShowShortcuts = React.useCallback(() => setShortcutsOpen(true), []);
   const handleOpenArchive = React.useCallback(() => setArchivePanelOpen(true), []);
+  const handleOpenCapture = React.useCallback(() => setCaptureInboxOpen(true), []);
   const handleUndo = React.useCallback(() => dispatch({ type: "UNDO" }), [dispatch]);
   const handleRedo = React.useCallback(() => dispatch({ type: "REDO" }), [dispatch]);
 
@@ -94,6 +100,25 @@ function AppContent() {
       showToast({ type: "success", message: `Card "${title}" added with AI` });
     },
     [dispatch, showToast]
+  );
+
+  const handleAddCaptureCard = React.useCallback(
+    (parsedCard: ParsedCaptureCard, captureId: string) => {
+      dispatch({
+        type: "ADD_CARD_WITH_DATA",
+        column: parsedCard.suggestedColumn || "backlog",
+        title: parsedCard.title,
+        swimlane: parsedCard.swimlane || "work",
+        data: {
+          tags: parsedCard.tags,
+          dueDate: parsedCard.dueDate,
+          notes: parsedCard.notes,
+        },
+      });
+      showToast({ type: "success", message: `Added "${parsedCard.title}" from capture` });
+      void dismissItem(captureId);
+    },
+    [dispatch, showToast, dismissItem]
   );
 
   const handleMove = React.useCallback(
@@ -190,6 +215,13 @@ function AppContent() {
       if ((e.metaKey || e.ctrlKey) && e.key === "k") {
         e.preventDefault();
         setCommandPaletteOpen(true);
+        return;
+      }
+
+      // Cmd+Shift+C for capture inbox (works even in inputs)
+      if ((e.metaKey || e.ctrlKey) && e.shiftKey && e.key === "c") {
+        e.preventDefault();
+        setCaptureInboxOpen(true);
         return;
       }
 
@@ -335,6 +367,8 @@ function AppContent() {
             tagDefinitions={state.tags}
             archivedCount={archivedCards.length}
             onOpenArchive={handleOpenArchive}
+            onOpenCapture={handleOpenCapture}
+            captureCount={pendingCount}
             onAdd={handleAdd}
             onAddWithData={handleAddWithData}
             onMove={handleMove}
@@ -545,6 +579,25 @@ function AppContent() {
         </Suspense>
       )}
 
+      {captureInboxOpen && (
+        <Suspense fallback={<PanelLoadingFallback />}>
+          <ErrorBoundary>
+            <CaptureInbox
+              open={captureInboxOpen}
+              reviewItems={reviewItems}
+              processingItems={processingItems}
+              autoAddedItems={autoAddedItems}
+              columns={state.columns}
+              tags={state.tags}
+              onClose={() => setCaptureInboxOpen(false)}
+              onAddCard={handleAddCaptureCard}
+              onDismiss={dismissItem}
+              onDelete={deleteItem}
+            />
+          </ErrorBoundary>
+        </Suspense>
+      )}
+
       <KeyboardShortcutsModal
         open={shortcutsOpen}
         onClose={() => setShortcutsOpen(false)}
@@ -574,6 +627,10 @@ function AppContent() {
         onOpenArchive={() => {
           setCommandPaletteOpen(false);
           setArchivePanelOpen(true);
+        }}
+        onOpenCapture={() => {
+          setCommandPaletteOpen(false);
+          setCaptureInboxOpen(true);
         }}
         onJumpToColumn={(columnId) => {
           const columnEl = document.querySelector(`[data-column-id="${columnId}"]`);

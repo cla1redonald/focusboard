@@ -12,6 +12,7 @@ type CommandPaletteProps = {
   onOpenMetrics: () => void;
   onOpenTimeline: () => void;
   onOpenArchive?: () => void;
+  onOpenCapture?: () => void;
   onJumpToColumn: (columnId: string) => void;
 };
 
@@ -25,6 +26,7 @@ const QUICK_ACTIONS: { id: string; label: string; icon: string }[] = [
   { id: "metrics", label: "Open Metrics Dashboard", icon: "📊" },
   { id: "timeline", label: "Open Timeline", icon: "📅" },
   { id: "archive", label: "Open Archive", icon: "📦" },
+  { id: "capture", label: "Open Capture Inbox", icon: "📥" },
 ];
 
 export function CommandPalette({
@@ -37,6 +39,7 @@ export function CommandPalette({
   onOpenMetrics,
   onOpenTimeline,
   onOpenArchive,
+  onOpenCapture,
   onJumpToColumn,
 }: CommandPaletteProps) {
   const [query, setQuery] = React.useState("");
@@ -117,6 +120,7 @@ export function CommandPalette({
         if (item.id === "metrics") onOpenMetrics();
         if (item.id === "timeline") onOpenTimeline();
         if (item.id === "archive" && onOpenArchive) onOpenArchive();
+        if (item.id === "capture" && onOpenCapture) onOpenCapture();
         break;
     }
   };

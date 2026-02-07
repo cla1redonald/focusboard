@@ -49,6 +49,52 @@ CREATE TABLE metrics (
 | `metrics` | JSONB | MetricsState object |
 | `updated_at` | TIMESTAMPTZ | Last modification timestamp |
 
+#### `capture_queue`
+
+Queue for the Capture Hub feature. Incoming tasks from external channels land here for AI processing before being added to the board.
+
+```sql
+CREATE TABLE capture_queue (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id       UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  status        TEXT NOT NULL DEFAULT 'pending'
+                CHECK (status IN ('pending', 'processing', 'ready', 'auto_added', 'dismissed')),
+  confidence    FLOAT,
+  source        TEXT NOT NULL
+                CHECK (source IN ('email', 'slack', 'shortcut', 'browser', 'whatsapp', 'in_app')),
+  raw_content   TEXT NOT NULL,
+  raw_metadata  JSONB DEFAULT '{}',
+  parsed_cards  JSONB,
+  created_at    TIMESTAMPTZ DEFAULT now(),
+  processed_at  TIMESTAMPTZ
+);
+```
+
+| Column | Type | Description |
+|--------|------|-------------|
+| `id` | UUID | Primary key, auto-generated |
+| `user_id` | UUID | References auth.users |
+| `status` | TEXT | Lifecycle state: `pending` > `processing` > `ready` or `auto_added` or `dismissed` |
+| `confidence` | FLOAT | AI confidence score (0.0--1.0), set after processing |
+| `source` | TEXT | Intake channel identifier |
+| `raw_content` | TEXT | Original captured text (max 10,000 chars) |
+| `raw_metadata` | JSONB | Source-specific context (channel name, URL, sender, etc.) |
+| `parsed_cards` | JSONB | Array of structured card objects produced by the AI pipeline |
+| `created_at` | TIMESTAMPTZ | Row creation timestamp |
+| `processed_at` | TIMESTAMPTZ | When AI processing completed |
+
+**Status lifecycle:**
+
+| Status | Meaning |
+|--------|---------|
+| `pending` | Just captured, waiting for AI processing |
+| `processing` | AI pipeline is currently running |
+| `ready` | Processed, confidence < 0.8 -- waiting for user review in Capture Inbox |
+| `auto_added` | Processed, confidence >= 0.8 -- cards added directly to the board |
+| `dismissed` | User dismissed the item from the Capture Inbox |
+
+**Migration file:** `supabase/migrations/20260207170000_capture_queue.sql`
+
 ---
 
 ## State Structure
@@ -126,6 +172,7 @@ RLS ensures users can only access their own data.
 ```sql
 ALTER TABLE app_state ENABLE ROW LEVEL SECURITY;
 ALTER TABLE metrics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE capture_queue ENABLE ROW LEVEL SECURITY;
 ```
 
 ### Policies for `app_state`
@@ -171,6 +218,37 @@ CREATE POLICY "Users can update own metrics"
   USING (auth.uid() = user_id);
 ```
 
+### Policies for `capture_queue`
+
+```sql
+-- Users can view their own captures
+CREATE POLICY "Users can view own captures"
+  ON capture_queue FOR SELECT
+  USING (auth.uid() = user_id);
+
+-- Users can insert their own captures
+CREATE POLICY "Users can insert own captures"
+  ON capture_queue FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+-- Users can update their own captures
+CREATE POLICY "Users can update own captures"
+  ON capture_queue FOR UPDATE
+  USING (auth.uid() = user_id);
+
+-- Users can delete their own captures
+CREATE POLICY "Users can delete own captures"
+  ON capture_queue FOR DELETE
+  USING (auth.uid() = user_id);
+
+-- Service role needs full access for the API endpoints
+CREATE POLICY "Service role full access"
+  ON capture_queue FOR ALL
+  USING (true) WITH CHECK (true);
+```
+
+**Note:** The "Service role full access" policy allows the Vercel serverless functions (which use the service role key) to insert and update rows on behalf of any user. Client-side queries through the anon key are still restricted by the per-user policies.
+
 ---
 
 ## Service Role Access
@@ -202,12 +280,38 @@ supabase
   .subscribe();
 ```
 
+The Capture Hub subscribes to the `capture_queue` table so new captures appear in the Capture Inbox in real time:
+
+```typescript
+supabase
+  .channel("capture_queue_changes")
+  .on(
+    "postgres_changes",
+    {
+      event: "*",
+      schema: "public",
+      table: "capture_queue",
+      filter: `user_id=eq.${userId}`,
+    },
+    (payload) => {
+      // Handle new/updated capture item
+    }
+  )
+  .subscribe();
+```
+
 ### Enable Real-time
 
 In Supabase Dashboard:
 1. Go to **Database > Replication**
-2. Enable replication for `app_state` table
-3. Select `UPDATE` events
+2. Enable replication for `app_state` table -- select `UPDATE` events
+3. Enable replication for `capture_queue` table -- select `INSERT` and `UPDATE` events
+
+Or via SQL:
+
+```sql
+ALTER PUBLICATION supabase_realtime ADD TABLE capture_queue;
+```
 
 ---
 
@@ -278,9 +382,25 @@ CREATE TABLE IF NOT EXISTS metrics (
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
+CREATE TABLE IF NOT EXISTS capture_queue (
+  id            UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  user_id       UUID NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  status        TEXT NOT NULL DEFAULT 'pending'
+                CHECK (status IN ('pending', 'processing', 'ready', 'auto_added', 'dismissed')),
+  confidence    FLOAT,
+  source        TEXT NOT NULL
+                CHECK (source IN ('email', 'slack', 'shortcut', 'browser', 'whatsapp', 'in_app')),
+  raw_content   TEXT NOT NULL,
+  raw_metadata  JSONB DEFAULT '{}',
+  parsed_cards  JSONB,
+  created_at    TIMESTAMPTZ DEFAULT now(),
+  processed_at  TIMESTAMPTZ
+);
+
 -- Enable RLS
 ALTER TABLE app_state ENABLE ROW LEVEL SECURITY;
 ALTER TABLE metrics ENABLE ROW LEVEL SECURITY;
+ALTER TABLE capture_queue ENABLE ROW LEVEL SECURITY;
 
 -- app_state policies
 CREATE POLICY "Users can read own state"
@@ -311,6 +431,34 @@ CREATE POLICY "Users can insert own metrics"
 CREATE POLICY "Users can update own metrics"
   ON metrics FOR UPDATE
   USING (auth.uid() = user_id);
+
+-- capture_queue policies
+CREATE POLICY "Users can view own captures"
+  ON capture_queue FOR SELECT
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can insert own captures"
+  ON capture_queue FOR INSERT
+  WITH CHECK (auth.uid() = user_id);
+
+CREATE POLICY "Users can update own captures"
+  ON capture_queue FOR UPDATE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Users can delete own captures"
+  ON capture_queue FOR DELETE
+  USING (auth.uid() = user_id);
+
+CREATE POLICY "Service role full access"
+  ON capture_queue FOR ALL
+  USING (true) WITH CHECK (true);
+
+-- Index for capture_queue queries
+CREATE INDEX idx_capture_queue_user_status
+  ON capture_queue(user_id, status, created_at DESC);
+
+-- Enable real-time for capture_queue
+ALTER PUBLICATION supabase_realtime ADD TABLE capture_queue;
 ```
 
 ---
@@ -326,6 +474,7 @@ CREATE POLICY "Users can update own metrics"
 - State loaded on app startup
 - Real-time subscription for external updates
 - External updates (e.g., from webhook) sync automatically
+- `capture_queue` changes push to the Capture Inbox via real-time subscription
 
 ### Conflict Resolution
 - Last-write-wins strategy
