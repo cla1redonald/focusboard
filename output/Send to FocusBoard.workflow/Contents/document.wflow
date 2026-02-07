@@ -61,15 +61,11 @@
 				<dict>
 					<key>COMMAND_STRING</key>
 					<string>#!/bin/bash
-# Read input from stdin (Share Sheet text or piped input)
+# Read selected text from stdin
 INPUT=$(cat)
 
-# If no input provided, use osascript to ask
 if [ -z "$INPUT" ]; then
-  INPUT=$(osascript -e 'display dialog "What do you want to capture?" default answer "" buttons {"Cancel","Capture"} default button "Capture"' -e 'text returned of result' 2>/dev/null)
-  if [ -z "$INPUT" ]; then
-    exit 0
-  fi
+  exit 0
 fi
 
 # Escape for JSON
@@ -80,11 +76,11 @@ RESULT=$(curl -s -X POST "https://focusboard-claire-donalds-projects.vercel.app/
   -H "Content-Type: application/json" \
   -d "{\"content\":${ESCAPED},\"source\":\"shortcut\",\"secret\":\"a0e9c519d5464330ef2570e4c546aee22f5f651dff1732265350e51372dc40b5\"}")
 
-# Show notification
+# Show confirmation
 if echo "$RESULT" | grep -q '"success":true'; then
-  osascript -e 'display notification "Sent to FocusBoard!" with title "FocusBoard" sound name "Glass"'
+  osascript -e 'display alert "FocusBoard" message "Sent to FocusBoard!" giving up after 2'
 else
-  osascript -e 'display notification "Failed to capture. Check your connection." with title "FocusBoard" sound name "Basso"'
+  osascript -e 'display alert "FocusBoard" message "Failed to capture. Check your connection."'
 fi</string>
 					<key>CheckedForUserDefaultShell</key>
 					<true/>
