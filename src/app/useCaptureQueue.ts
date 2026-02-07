@@ -53,7 +53,7 @@ export function useCaptureQueue(userId: string | null) {
       .subscribe();
 
     return () => {
-      void supabase.removeChannel(channel);
+      if (supabase) void supabase.removeChannel(channel);
     };
   }, [userId, fetchItems]);
 

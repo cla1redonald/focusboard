@@ -17,7 +17,7 @@ export const CardItem = React.memo(function CardItem({
   showUrgencyIndicator = false,
   isStaleBacklog = false,
   staleBacklogDays = 0,
-  reducedMotion = false,
+  reducedMotion: _reducedMotion = false,
 }: {
   card: Card;
   onOpen: (card: Card) => void;

@@ -2,7 +2,7 @@ import React, { Suspense } from "react";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { useAppState } from "./state";
-import type { AppState, Card, Column, ColumnId, MetricsState, RelationType } from "./types";
+import type { AppState, Card, Column, ColumnId, MetricsState, RelationType, SwimlaneId } from "./types";
 import { loadMetrics, saveMetrics, recordCompletedCard, takeDailySnapshot } from "./metrics";
 import { hasSeenOnboarding, markOnboardingSeen } from "./storage";
 import { AuthProvider, useRequireAuth, useAuth } from "./AuthContext";
