@@ -1,4 +1,5 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { waitUntil } from "@vercel/functions";
 import { createClient } from "@supabase/supabase-js";
 import { timingSafeEqual } from "crypto";
 import { setCorsHeaders, handlePreflight } from "../_lib/cors.js";
@@ -83,14 +84,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(500).json({ error: "Failed to save capture" });
     }
 
-    // Trigger async processing (fire and forget)
+    // Trigger async processing — waitUntil keeps the function alive after response
     const processUrl = `https://${req.headers.host}/api/capture/process`;
     const internalSecret = process.env.CAPTURE_INTERNAL_SECRET;
-    void fetch(processUrl, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ capture_id: data.id, user_id: userId, internal_secret: internalSecret }),
-    }).catch((err) => console.error("Process trigger failed:", err));
+    waitUntil(
+      fetch(processUrl, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ capture_id: data.id, user_id: userId, internal_secret: internalSecret }),
+      }).catch((err) => console.error("Process trigger failed:", err))
+    );
 
     return res.status(200).json({
       success: true,
