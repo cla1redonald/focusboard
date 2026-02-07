@@ -228,6 +228,47 @@ Example: [{"title":"Review Q3 budget","notes":"From finance team email","tags":[
     });
   } catch (err) {
     console.error("Capture process error:", err);
+
+    // Recover: update the stuck item to "ready" with a fallback card so it doesn't spin forever
+    try {
+      const { capture_id, user_id } = req.body || {};
+      if (capture_id) {
+        const supabase = createClient(
+          process.env.SUPABASE_URL!,
+          process.env.SUPABASE_SERVICE_ROLE_KEY!
+        );
+        const { data: stuck } = await supabase
+          .from("capture_queue")
+          .select("raw_content, status")
+          .eq("id", capture_id)
+          .single();
+
+        if (stuck && (stuck.status === "pending" || stuck.status === "processing")) {
+          const title = (stuck.raw_content || "Captured item").substring(0, 80).trim();
+          await supabase
+            .from("capture_queue")
+            .update({
+              status: "ready",
+              confidence: 0,
+              parsed_cards: [{
+                title,
+                confidence: 0,
+                tags: [],
+                swimlane: "work",
+                suggestedColumn: "backlog",
+                duplicateOf: null,
+                relatedTo: [],
+                notes: "AI processing failed — review and edit this card",
+              }],
+              processed_at: new Date().toISOString(),
+            })
+            .eq("id", capture_id);
+        }
+      }
+    } catch (recoveryErr) {
+      console.error("Capture recovery also failed:", recoveryErr);
+    }
+
     return res.status(500).json({ error: "Processing failed" });
   }
 }

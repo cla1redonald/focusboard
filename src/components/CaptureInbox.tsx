@@ -377,9 +377,9 @@ export function CaptureInbox({
                 {processingItems.map((item) => (
                   <div
                     key={item.id}
-                    className="flex items-center gap-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-3"
+                    className="group flex items-center gap-3 rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700/50 p-3"
                   >
-                    <Loader2 size={16} className="animate-spin text-emerald-500" />
+                    <Loader2 size={16} className="animate-spin text-emerald-500 shrink-0" />
                     <div className="flex-1 min-w-0">
                       <div className="text-sm text-gray-600 dark:text-gray-400 truncate">
                         {item.raw_content.substring(0, 80)}
@@ -389,6 +389,14 @@ export function CaptureInbox({
                         {SOURCE_CONFIG[item.source].icon} {SOURCE_CONFIG[item.source].label} &middot; {formatRelativeTime(item.created_at)}
                       </div>
                     </div>
+                    <button
+                      onClick={() => onDismiss(item.id)}
+                      className="rounded-md p-1 text-gray-300 opacity-0 transition hover:bg-gray-100 hover:text-gray-500 group-hover:opacity-100 dark:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-400 shrink-0"
+                      aria-label="Dismiss"
+                      title="Cancel processing"
+                    >
+                      <X size={14} />
+                    </button>
                   </div>
                 ))}
               </div>

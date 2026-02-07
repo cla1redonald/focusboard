@@ -2,6 +2,8 @@ import React from "react";
 import { supabase } from "./supabase";
 import type { CaptureQueueItem, CaptureStatus } from "./captureTypes";
 
+const STALE_THRESHOLD_MS = 30_000; // 30 seconds
+
 export function useCaptureQueue(userId: string | null) {
   const [items, setItems] = React.useState<CaptureQueueItem[]>([]);
   const [loading, setLoading] = React.useState(false);
@@ -56,6 +58,39 @@ export function useCaptureQueue(userId: string | null) {
       if (supabase) void supabase.removeChannel(channel);
     };
   }, [userId, fetchItems]);
+
+  // Unstick items stuck in pending/processing for too long
+  React.useEffect(() => {
+    const stuck = items.filter(
+      (i) =>
+        (i.status === "pending" || i.status === "processing") &&
+        Date.now() - new Date(i.created_at).getTime() > STALE_THRESHOLD_MS
+    );
+    if (stuck.length === 0 || !supabase) return;
+
+    for (const item of stuck) {
+      const title = (item.raw_content || "Captured item").substring(0, 80).trim();
+      void supabase
+        .from("capture_queue")
+        .update({
+          status: "ready" as CaptureStatus,
+          confidence: 0,
+          parsed_cards: [{
+            title,
+            confidence: 0,
+            tags: [],
+            swimlane: "work",
+            suggestedColumn: "backlog",
+            duplicateOf: null,
+            relatedTo: [],
+            notes: "AI processing timed out — review and edit this card",
+          }],
+          processed_at: new Date().toISOString(),
+        })
+        .eq("id", item.id)
+        .then(() => fetchItems());
+    }
+  }, [items, fetchItems]);
 
   // Dismiss an item
   const dismissItem = React.useCallback(async (captureId: string) => {
