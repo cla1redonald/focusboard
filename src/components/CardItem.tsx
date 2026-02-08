@@ -17,7 +17,6 @@ export const CardItem = React.memo(function CardItem({
   showUrgencyIndicator = false,
   isStaleBacklog = false,
   staleBacklogDays = 0,
-  reducedMotion: _reducedMotion = false,
 }: {
   card: Card;
   onOpen: (card: Card) => void;
@@ -27,7 +26,6 @@ export const CardItem = React.memo(function CardItem({
   showUrgencyIndicator?: boolean;
   isStaleBacklog?: boolean;
   staleBacklogDays?: number;
-  reducedMotion?: boolean;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
     useSortable({

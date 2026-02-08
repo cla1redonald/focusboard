@@ -69,7 +69,9 @@ function AppContent() {
 
   // Ref for accessing current state in stable callbacks without creating deps
   const stateRef = React.useRef(state);
-  stateRef.current = state;
+  React.useEffect(() => {
+    stateRef.current = state;
+  }, [state]);
 
   // --- Stable callbacks (never change identity) ---
   const handleOpenCard = React.useCallback((c: Card) => setOpenCard(c), []);
@@ -106,9 +108,9 @@ function AppContent() {
     (parsedCard: ParsedCaptureCard, captureId: string) => {
       dispatch({
         type: "ADD_CARD_WITH_DATA",
-        column: parsedCard.suggestedColumn || "backlog",
+        column: parsedCard.suggestedColumn ?? "backlog",
         title: parsedCard.title,
-        swimlane: parsedCard.swimlane || "work",
+        swimlane: parsedCard.swimlane ?? "work",
         data: {
           tags: parsedCard.tags,
           dueDate: parsedCard.dueDate,

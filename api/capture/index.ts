@@ -13,7 +13,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { content, source = "in_app", metadata = {}, secret, user_id } = req.body || {};
+    const { content, source = "in_app", metadata = {}, secret } = req.body || {};
 
     // Auth: either webhook secret (external channels) or session auth
     const expectedSecret = process.env.WEBHOOK_SECRET;

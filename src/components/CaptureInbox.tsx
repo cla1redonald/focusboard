@@ -36,12 +36,14 @@ export function CaptureInbox({
   const [editSwimlane, setEditSwimlane] = React.useState<"work" | "personal">("work");
   const [editDueDate, setEditDueDate] = React.useState("");
   const [editTags, setEditTags] = React.useState<string[]>([]);
+  const [now, setNow] = React.useState(0);
 
-  // Reset state when panel opens
+  // Reset state when panel opens and update current time
   React.useEffect(() => {
     if (open) {
       setAutoAddedExpanded(false);
       setEditingId(null);
+      setNow(Date.now());
     }
   }, [open]);
 
@@ -66,7 +68,6 @@ export function CaptureInbox({
   };
 
   const formatRelativeTime = (isoDate: string): string => {
-    const now = Date.now();
     const then = new Date(isoDate).getTime();
     const diffMs = now - then;
     const diffMin = Math.floor(diffMs / 60000);
@@ -81,10 +82,10 @@ export function CaptureInbox({
   const startEditing = (item: CaptureQueueItem, card: ParsedCaptureCard) => {
     setEditingId(item.id);
     setEditTitle(card.title);
-    setEditColumn(card.suggestedColumn || "backlog");
-    setEditSwimlane(card.swimlane || "work");
-    setEditDueDate(card.dueDate || "");
-    setEditTags(card.tags || []);
+    setEditColumn(card.suggestedColumn ?? "backlog");
+    setEditSwimlane(card.swimlane ?? "work");
+    setEditDueDate(card.dueDate ?? "");
+    setEditTags(card.tags ?? []);
   };
 
   const confirmEdit = (captureId: string) => {

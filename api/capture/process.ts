@@ -4,6 +4,7 @@ import { createClient } from "@supabase/supabase-js";
 import { timingSafeEqual } from "crypto";
 import { setCorsHeaders, handlePreflight } from "../_lib/cors.js";
 import type { AppState } from "../../src/app/types";
+import type { ParsedCaptureCard } from "../../src/app/captureTypes";
 
 const CONFIDENCE_THRESHOLD = 0.8;
 
@@ -185,7 +186,7 @@ Example: [{"title":"Review Q3 budget","notes":"From finance team email","tags":[
       const { nanoid } = await import("nanoid");
       const now = new Date().toISOString();
 
-      const newCards = parsedCards.map((parsed: any) => ({
+      const newCards = parsedCards.map((parsed: ParsedCaptureCard) => ({
         id: nanoid(),
         column: parsed.suggestedColumn || "backlog",
         swimlane: parsed.swimlane || "work",
@@ -203,9 +204,9 @@ Example: [{"title":"Review Q3 budget","notes":"From finance team email","tags":[
       // Shift existing card orders and add new cards
       const updatedCards = appState.cards.map((c) => {
         const hasNewCardInColumn = newCards.some(
-          (nc: any) => nc.column === c.column && (nc.swimlane || "work") === (c.swimlane || "work")
+          (nc) => nc.column === c.column && (nc.swimlane ?? "work") === (c.swimlane ?? "work")
         );
-        return hasNewCardInColumn ? { ...c, order: c.order + newCards.filter((nc: any) => nc.column === c.column).length } : c;
+        return hasNewCardInColumn ? { ...c, order: c.order + newCards.filter((nc) => nc.column === c.column).length } : c;
       });
 
       const finalState = {
@@ -231,7 +232,7 @@ Example: [{"title":"Review Q3 budget","notes":"From finance team email","tags":[
 
     // Recover: update the stuck item to "ready" with a fallback card so it doesn't spin forever
     try {
-      const { capture_id, user_id } = req.body || {};
+      const { capture_id } = req.body || {};
       if (capture_id) {
         const supabase = createClient(
           process.env.SUPABASE_URL!,
