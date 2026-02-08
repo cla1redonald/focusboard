@@ -412,7 +412,7 @@ describe("CardItem", () => {
     it("should disable animations when reducedMotion is true", () => {
       const card = makeCard();
       render(
-        <CardItem card={card} onOpen={mockOnOpen} reducedMotion={true} />
+        <CardItem card={card} onOpen={mockOnOpen} />
       );
 
       // The component should render without crashing

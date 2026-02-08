@@ -537,7 +537,6 @@ export function Board({
                 showUrgencyIndicators={true}
                 staleCardIds={staleData.staleCardIds}
                 staleCardDays={staleData.staleCardDays}
-                reducedMotion={reducedMotion}
                 countLabel={countLabel}
                 headerState={headerState}
                 onReorderCards={onReorderCards}

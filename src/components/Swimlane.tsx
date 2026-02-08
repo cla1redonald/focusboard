@@ -23,7 +23,6 @@ type SwimlaneProps = {
   showUrgencyIndicators: boolean;
   staleCardIds: Set<string>;
   staleCardDays: Record<string, number>;
-  reducedMotion: boolean;
   countLabel: (colId: ColumnId) => string;
   headerState: (colId: ColumnId) => "normal" | "near" | "full";
   onReorderCards: (columnId: ColumnId, cardIds: string[], swimlane: SwimlaneId) => void;
@@ -50,7 +49,6 @@ export const Swimlane = React.memo(function Swimlane({
   showUrgencyIndicators,
   staleCardIds,
   staleCardDays,
-  reducedMotion,
   countLabel,
   headerState,
   onReorderCards: _onReorderCards,
@@ -119,7 +117,6 @@ export const Swimlane = React.memo(function Swimlane({
                   showUrgencyIndicators={showUrgencyIndicators}
                   staleCardIds={staleCardIds}
                   staleCardDays={staleCardDays}
-                  reducedMotion={reducedMotion}
                   aiLoading={aiLoading}
                 />
               );
@@ -151,7 +148,6 @@ export const Swimlane = React.memo(function Swimlane({
     prev.focusedCardIndex === next.focusedCardIndex &&
     prev.showAgingIndicators === next.showAgingIndicators &&
     prev.showUrgencyIndicators === next.showUrgencyIndicators &&
-    prev.reducedMotion === next.reducedMotion &&
     prev.aiLoading === next.aiLoading &&
     prev.columns === next.columns
   );

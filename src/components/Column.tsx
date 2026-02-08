@@ -26,7 +26,6 @@ export const Column = React.memo(function Column({
   showUrgencyIndicators = false,
   staleCardIds = new Set(),
   staleCardDays = {},
-  reducedMotion = false,
   aiLoading = false,
 }: {
   id: ColumnId;
@@ -47,7 +46,6 @@ export const Column = React.memo(function Column({
   showUrgencyIndicators?: boolean;
   staleCardIds?: Set<string>;
   staleCardDays?: Record<string, number>;
-  reducedMotion?: boolean;
   aiLoading?: boolean;
 }) {
   // Use composite droppable ID when in a swimlane context
@@ -122,7 +120,6 @@ export const Column = React.memo(function Column({
                 showUrgencyIndicator={showUrgencyIndicators}
                 isStaleBacklog={staleCardIds.has(c.id)}
                 staleBacklogDays={staleCardDays[c.id] ?? 0}
-                reducedMotion={reducedMotion}
               />
             ))
           )}
@@ -189,7 +186,6 @@ export const Column = React.memo(function Column({
     prev.focusedCardIndex === next.focusedCardIndex &&
     prev.showAgingIndicators === next.showAgingIndicators &&
     prev.showUrgencyIndicators === next.showUrgencyIndicators &&
-    prev.reducedMotion === next.reducedMotion &&
     prev.aiLoading === next.aiLoading
   );
 });
