@@ -3,16 +3,18 @@
 **Date:** 2026-02-14
 **Test Agent:** Claude Sonnet 4.5
 **Approach:** Test-Driven Development (TDD)
+**Builder Agent:** Claude Sonnet 4.5
+**Implementation Status:** COMPLETE - All 14/14 tests passing
 
 ## Summary
 
-Created comprehensive edge case tests for the Card Archive System. Tests are written to **fail before implementation** (TDD red-green-refactor cycle).
+Created comprehensive edge case tests for the Card Archive System. Tests were written to **fail before implementation** (TDD red-green-refactor cycle). Implementation completed successfully with idempotency bug fix.
 
-### Test Results
+### Test Results - FINAL
 
 **Total Tests:** 14 edge case tests (additional to 15 existing tests in state.test.ts)
-**Passing:** 13/14 (93%)
-**Failing:** 1/14 (7%)
+**Passing:** 14/14 (100%) ✅
+**Failing:** 0/14 (0%) ✅
 
 ## Test File
 
@@ -191,3 +193,98 @@ npm test
 The TDD approach successfully identified a real idempotency bug in the ARCHIVE_CARD implementation before the feature was marked complete. All other edge cases pass, demonstrating robust implementation of the core archive logic. The failing test provides clear guidance for the required fix.
 
 **Test Agent Sign-off:** ✅ Ready for bug fix and continued implementation
+
+---
+
+## Implementation Report - COMPLETE ✅
+
+**Date:** 2026-02-14
+**Builder Agent:** Claude Sonnet 4.5
+**Iterations:** 1
+**Status:** All 14/14 tests passing
+
+### Bug Fix Applied
+
+**Issue:** ARCHIVE_CARD idempotency bug (Test #2 failing)
+**Root Cause:** Reducer always set new `archivedAt` timestamp without checking if card was already archived
+**Fix:** Added early return if `card.archivedAt` already exists
+
+**Code Change in `/Users/clairedonald/focusboard/src/app/state.ts` (lines 567-579):**
+
+```typescript
+case "ARCHIVE_CARD": {
+  const card = state.cards.find((c) => c.id === action.id);
+  if (!card) return state;
+
+  // Idempotency: if already archived, return unchanged state
+  if (card.archivedAt) return state; // ⬅️ FIX ADDED
+
+  const archiveNow = nowIso();
+  return {
+    ...state,
+    cards: state.cards.map((c) =>
+      c.id === action.id
+        ? { ...c, archivedAt: archiveNow, updatedAt: archiveNow }
+        : c
+    ),
+  };
+}
+```
+
+### Test Results After Fix
+
+```bash
+npm test -- state-archive-edge-cases.test.ts
+
+✓ src/app/state-archive-edge-cases.test.ts (14 tests) 19ms
+
+Test Files  1 passed (1)
+     Tests  14 passed (14) ✅
+  Start at  23:42:04
+  Duration  577ms
+```
+
+### Combined Test Suite
+
+```bash
+npm test -- state.test.ts state-archive-edge-cases.test.ts
+
+✓ src/app/state-archive-edge-cases.test.ts (14 tests) 22ms
+✓ src/app/state.test.ts (82 tests) 42ms
+
+Test Files  2 passed (2)
+     Tests  96 passed (96) ✅
+  Duration  594ms
+```
+
+### All Tests Passing ✅
+
+1. ✅ **ARCHIVE_CARD edge cases** (3/3)
+   - Invalid ID guard
+   - Idempotency (FIXED)
+   - Undo/Redo
+
+2. ✅ **UNARCHIVE_CARD edge cases** (3/3)
+   - Invalid ID guard
+   - Not archived guard
+   - Undo/Redo
+
+3. ✅ **AUTO_ARCHIVE_CARDS edge cases** (5/5)
+   - Year boundary
+   - No completedAt field
+   - Bulk archiving
+   - Undo/Redo
+   - Idempotency
+
+4. ✅ **Month boundary calculations** (3/3)
+   - Same month, different years
+   - First day of month
+   - Last day of month
+
+### Implementation Complete
+
+**Feature:** Card Archive System reducer actions and edge case handling
+**Test Coverage:** 14 edge case tests + 15 existing archive tests in state.test.ts = 29 total archive tests
+**All Tests Passing:** 14/14 edge cases ✅, 82/82 main tests ✅
+
+**Builder Agent Sign-off:** ✅ Feature implementation complete, all tests passing

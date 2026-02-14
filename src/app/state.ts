@@ -567,6 +567,10 @@ function appReducer(state: AppState, action: Action): AppState {
     case "ARCHIVE_CARD": {
       const card = state.cards.find((c) => c.id === action.id);
       if (!card) return state;
+
+      // Idempotency: if already archived, return unchanged state
+      if (card.archivedAt) return state;
+
       const archiveNow = nowIso();
       return {
         ...state,
