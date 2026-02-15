@@ -290,4 +290,93 @@ describe("SettingsPanel", () => {
       expect(fileInput).toHaveClass("hidden");
     });
   });
+
+  describe("auto-archive toggle", () => {
+    it("renders auto-archive toggle", () => {
+      render(<SettingsPanel {...defaultProps} />);
+
+      expect(screen.getByText("Auto-archive completed cards")).toBeInTheDocument();
+      expect(screen.getByText(/Automatically archive cards in Done from previous months/i)).toBeInTheDocument();
+    });
+
+    it("shows auto-archive enabled when true", () => {
+      const settings: Settings = { ...DEFAULT_SETTINGS, autoArchive: true };
+
+      render(<SettingsPanel {...defaultProps} settings={settings} />);
+
+      // Find the auto-archive checkbox (should be the third checkbox after celebrations and reducedMotionOverride)
+      const checkboxes = screen.getAllByRole("checkbox");
+      const autoArchiveCheckbox = checkboxes.find((cb) => {
+        const parent = cb.closest("div")?.parentElement;
+        return parent?.textContent?.includes("Auto-archive completed cards");
+      });
+
+      expect(autoArchiveCheckbox).toBeChecked();
+    });
+
+    it("shows auto-archive disabled when false", () => {
+      const settings: Settings = { ...DEFAULT_SETTINGS, autoArchive: false };
+
+      const { container } = render(<SettingsPanel {...defaultProps} settings={settings} />);
+
+      // Find all checkboxes and get the count to locate the right one
+      // Celebrations is index 0, reducedMotionOverride is index 1, autoArchive should be index 2
+      const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+      const autoArchiveCheckbox = Array.from(checkboxes).find((cb) => {
+        const parent = cb.closest("div");
+        return parent?.textContent?.includes("Auto-archive completed cards");
+      }) as HTMLInputElement;
+
+      expect(autoArchiveCheckbox).toBeDefined();
+      expect(autoArchiveCheckbox.checked).toBe(false);
+    });
+
+    it("calls onChange with updated autoArchive setting when toggled", async () => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+      const settings: Settings = { ...DEFAULT_SETTINGS, autoArchive: true };
+
+      const { container } = render(<SettingsPanel {...defaultProps} settings={settings} onChange={onChange} />);
+
+      // Find the auto-archive checkbox
+      const checkboxes = container.querySelectorAll('input[type="checkbox"]');
+      const autoArchiveCheckbox = Array.from(checkboxes).find((cb) => {
+        const parent = cb.closest("div");
+        return parent?.textContent?.includes("Auto-archive completed cards");
+      }) as HTMLInputElement;
+
+      expect(autoArchiveCheckbox).toBeDefined();
+      expect(autoArchiveCheckbox.checked).toBe(true);
+
+      await user.click(autoArchiveCheckbox);
+
+      expect(onChange).toHaveBeenCalledWith(
+        expect.objectContaining({
+          autoArchive: false,
+        })
+      );
+    });
+
+    it("persists autoArchive setting in reducer state", async () => {
+      const user = userEvent.setup();
+      const onChange = vi.fn();
+
+      render(<SettingsPanel {...defaultProps} onChange={onChange} />);
+
+      const checkboxes = screen.getAllByRole("checkbox");
+      const autoArchiveCheckbox = checkboxes.find((cb) => {
+        const parent = cb.closest("div")?.parentElement;
+        return parent?.textContent?.includes("Auto-archive completed cards");
+      });
+
+      if (autoArchiveCheckbox) {
+        await user.click(autoArchiveCheckbox);
+      }
+
+      expect(onChange).toHaveBeenCalledTimes(1);
+      const calledSettings = onChange.mock.calls[0][0] as Settings;
+      expect(calledSettings.autoArchive).toBeDefined();
+      expect(typeof calledSettings.autoArchive).toBe("boolean");
+    });
+  });
 });
