@@ -4,6 +4,8 @@
 
 A focused Kanban-style board with WIP limits, colored tags, and cloud sync.
 
+![Focusboard](public/screenshot.png)
+
 ## Features
 
 - **Kanban Board** - Drag-and-drop cards between customizable columns
