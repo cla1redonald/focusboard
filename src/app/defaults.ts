@@ -19,6 +19,7 @@ export const DEFAULT_COLUMNS: Column[] = [
   { id: "doing", title: "Doing", icon: "zap", color: "#f59e0b", wipLimit: 3, isTerminal: false, order: 3 },
   { id: "blocked", title: "Blocked", icon: "ban", color: "#ef4444", wipLimit: 5, isTerminal: false, order: 4 },
   { id: "done", title: "Done", icon: "check-circle", color: "#10b981", wipLimit: null, isTerminal: true, order: 5 },
+  { id: "wontdo", title: "Won't Do", icon: "x-circle", color: "#94a3b8", wipLimit: null, isTerminal: true, order: 6 },
 ];
 
 export const DEFAULT_SETTINGS: Settings = {

@@ -696,7 +696,8 @@ describe("state reducer", () => {
       });
 
       const orders = result.current.state.columns.map((c) => c.order);
-      expect(orders).toEqual([0, 1, 2, 3, 4]);
+      const expectedOrders = Array.from({ length: DEFAULT_COLUMNS.length - 1 }, (_, i) => i);
+      expect(orders).toEqual(expectedOrders);
     });
   });
 
@@ -713,10 +714,11 @@ describe("state reducer", () => {
         });
       });
 
-      expect(result.current.state.columns[0].id).toBe("done");
+      expect(result.current.state.columns[0].id).toBe("wontdo");
       expect(result.current.state.columns[0].order).toBe(0);
-      expect(result.current.state.columns[5].id).toBe("backlog");
-      expect(result.current.state.columns[5].order).toBe(5);
+      const lastIdx = result.current.state.columns.length - 1;
+      expect(result.current.state.columns[lastIdx].id).toBe("backlog");
+      expect(result.current.state.columns[lastIdx].order).toBe(lastIdx);
     });
   });
 

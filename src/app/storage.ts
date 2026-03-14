@@ -299,7 +299,7 @@ export function loadState(): AppState {
       }) as Card[];
       // Migrate doing column: remove hard WIP limit of 1 (now soft warning at 3+)
       // Also migrate emoji icons to Lucide icon names
-      const columns = (parsed.columns?.length ? parsed.columns : DEFAULT_COLUMNS).map((col) => {
+      let columns = (parsed.columns?.length ? parsed.columns : DEFAULT_COLUMNS).map((col) => {
         let updatedCol = col;
         if (col.id === "doing" && col.wipLimit === 1) {
           updatedCol = { ...updatedCol, wipLimit: null };
@@ -310,6 +310,11 @@ export function loadState(): AppState {
         }
         return updatedCol;
       });
+      // Add "Won't Do" column if missing (migration for existing users)
+      if (!columns.find((col) => col.id === "wontdo")) {
+        const maxOrder = Math.max(...columns.map((col) => col.order));
+        columns = [...columns, { id: "wontdo", title: "Won't Do", icon: "x-circle", color: "#94a3b8", wipLimit: null, isTerminal: true, order: maxOrder + 1 }];
+      }
       return {
         cards,
         columns,
