@@ -1,0 +1,18 @@
+{
+  "name": "focusboard",
+  "description": "Personal Kanban board with swimlanes, drag-and-drop, and productivity metrics",
+  "createdAt": "2026-01-31T12:00:00Z",
+  "repo": "https://github.com/cla1redonald/focusboard.git",
+  "stack": {
+    "framework": "React + Vite + TypeScript",
+    "database": "Supabase (optional cloud sync)",
+    "hosting": "Vercel",
+    "styling": "Tailwind CSS"
+  },
+  "team": {},
+  "metrics": {
+    "totalSessions": 1,
+    "totalAgentInvocations": 0,
+    "featuresCompleted": 0
+  }
+}

@@ -1,0 +1,20 @@
+{
+  "decisions": [
+    {
+      "id": 1,
+      "date": "2026-01-31",
+      "decision": "Use hidden archive with slide-out panel instead of archive column",
+      "rationale": "Archive column would just move the clutter problem. Hidden archive keeps board clean while preserving access.",
+      "alternatives": ["Archive column on board", "Collapsible section in Done column"],
+      "madeBy": "user + @orchestrator"
+    },
+    {
+      "id": 2,
+      "date": "2026-01-31",
+      "decision": "Auto-archive at calendar month boundary, not rolling period",
+      "rationale": "User gets satisfaction from seeing Done cards. Monthly boundary gives clean slate each month while preserving current month's wins.",
+      "alternatives": ["7-day rolling", "14-day rolling", "30-day rolling"],
+      "madeBy": "user"
+    }
+  ]
+}

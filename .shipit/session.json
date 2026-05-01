@@ -1,0 +1,40 @@
+{
+  "id": "sess_agent_consistency_20260131",
+  "project": "focusboard",
+  "startedAt": "2026-01-31T15:00:00Z",
+  "lastActiveAt": "2026-01-31T15:00:00Z",
+  "phase": "Build",
+  "status": "active",
+  "mode": "interactive",
+  "activeAgent": "@engineer",
+  "context": {
+    "feature": "Agent System Consistency Fix",
+    "description": "Fix stale data across agent definitions, skills, and commands - test counts, React version, SDK version, missing features"
+  },
+  "todos": [
+    { "id": 1, "task": "Build: Fix all stale data across agent files", "status": "in_progress", "agent": "@engineer" },
+    { "id": 2, "task": "Review: Verify no stale data remains", "status": "pending", "agent": "@reviewer" },
+    { "id": 3, "task": "Retro: Capture learnings", "status": "pending", "agent": "@retro" }
+  ],
+  "agentDisposition": {
+    "@architect": "Skip - no architecture decisions, just data corrections",
+    "@designer": "Skip - no UI changes",
+    "@engineer": "Invoke - make all file corrections",
+    "@reviewer": "Invoke - verify completeness",
+    "@qa": "Skip - no code logic changes, grep verification sufficient",
+    "@docs": "Skip - these ARE the doc fixes",
+    "@retro": "Invoke - mandatory"
+  },
+  "filesModified": [],
+  "gates": {
+    "prd_approved": true,
+    "architecture_reviewed": true,
+    "infrastructure_ready": true,
+    "code_reviewed": false,
+    "security_scanned": true,
+    "ship_ready": false,
+    "retro_complete": false,
+    "docs_assessed": true
+  },
+  "reRoutes": []
+}
