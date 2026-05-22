@@ -8,6 +8,8 @@ import { hasSeenOnboarding, markOnboardingSeen } from "./storage";
 import { AuthProvider, useRequireAuth, useAuth } from "./AuthContext";
 import { ToastProvider, useToast } from "./ToastContext";
 import { isSupabaseConfigured } from "./supabase";
+import { isDemoMode } from "./demoMode";
+import { DemoBanner } from "../components/DemoBanner";
 import { cleanupCardAttachments } from "./attachmentCleanup";
 import { debouncedSaveMetricsToSupabase } from "./sync";
 import { useCaptureQueue } from "./useCaptureQueue";
@@ -361,6 +363,7 @@ function AppContent() {
 
       <div className="app-shell h-full px-3 py-4 sm:px-6 sm:py-8">
         <div className="mx-auto flex h-full w-full max-w-[1500px] flex-col">
+          {isDemoMode() && <DemoBanner supabaseConfigured={isSupabaseConfigured()} />}
           <Board
             cards={activeCards}
             columns={state.columns}

@@ -7,6 +7,7 @@ import { nowIso, suggestEmojiForTitle, suggestTagsForTitle } from "./utils";
 import { calculateAutoPriority } from "./urgency";
 import { debouncedSaveToSupabase, flushSaveToSupabase, loadStateFromSupabase, subscribeToStateChanges } from "./sync";
 import { supabase } from "./supabase";
+import { isDemoMode, hasSeededDemo, markDemoSeeded, getDemoCards } from "./demoMode";
 
 const MAX_HISTORY = 50;
 
@@ -740,7 +741,16 @@ export function useAppState(userId?: string | null) {
           tags: DEFAULT_TAGS,
         });
       }
-      return initHistory(loadState());
+      const loaded = loadState();
+      // Demo mode seeds example cards once so first-time visitors land on
+      // a populated board instead of an empty one. Skipped after the seed
+      // flag is set, so a user playing with the demo doesn't have their
+      // edits reverted on reload.
+      if (isDemoMode() && loaded.cards.length === 0 && !hasSeededDemo()) {
+        markDemoSeeded();
+        return initHistory({ ...loaded, cards: getDemoCards() });
+      }
+      return initHistory(loaded);
     }
   );
 

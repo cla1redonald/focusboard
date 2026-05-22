@@ -1,5 +1,6 @@
 import React from "react";
 import { useAuth } from "../app/AuthContext";
+import { enableDemoMode } from "../app/demoMode";
 
 type AuthMode = "login" | "signup" | "magic-link" | "reset-password";
 
@@ -116,6 +117,27 @@ export function LoginPage() {
             </div>
             <div className="text-sm text-gray-500 dark:text-gray-400">
               Plan with intent. Keep flow sacred.
+            </div>
+          </div>
+
+          <button
+            type="button"
+            onClick={() => {
+              enableDemoMode();
+              window.location.reload();
+            }}
+            className="mb-6 w-full rounded-xl border border-emerald-500/30 bg-emerald-50 px-4 py-3 text-sm font-medium text-emerald-700 transition hover:border-emerald-500 hover:bg-emerald-100 dark:border-emerald-400/30 dark:bg-emerald-900/20 dark:text-emerald-300 dark:hover:border-emerald-400 dark:hover:bg-emerald-900/30"
+          >
+            Try the demo — no account needed →
+          </button>
+          <div className="relative mb-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-gray-200 dark:border-gray-700"></div>
+            </div>
+            <div className="relative flex justify-center text-xs uppercase tracking-wider">
+              <span className="bg-white px-2 text-gray-500 dark:bg-gray-800 dark:text-gray-400">
+                or sign in
+              </span>
             </div>
           </div>
 

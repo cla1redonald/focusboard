@@ -2,6 +2,7 @@ import React from "react";
 import type { User, Session } from "@supabase/supabase-js";
 import { supabase, isSupabaseConfigured } from "./supabase";
 import { setStorageUserId } from "./storage";
+import { isDemoMode } from "./demoMode";
 
 type AuthState = {
   user: User | null;
@@ -136,6 +137,12 @@ export function useRequireAuth() {
   // If Supabase is not configured, allow access (local-only mode)
   if (!isSupabaseConfigured()) {
     return { ...auth, isAuthenticated: true };
+  }
+
+  // Demo mode bypasses auth so portfolio visitors can explore the board
+  // without signing up. Persists to localStorage; never touches Supabase.
+  if (isDemoMode()) {
+    return { ...auth, isAuthenticated: true, loading: false };
   }
 
   return { ...auth, isAuthenticated: !!auth.user };
