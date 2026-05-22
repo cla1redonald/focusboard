@@ -409,6 +409,34 @@ describe("debounced sync functions", () => {
     vi.useRealTimers();
   });
 
+  it("cancelPendingSaveToSupabase drops a queued save without flushing", async () => {
+    // Regression test for the cloud-wipe race: the empty default state
+    // queued at mount must be discardable so it can't overwrite real
+    // cloud data after IMPORT_STATE arrives. If this test ever flips,
+    // every user's cloud row gets wiped on fresh-device sign-in.
+    const mockFrom = vi.fn().mockReturnValue({
+      upsert: vi.fn().mockResolvedValue({ error: null }),
+    });
+
+    vi.doMock("./supabase", () => ({
+      supabase: {
+        auth: {
+          getUser: vi.fn().mockResolvedValue({ data: { user: { id: "user-123" } } }),
+        },
+        from: mockFrom,
+      },
+    }));
+
+    const { debouncedSaveToSupabase, cancelPendingSaveToSupabase } = await import("./sync");
+
+    debouncedSaveToSupabase(mockAppState);
+    cancelPendingSaveToSupabase();
+
+    await vi.advanceTimersByTimeAsync(2000);
+
+    expect(mockFrom).not.toHaveBeenCalled();
+  });
+
   it("debouncedSaveToSupabase debounces saves", async () => {
     const mockFrom = vi.fn().mockReturnValue({
       upsert: vi.fn().mockResolvedValue({ error: null }),

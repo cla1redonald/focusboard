@@ -5,7 +5,7 @@ import { debouncedSaveState, flushSaveState, loadState, setStorageUserId } from 
 import { DEFAULT_COLUMNS, DEFAULT_SETTINGS, DEFAULT_TAG_CATEGORIES, DEFAULT_TAGS } from "./constants";
 import { nowIso, suggestEmojiForTitle, suggestTagsForTitle } from "./utils";
 import { calculateAutoPriority } from "./urgency";
-import { debouncedSaveToSupabase, flushSaveToSupabase, loadStateFromSupabase, subscribeToStateChanges } from "./sync";
+import { cancelPendingSaveToSupabase, debouncedSaveToSupabase, flushSaveToSupabase, loadStateFromSupabase, subscribeToStateChanges } from "./sync";
 import { supabase } from "./supabase";
 import { isDemoMode, hasSeededDemo, markDemoSeeded, getDemoCards } from "./demoMode";
 
@@ -760,10 +760,17 @@ export function useAppState(userId?: string | null) {
   const hasLoadedFromCloud = React.useRef(false);
   const isExternalUpdate = React.useRef(false);
   const lastLocalSaveTime = React.useRef<number>(0);
+  // Cloud saves are gated on this — see the comment in the save effect.
+  const cloudLoadAttempted = React.useRef(false);
 
   // Load from Supabase on startup (if logged in)
   React.useEffect(() => {
-    if (!supabase) return;
+    if (!supabase) {
+      // No cloud → mark load "complete" so saves to localStorage proceed
+      // without ever being gated by a cloud load that will never happen.
+      cloudLoadAttempted.current = true;
+      return;
+    }
     let isMounted = true;
 
     const loadFromCloud = async () => {
@@ -775,6 +782,14 @@ export function useAppState(userId?: string | null) {
         isExternalUpdate.current = true;
         dispatch({ type: "IMPORT_STATE", state: cloudState });
       }
+      // Mark the load attempted regardless of outcome. From this point on
+      // the save effect is free to queue cloud writes. Anything that was
+      // queued before (e.g. the initial empty default state from mount)
+      // is discarded, otherwise it would race ahead of IMPORT_STATE and
+      // overwrite real cloud data with an empty board on every fresh
+      // device sign-in.
+      cancelPendingSaveToSupabase();
+      cloudLoadAttempted.current = true;
     };
 
     void loadFromCloud();
@@ -810,6 +825,16 @@ export function useAppState(userId?: string | null) {
     // Don't save to cloud if this was an external update (to avoid loops)
     if (isExternalUpdate.current) {
       isExternalUpdate.current = false;
+      return;
+    }
+
+    // Hold cloud writes until the initial cloud-load attempt finishes.
+    // If we don't, the default empty state at mount gets queued, then
+    // IMPORT_STATE arrives and silently overwrites the queued value via
+    // the isExternalUpdate guard above — but the empty queued state is
+    // still pending and the debounce timer eventually flushes it, wiping
+    // the cloud row. See cancelPendingSaveToSupabase() in loadFromCloud.
+    if (!cloudLoadAttempted.current) {
       return;
     }
 

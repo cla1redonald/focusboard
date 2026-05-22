@@ -202,6 +202,20 @@ export function flushSaveToSupabase(): void {
   }
 }
 
+/**
+ * Drop any pending Supabase state save without flushing. Used to prevent
+ * the initial empty-default state from wiping cloud data during the race
+ * window between mount and first cloud-load completion.
+ */
+export function cancelPendingSaveToSupabase(): void {
+  if (stateTimeout) {
+    clearTimeout(stateTimeout);
+    stateTimeout = null;
+  }
+  cancelStateIdle();
+  queuedState = null;
+}
+
 export function flushSaveMetricsToSupabase(): void {
   if (metricsTimeout) {
     clearTimeout(metricsTimeout);
