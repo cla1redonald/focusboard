@@ -1,4 +1,5 @@
 import type { Card, FilterState, DueDateFilter } from "./types";
+import { parseLocalDate } from "./utils";
 
 export const DEFAULT_FILTER: FilterState = {
   search: "",
@@ -57,7 +58,8 @@ function matchesDueDate(card: Card, dueDateFilter: DueDateFilter): boolean {
 
   if (!card.dueDate) return false;
 
-  const dueDate = new Date(card.dueDate);
+  const dueDate = parseLocalDate(card.dueDate);
+  dueDate.setHours(0, 0, 0, 0);
   const today = new Date();
   today.setHours(0, 0, 0, 0);
 

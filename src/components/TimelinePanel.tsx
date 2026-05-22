@@ -1,6 +1,7 @@
 import React from "react";
 import type { Card, Column, TimelineCard } from "../app/types";
 import { getUrgencyLevel, getUrgencyColor, getUrgencyLabel } from "../app/urgency";
+import { parseLocalDate } from "../app/utils";
 
 type Props = {
   open: boolean;
@@ -68,7 +69,7 @@ export function TimelinePanel({ open, cards, columns, onClose, onOpenCard }: Pro
           columnTitle: column?.title ?? card.column,
           columnColor: column?.color ?? "#F59E0B",
           startDate: new Date(card.createdAt),
-          endDate: card.dueDate ? new Date(card.dueDate) : null,
+          endDate: card.dueDate ? parseLocalDate(card.dueDate) : null,
           urgencyLevel: getUrgencyLevel(card),
         };
       });

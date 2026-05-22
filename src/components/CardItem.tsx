@@ -6,7 +6,7 @@ import type { Card, CardLink } from "../app/types";
 import { RelationshipIndicators } from "./RelationshipPicker";
 import { getCardAgeLevel, getCardAgeDays } from "../app/metrics";
 import { getUrgencyLevel, getUrgencyColor, getUrgencyLabel, getUrgencyBackgroundColor } from "../app/urgency";
-import { getSafeUrl } from "../app/utils";
+import { getSafeUrl, parseLocalDate } from "../app/utils";
 
 export const CardItem = React.memo(function CardItem({
   card,
@@ -110,7 +110,7 @@ export const CardItem = React.memo(function CardItem({
         {/* Due date display */}
         {card.dueDate && (() => {
           const urgencyColor = urgencyLevel !== "none" ? getUrgencyColor(urgencyLevel) : (hasBackground ? "white" : "#71717a");
-          const dueDate = new Date(card.dueDate);
+          const dueDate = parseLocalDate(card.dueDate);
           const today = new Date();
           const isThisYear = dueDate.getFullYear() === today.getFullYear();
           const dateStr = dueDate.toLocaleDateString(undefined, {

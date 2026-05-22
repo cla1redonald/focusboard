@@ -61,6 +61,10 @@ vi.mock("../app/utils", () => ({
     if (url.startsWith("javascript:")) return null;
     return url;
   }),
+  parseLocalDate: vi.fn((isoDate: string) => {
+    const [y, m, d] = isoDate.split("-").map(Number);
+    return new Date(y, m - 1, d);
+  }),
 }));
 
 import { getUrgencyLevel, getUrgencyBackgroundColor } from "../app/urgency";
@@ -128,8 +132,8 @@ describe("CardItem", () => {
       const card = makeCard({ dueDate: "2024-06-15" });
       render(<CardItem card={card} onOpen={mockOnOpen} />);
 
-      // Should show formatted date
-      expect(screen.getByText(/Jun 15/)).toBeInTheDocument();
+      // Should show formatted date (locale-agnostic — could be "Jun 15" or "15 Jun")
+      expect(screen.getByText(/Jun.*15|15.*Jun/)).toBeInTheDocument();
     });
 
     it("should show urgency label when showUrgencyIndicator is true", () => {

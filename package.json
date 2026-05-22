@@ -15,18 +15,18 @@
     "test:security": "vitest run --reporter=verbose src/test/security.test.tsx"
   },
   "dependencies": {
-    "@anthropic-ai/sdk": "^0.71.2",
+    "@anthropic-ai/sdk": "^0.98.0",
     "@dnd-kit/core": "^6.3.1",
     "@dnd-kit/sortable": "^10.0.0",
     "@dnd-kit/utilities": "^3.2.2",
     "@notionhq/client": "^5.6.0",
     "@supabase/supabase-js": "^2.89.0",
-    "@vercel/analytics": "^1.6.1",
+    "@vercel/analytics": "^2.0.1",
     "@vercel/functions": "^3.4.1",
-    "@vercel/speed-insights": "^1.3.1",
+    "@vercel/speed-insights": "^2.0.0",
     "framer-motion": "^12.23.26",
     "html2canvas": "^1.4.1",
-    "lucide-react": "^0.562.0",
+    "lucide-react": "^1.16.0",
     "nanoid": "^5.1.6",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
@@ -40,7 +40,7 @@
     "@types/node": "^24.10.1",
     "@types/react": "^19.2.5",
     "@types/react-dom": "^19.2.3",
-    "@vercel/node": "^5.5.16",
+    "@vercel/node": "^5.8.3",
     "@vitejs/plugin-react": "^5.1.1",
     "@vitest/coverage-v8": "^4.0.16",
     "autoprefixer": "^10.4.23",
@@ -55,5 +55,13 @@
     "typescript-eslint": "^8.46.4",
     "vite": "^7.2.4",
     "vitest": "^4.0.16"
+  },
+  "overrides": {
+    "undici": "^6.23.1",
+    "minimatch": "^10.2.5",
+    "path-to-regexp": "^8.2.0",
+    "brace-expansion": "^1.1.13",
+    "smol-toml": "^1.6.1",
+    "ajv": "^8.20.0"
   }
 }

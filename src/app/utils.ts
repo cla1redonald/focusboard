@@ -3,6 +3,16 @@ import type { Card, Column, ColumnId, SwimlaneId } from "./types";
 export const nowIso = () => new Date().toISOString();
 
 /**
+ * Parse a YYYY-MM-DD date string as a local-time Date.
+ * Avoids the UTC-midnight shift that makes `new Date("2024-06-15")` render as Jun 14 in west-of-UTC zones.
+ */
+export function parseLocalDate(isoDate: string): Date {
+  const [y, m, d] = isoDate.split("-").map(Number);
+  if (!y || !m || !d) return new Date(isoDate);
+  return new Date(y, m - 1, d);
+}
+
+/**
  * Sort comparator for cards: due date first (earliest first), then by order.
  * Cards with due dates come before cards without.
  */
@@ -25,7 +35,7 @@ export function compareCardsByDueDate(a: Card, b: Card): number {
 
 export function isToday(isoDate?: string) {
   if (!isoDate) return false;
-  const d = new Date(isoDate);
+  const d = parseLocalDate(isoDate);
   const t = new Date();
   return (
     d.getFullYear() === t.getFullYear() &&

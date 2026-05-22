@@ -1,4 +1,5 @@
 import type { Card, UrgencyLevel } from "./types";
+import { parseLocalDate } from "./utils";
 
 /**
  * Calculate urgency level based on due date proximity
@@ -15,7 +16,7 @@ export function getUrgencyLevel(card: Card): UrgencyLevel {
 
   const now = new Date();
   now.setHours(0, 0, 0, 0);
-  const dueDate = new Date(card.dueDate);
+  const dueDate = parseLocalDate(card.dueDate);
   dueDate.setHours(0, 0, 0, 0);
 
   const daysUntilDue = Math.ceil(
@@ -37,7 +38,7 @@ export function getDaysUntilDue(card: Card): number | null {
 
   const now = new Date();
   now.setHours(0, 0, 0, 0);
-  const dueDate = new Date(card.dueDate);
+  const dueDate = parseLocalDate(card.dueDate);
   dueDate.setHours(0, 0, 0, 0);
 
   return Math.ceil(
