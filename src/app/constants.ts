@@ -52,25 +52,38 @@ export { DEFAULT_SWIMLANES, DEFAULT_COLUMNS, DEFAULT_SETTINGS, DEFAULT_TAG_CATEG
 
 // Re-exported defaults are defined in src/app/defaults.ts
 
+// Roami Deep Tay palette — keep in sync with src/app/defaults.ts.
 export const COLUMN_COLORS: Record<string, string> = {
-  backlog: "#64748b",
-  design: "#8b5cf6",
-  todo: "#0d9488",  // Teal
-  doing: "#f59e0b",
-  blocked: "#ef4444",
-  done: "#10b981",
+  backlog: "#a89880", // sand
+  design: "#2a5a5a",  // river
+  todo: "#6b5d4f",    // umber
+  doing: "#c4956a",   // copper
+  blocked: "#a04040", // muted red
+  done: "#5a7247",    // pine
 };
 
 // DEFAULT_SETTINGS re-exported from defaults
 
-export const CONFETTI_COLORS = ["#8b5cf6", "#3b82f6", "#10b981", "#f59e0b", "#a78bfa"];
+// Confetti uses the warm Roami palette — copper, pine, river, sand, mist.
+export const CONFETTI_COLORS = ["#c4956a", "#5a7247", "#2a5a5a", "#a89880", "#f0eee8"];
 
 // Lucide icon names for column picker
 export const DEFAULT_COLUMN_ICONS = ["archive", "palette", "list-todo", "zap", "ban", "check-circle", "brain", "flame", "lightbulb", "target", "package", "rocket"];
 
 // DEFAULT_TAG_CATEGORIES and DEFAULT_TAGS re-exported from defaults
 
+// Custom tag colour picker — Roami brand palette with a few semantic
+// reds kept so users can still flag urgency/severity without picking
+// custom values.
 export const TAG_COLOR_PALETTE = [
-  "#EF4444", "#F59E0B", "#10B981", "#06B6D4", "#3B82F6",
-  "#8B5CF6", "#EC4899", "#6B7280", "#DC2626", "#7C3AED",
+  "#c4956a", // copper
+  "#a87d55", // copper-dark
+  "#5a7247", // pine
+  "#2a5a5a", // river
+  "#a89880", // sand
+  "#6b5d4f", // umber
+  "#a04040", // muted red
+  "#6a8a8a", // sage
+  "#4a3f35", // deep brown
+  "#111a24", // ink
 ];

@@ -135,8 +135,8 @@ function migrateV2ToV3(v2State: V2State): AppState {
     tagNameToId.set(tag.name.toLowerCase(), tag.id);
   }
 
-  // Random colors for custom tags
-  const customColors = ["#EC4899", "#14B8A6", "#F97316", "#84CC16", "#A855F7"];
+  // Random colors for custom tags — Roami palette mix.
+  const customColors = ["#c4956a", "#5a7247", "#2a5a5a", "#a89880", "#6b5d4f"];
   let colorIndex = 0;
 
   // Migrate cards: convert string tags to tag IDs
@@ -296,8 +296,8 @@ export function loadState(): AppState {
         // Add example goal tags if they don't exist
         if (!tags.some((t) => t.categoryId === "goals")) {
           tags = [
-            { id: "goal-launch", name: "Launch MVP", color: "#8B5CF6", categoryId: "goals" },
-            { id: "goal-q1", name: "Q1 Planning", color: "#3B82F6", categoryId: "goals" },
+            { id: "goal-launch", name: "Launch MVP", color: "#c4956a", categoryId: "goals" },
+            { id: "goal-q1", name: "Q1 Planning", color: "#2a5a5a", categoryId: "goals" },
             ...tags,
           ];
         }
@@ -346,7 +346,7 @@ export function loadState(): AppState {
       // Add "Won't Do" column if missing (migration for existing users)
       if (!columns.find((col) => col.id === "wontdo")) {
         const maxOrder = Math.max(...columns.map((col) => col.order));
-        columns = [...columns, { id: "wontdo", title: "Won't Do", icon: "x-circle", color: "#94a3b8", wipLimit: null, isTerminal: true, order: maxOrder + 1 }];
+        columns = [...columns, { id: "wontdo", title: "Won't Do", icon: "x-circle", color: "#c4bdb2", wipLimit: null, isTerminal: true, order: maxOrder + 1 }];
       }
       return {
         cards,

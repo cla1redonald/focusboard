@@ -110,8 +110,8 @@ export function LoginPage() {
         <div className="rounded-2xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 p-8 shadow-xl">
           <div className="text-center mb-8">
             <div className="flex items-center justify-center gap-2 mb-2">
-              <div className="h-8 w-1 rounded-full bg-gradient-to-b from-emerald-400 to-teal-500" />
-              <div className="text-3xl font-bold text-gray-900 dark:text-white">
+              <div className="h-9 w-1 rounded-full bg-gradient-to-b from-emerald-400 to-emerald-600" />
+              <div className="display-font text-4xl text-gray-900 dark:text-white">
                 Focusboard
               </div>
             </div>

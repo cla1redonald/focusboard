@@ -392,7 +392,7 @@ function validateColumns(arr: unknown[]): { columns: Column[]; errors: string[];
       id: col.id,
       title: col.title,
       icon: typeof col.icon === "string" ? col.icon : "",
-      color: typeof col.color === "string" ? col.color : "#10b981",
+      color: typeof col.color === "string" ? col.color : "#c4956a",
       wipLimit: typeof col.wipLimit === "number" ? col.wipLimit : null,
       isTerminal: typeof col.isTerminal === "boolean" ? col.isTerminal : false,
       order: typeof col.order === "number" ? col.order : i,

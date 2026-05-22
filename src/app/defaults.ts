@@ -7,19 +7,22 @@ export type Swimlane = {
   color: string;
 };
 
+// Swimlane and column colours pull from the Roami Deep Tay palette so
+// the board reads as a coherent visual system rather than a default-
+// Tailwind rainbow. See public/tokens or src/index.css for source.
 export const DEFAULT_SWIMLANES: Swimlane[] = [
-  { id: "work", title: "Work", icon: "💼", color: "#3B82F6" },
-  { id: "personal", title: "Personal", icon: "🏠", color: "#10B981" },
+  { id: "work", title: "Work", icon: "💼", color: "#2a5a5a" }, // river — work mode
+  { id: "personal", title: "Personal", icon: "🏠", color: "#5a7247" }, // pine — personal/grounded
 ];
 
 export const DEFAULT_COLUMNS: Column[] = [
-  { id: "backlog", title: "Backlog", icon: "archive", color: "#64748b", wipLimit: null, isTerminal: false, order: 0 },
-  { id: "design", title: "Design & Planning", icon: "palette", color: "#8b5cf6", wipLimit: 5, isTerminal: false, order: 1 },
-  { id: "todo", title: "To Do", icon: "list-todo", color: "#0d9488", wipLimit: 12, isTerminal: false, order: 2 },
-  { id: "doing", title: "Doing", icon: "zap", color: "#f59e0b", wipLimit: 3, isTerminal: false, order: 3 },
-  { id: "blocked", title: "Blocked", icon: "ban", color: "#ef4444", wipLimit: 5, isTerminal: false, order: 4 },
-  { id: "done", title: "Done", icon: "check-circle", color: "#10b981", wipLimit: null, isTerminal: true, order: 5 },
-  { id: "wontdo", title: "Won't Do", icon: "x-circle", color: "#94a3b8", wipLimit: null, isTerminal: true, order: 6 },
+  { id: "backlog", title: "Backlog", icon: "archive", color: "#a89880", wipLimit: null, isTerminal: false, order: 0 }, // sand
+  { id: "design", title: "Design & Planning", icon: "palette", color: "#2a5a5a", wipLimit: 5, isTerminal: false, order: 1 }, // river
+  { id: "todo", title: "To Do", icon: "list-todo", color: "#6b5d4f", wipLimit: 12, isTerminal: false, order: 2 }, // umber
+  { id: "doing", title: "Doing", icon: "zap", color: "#c4956a", wipLimit: 3, isTerminal: false, order: 3 }, // copper — active focus
+  { id: "blocked", title: "Blocked", icon: "ban", color: "#a04040", wipLimit: 5, isTerminal: false, order: 4 }, // muted error
+  { id: "done", title: "Done", icon: "check-circle", color: "#5a7247", wipLimit: null, isTerminal: true, order: 5 }, // pine — growth
+  { id: "wontdo", title: "Won't Do", icon: "x-circle", color: "#c4bdb2", wipLimit: null, isTerminal: true, order: 6 }, // neutral 300
 ];
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -45,22 +48,22 @@ export const DEFAULT_TAG_CATEGORIES: TagCategory[] = [
 ];
 
 export const DEFAULT_TAGS: Tag[] = [
-  // Goals (examples - customize these!)
-  { id: "goal-launch", name: "Launch MVP", color: "#8B5CF6", categoryId: "goals" },
-  { id: "goal-q1", name: "Q1 Planning", color: "#3B82F6", categoryId: "goals" },
-  // Priority
-  { id: "high", name: "High", color: "#EF4444", categoryId: "priority" },
-  { id: "medium", name: "Medium", color: "#F59E0B", categoryId: "priority" },
-  { id: "low", name: "Low", color: "#10B981", categoryId: "priority" },
+  // Goals (examples — customize these!)
+  { id: "goal-launch", name: "Launch MVP", color: "#c4956a", categoryId: "goals" }, // copper
+  { id: "goal-q1", name: "Q1 Planning", color: "#2a5a5a", categoryId: "goals" }, // river
+  // Priority — keep traffic-light semantics but warm the hues to fit Roami
+  { id: "high", name: "High", color: "#a04040", categoryId: "priority" }, // muted red
+  { id: "medium", name: "Medium", color: "#c4956a", categoryId: "priority" }, // copper
+  { id: "low", name: "Low", color: "#5a7247", categoryId: "priority" }, // pine
   // Type
-  { id: "bug", name: "Bug", color: "#DC2626", categoryId: "type" },
-  { id: "feature", name: "Feature", color: "#8B5CF6", categoryId: "type" },
-  { id: "chore", name: "Chore", color: "#6B7280", categoryId: "type" },
+  { id: "bug", name: "Bug", color: "#a04040", categoryId: "type" },
+  { id: "feature", name: "Feature", color: "#2a5a5a", categoryId: "type" },
+  { id: "chore", name: "Chore", color: "#6b5d4f", categoryId: "type" }, // umber
   // Effort
-  { id: "quick", name: "Quick win", color: "#06B6D4", categoryId: "effort" },
-  { id: "medium-effort", name: "Medium", color: "#3B82F6", categoryId: "effort" },
-  { id: "large", name: "Large", color: "#7C3AED", categoryId: "effort" },
-  // Feedback (for user-submitted feedback)
-  { id: "feedback-bug", name: "Bug Report", color: "#EF4444", categoryId: "feedback" },
-  { id: "feedback-feature", name: "Feature Request", color: "#8B5CF6", categoryId: "feedback" },
+  { id: "quick", name: "Quick win", color: "#5a7247", categoryId: "effort" },
+  { id: "medium-effort", name: "Medium", color: "#c4956a", categoryId: "effort" },
+  { id: "large", name: "Large", color: "#2a5a5a", categoryId: "effort" },
+  // Feedback
+  { id: "feedback-bug", name: "Bug Report", color: "#a04040", categoryId: "feedback" },
+  { id: "feedback-feature", name: "Feature Request", color: "#c4956a", categoryId: "feedback" },
 ];
