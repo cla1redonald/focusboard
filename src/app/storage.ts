@@ -40,6 +40,11 @@ const EMOJI_TO_LUCIDE: Record<string, string> = {
 const KEY_V2 = "focusboard:v2";
 const KEY_V3 = "focusboard:v3";
 const KEY_V4 = "focusboard:v4";
+// Global flag set after we copy local-only data into a user-scoped key.
+// Once any signed-in user claims the unscoped board, no other user
+// signing into the same browser can do so — that prevents a second
+// account from inheriting the first user's residual local data.
+const KEY_LOCAL_MIGRATED = "focusboard:local_migrated";
 
 type V1Settings = {
   celebrations: boolean;
@@ -238,14 +243,42 @@ function getDefaultState(): AppState {
 
 export function loadState(): AppState {
   try {
-    // If logged in, only use user-scoped key (no fallback to global)
-    // This prevents new users from seeing other users' data
     const scopedKey = getStorageKey(KEY_V4);
     let rawV4 = localStorage.getItem(scopedKey);
 
-    // Only fall back to global key if NOT logged in (local-only mode)
-    if (!rawV4 && !currentUserId) {
-      rawV4 = localStorage.getItem(KEY_V4);
+    if (!rawV4) {
+      if (!currentUserId) {
+        // Local-only mode — fall back to the unscoped key.
+        rawV4 = localStorage.getItem(KEY_V4);
+      } else {
+        // One-time migration: a user who used Focusboard locally first
+        // and then signed up would otherwise see an empty board because
+        // the scoped key is empty. Promote the unscoped data once, then
+        // mark the migration done per-user so a second user signing
+        // into the same browser can't claim the same residual data.
+        const alreadyMigrated = localStorage.getItem(KEY_LOCAL_MIGRATED) === "true";
+        if (!alreadyMigrated) {
+          const unscoped = localStorage.getItem(KEY_V4);
+          if (unscoped) {
+            try {
+              const parsed = JSON.parse(unscoped) as AppState;
+              if (parsed?.cards?.length) {
+                rawV4 = unscoped;
+                // Persist the migrated state under the scoped key so the
+                // next load reads from there directly and the cloud sync
+                // upserts the user's existing cards instead of an empty
+                // default. Leave the unscoped copy as a backup.
+                localStorage.setItem(scopedKey, unscoped);
+              }
+            } catch {
+              // ignore malformed unscoped data
+            }
+          }
+          // Set the global flag whether or not we found data, so no
+          // future sign-in on this browser claims the same local board.
+          localStorage.setItem(KEY_LOCAL_MIGRATED, "true");
+        }
+      }
     }
     if (rawV4) {
       const parsed = JSON.parse(rawV4) as AppState;

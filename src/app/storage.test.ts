@@ -1,5 +1,5 @@
-import { describe, it, expect, vi, beforeEach } from "vitest";
-import { loadState, saveState } from "./storage";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { loadState, saveState, setStorageUserId } from "./storage";
 import { DEFAULT_SETTINGS, DEFAULT_COLUMNS, DEFAULT_TAG_CATEGORIES, DEFAULT_TAGS } from "./constants";
 import type { AppState, Card } from "./types";
 
@@ -160,6 +160,80 @@ describe("storage", () => {
 
       const state = loadState();
       expect(state.settings).toEqual(DEFAULT_SETTINGS);
+    });
+  });
+
+  describe("local-only → signed-in migration", () => {
+    afterEach(() => {
+      setStorageUserId(null);
+    });
+
+    it("migrates unscoped cards into scoped key on first sign-in", () => {
+      const localCard: Card = {
+        id: "local-1",
+        title: "Bought before sign-up",
+        column: "backlog",
+        order: 0,
+        createdAt: "2026-04-01T00:00:00Z",
+        updatedAt: "2026-04-01T00:00:00Z",
+      };
+      const unscoped: AppState = {
+        cards: [localCard],
+        columns: DEFAULT_COLUMNS,
+        templates: [],
+        settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: DEFAULT_TAGS,
+      };
+      localStorage.setItem("focusboard:v4", JSON.stringify(unscoped));
+
+      setStorageUserId("user-aaa");
+      const loaded = loadState();
+
+      expect(loaded.cards).toHaveLength(1);
+      expect(loaded.cards[0].id).toBe("local-1");
+
+      // Migration must have copied to the scoped key so the next read
+      // (and cloud sync) sees the data without re-running the import.
+      expect(localStorage.getItem("focusboard:v4:user-aaa")).toBeTruthy();
+      expect(localStorage.getItem("focusboard:local_migrated")).toBe("true");
+    });
+
+    it("does not migrate again on subsequent loads", () => {
+      localStorage.setItem("focusboard:v4", JSON.stringify({
+        cards: [{ id: "ghost", title: "should not reappear", column: "backlog", order: 0, createdAt: "2026-04-01", updatedAt: "2026-04-01" }],
+        columns: DEFAULT_COLUMNS, templates: [], settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES, tags: DEFAULT_TAGS,
+      }));
+      setStorageUserId("user-bbb");
+      // First load migrates.
+      loadState();
+      // User deletes their migrated cards.
+      localStorage.setItem("focusboard:v4:user-bbb", JSON.stringify({
+        cards: [], columns: DEFAULT_COLUMNS, templates: [], settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES, tags: DEFAULT_TAGS,
+      }));
+
+      const loaded = loadState();
+      expect(loaded.cards).toEqual([]);
+    });
+
+    it("does not claim local data for a second user signing into the same browser", () => {
+      localStorage.setItem("focusboard:v4", JSON.stringify({
+        cards: [{ id: "alice-card", title: "Alice's", column: "backlog", order: 0, createdAt: "2026-04-01", updatedAt: "2026-04-01" }],
+        columns: DEFAULT_COLUMNS, templates: [], settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES, tags: DEFAULT_TAGS,
+      }));
+
+      // Alice signs in first — she gets the local data.
+      setStorageUserId("alice");
+      const alice = loadState();
+      expect(alice.cards).toHaveLength(1);
+
+      // Bob signs in on the same browser — must NOT see Alice's data.
+      setStorageUserId("bob");
+      const bob = loadState();
+      expect(bob.cards).toEqual([]);
     });
   });
 
