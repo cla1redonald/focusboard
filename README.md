@@ -1,82 +1,94 @@
 # Focusboard
 
 [![Vercel](https://img.shields.io/badge/deployed%20on-Vercel-black)](https://focusboard-git-main-claire-donalds-projects.vercel.app/)
+[![React](https://img.shields.io/badge/React-19-61dafb)](https://react.dev/)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178c6)](https://www.typescriptlang.org/)
+[![Tests](https://img.shields.io/badge/tests-585%20passing-brightgreen)](#testing)
 
-A focused Kanban-style board with WIP limits, colored tags, and cloud sync.
+A kanban board built for actually getting things done — not just tracking them. WIP limits enforce focus, swimlanes separate work from life, and an AI capture layer turns scattered inputs from Slack, email, and shortcuts into structured cards.
 
-![Focusboard](public/screenshot.png)
+![Focusboard kanban board with work and personal swimlanes](public/screenshot-board.png)
 
-## Features
+**[Try the live demo →](https://focusboard-git-main-claire-donalds-projects.vercel.app/)**
 
-- **Kanban Board** - Drag-and-drop cards between customizable columns
-- **Work/Personal Swimlanes** - Separate tasks into collapsible Work and Personal rows
-- **WIP Limits** - Set work-in-progress limits per column with visual warnings
-- **Smart Card Creation** - Auto-suggest emojis and tags based on card title keywords
-- **Colored Tags** - Organize cards with predefined tag categories (Priority, Type, Effort) and custom colors
-- **Multi-User Support** - Each user gets their own private board with Supabase authentication
-- **Cloud Sync** - Sync your board across devices when logged in
-- **Undo/Redo** - Full history support with keyboard shortcuts (Cmd/Ctrl+Z, Cmd/Ctrl+Shift+Z)
-- **Card Relationships** - Link related cards with "blocks", "blocked by", and "related to" relationships
-- **Keyboard Navigation** - Navigate and manage cards without leaving the keyboard
-- **Filtering** - Filter cards by search, column, tag, due date, or blocker status
-- **Export/Import** - Backup and restore your data in JSON or CSV format
-- **Metrics Dashboard** - Track completed cards, cycle time, and WIP violations
-- **Timeline View** - Gantt-style chart showing cards from creation to due date
-- **Smart Urgency** - Visual indicators based on due date proximity (overdue, due soon, this week)
-- **Stale Backlog Warnings** - Alerts for cards sitting in backlog without due dates
-- **Auto-Priority** - Optionally auto-assign priority tags based on due dates
-- **Dark Mode** - Light, dark, or system theme with smooth transitions
-- **Celebrations** - Confetti animation when completing tasks (can be disabled)
-- **Custom Backgrounds** - Upload your own background image
-- **Responsive Design** - Works on desktop and tablet
-- **Error Resilience** - ErrorBoundary catches errors gracefully without crashing the app
-- **Optimized Loading** - Heavy panels are lazy-loaded to reduce initial bundle size
-- **Webhook API** - Add cards from Apple Shortcuts, Zapier, or any automation tool
-- **Capture Hub** - Send tasks from Slack, email, browser, or Shortcuts and let AI parse them into structured cards
-- **Pomodoro Timer** - 25-minute focus sessions with break reminders and streak tracking
-- **AI Features** (requires Anthropic API key):
-  - **Natural Language Cards** - Type "urgent bug fix login page by friday" and AI parses title, tags, due date
-  - **Daily Focus** - AI suggests your top 3-5 tasks based on due dates and priorities
-  - **Weekly Planning** - 7-day calendar view with AI scheduling suggestions
-  - **Smart Task Breakdown** - AI generates subtasks for complex cards
-- **Goals Tracking** - Tag cards with goals for big-picture organization
+## Why this exists
 
-## Quick Start
+Most kanban tools assume you have a team and a backlog. Focusboard assumes you have a working memory limit and twenty browser tabs of things you meant to do. It's built around three ideas:
+
+1. **WIP limits aren't optional.** Each column caps active work — when you exceed it, the board warns you.
+2. **Capture beats organisation.** Send tasks in from anywhere; let an LLM parse them; review what's uncertain in the inbox.
+3. **The work itself is the source of truth.** Cycle time, lead time, and stale-backlog warnings come from card movement, not self-reported status.
+
+## Highlights
+
+### Focus mechanics
+- WIP limits per column with visual warnings
+- Smart urgency colouring (overdue → red, due soon → orange, this week → yellow)
+- Stale backlog warnings for cards sitting without due dates
+- Auto-priority that maps due-date proximity to priority tags
+- Pomodoro timer with streak tracking
+- Card archive + "Won't Do" terminal column for declined work
+
+### Capture & AI
+- **Capture Hub** — Slack reactions, forwarded emails, browser extension, iOS/Mac Shortcuts, or in-app `Cmd+Shift+C`. AI parses raw text into title, tags, and due date.
+- **Natural-language cards** — type "urgent bug fix login page by friday" and the card is created with structure.
+- **Daily Focus** — AI surfaces your top 3-5 tasks for the day.
+- **Weekly Plan** — 7-day calendar view with AI scheduling suggestions.
+- **Task breakdown** — AI generates subtasks for complex cards.
+
+### Views
+- Work/Personal swimlanes (collapsible, separately filtered)
+- Timeline (Gantt-style) by column, urgency, or flat
+- Metrics dashboard — completed cards, cycle time, WIP violations
+- Filter bar — search, column, tag, due date, blocker status
+
+![Timeline view showing cards as a Gantt chart](public/screenshot-timeline.png)
+
+### Quality of life
+- Full undo/redo with keyboard shortcuts
+- Drag-and-drop between columns and swimlanes
+- Card relationships ("blocks", "blocked by", "related to")
+- Light/dark/system theme
+- Custom backgrounds (Unsplash picker or your own upload)
+- Confetti on completion (optional)
+- Keyboard-first navigation
+- Webhook API for Apple Shortcuts, Zapier, etc.
+
+![Focusboard in dark mode](public/screenshot-dark.png)
+
+## Tech stack
+
+- **Frontend**: React 19, TypeScript, Vite, Tailwind CSS, [@dnd-kit](https://dndkit.com/)
+- **Backend**: Vercel serverless functions, Supabase (Postgres + Auth + Storage)
+- **AI**: Anthropic Claude (Haiku for parsing, Sonnet for planning)
+- **Testing**: Vitest + React Testing Library (585 tests, 100% of touched modules)
+- **Hosting**: Vercel
+
+## Quick start
 
 ```bash
+git clone https://github.com/cla1redonald/focusboard.git
+cd focusboard
 npm install
 npm run dev
 ```
 
-Open `http://localhost:5173/`
+Open [http://localhost:5173](http://localhost:5173). Without Supabase env vars set, the board runs locally with `localStorage` persistence — no signup required.
 
-## Scripts
+### Optional: cloud sync + multi-user
 
-| Command | Description |
-|---------|-------------|
-| `npm run dev` | Start the Vite dev server |
-| `npm run build` | Typecheck and build for production |
-| `npm run typecheck` | Run TypeScript typechecking |
-| `npm run lint` | Run ESLint |
-| `npm run test:run` | Run tests once |
-| `npm run test:coverage` | Run tests with coverage report |
-| `npm run preview` | Preview the production build |
+1. Create a Supabase project at [supabase.com](https://supabase.com).
+2. Copy `.env.example` to `.env.local` and fill in your `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`.
+3. Run the SQL setup from [docs/SUPABASE.md](docs/SUPABASE.md).
+4. Enable Email auth in your Supabase project.
 
-## Multi-User Setup (Optional)
+Each user gets their own private board with isolated data and RLS.
 
-To enable authentication and multi-user support:
+### Optional: AI features
 
-1. Create a Supabase project at [supabase.com](https://supabase.com)
-2. Copy `.env.example` to `.env.local`
-3. Fill in your Supabase URL and anon key
-4. Run the SQL setup in your Supabase dashboard (see [docs/SUPABASE.md](docs/SUPABASE.md))
-5. Enable Email auth in Supabase Authentication settings
-
-Each user will have their own private board with isolated data.
+Set `ANTHROPIC_API_KEY` in Vercel environment variables. The AI features degrade gracefully if the key isn't present.
 
 ## Webhook API
-
-Add cards to Focusboard from external tools like Apple Shortcuts, Zapier, or custom scripts.
 
 ```bash
 curl -X POST https://your-app.vercel.app/api/webhook/add-card \
@@ -84,57 +96,40 @@ curl -X POST https://your-app.vercel.app/api/webhook/add-card \
   -d '{"title": "Buy coffee", "secret": "your-secret"}'
 ```
 
-See [docs/API.md](docs/API.md) for full documentation.
+Full reference: [docs/API.md](docs/API.md).
 
-## Capture Hub
-
-Send tasks to FocusBoard from anywhere -- AI parses raw text into structured, categorized cards.
-
-**Capture channels:**
-
-- **Slack** -- React with `:focusboard:` emoji; Zapier sends the message to FocusBoard
-- **Email** -- Forward to your `+focusboard` address; Zapier forwards subject and body
-- **Browser** -- Chrome extension: highlight text and click "Send to FocusBoard"
-- **Shortcuts** -- iOS/Mac Shortcut accepts Share Sheet input from any app
-- **In-app** -- Press `Cmd+Shift+C` to open quick capture
-
-High-confidence tasks (>= 0.8) are added to the board automatically. Lower-confidence items land in the Capture Inbox for review.
-
-See [docs/API.md](docs/API.md) for the Capture API reference.
-
-## Keyboard Shortcuts
+## Keyboard shortcuts
 
 | Shortcut | Action |
 |----------|--------|
 | `Cmd/Ctrl + K` | Open command palette |
-| `Cmd/Ctrl + Z` | Undo |
-| `Cmd/Ctrl + Shift + Z` | Redo |
+| `Cmd/Ctrl + Z` / `Shift + Z` | Undo / Redo |
+| `Cmd/Ctrl + Shift + C` | Quick capture |
 | `Arrow keys` | Navigate between cards |
 | `Enter` | Open selected card |
 | `N` | Add new card to focused column |
 | `D` | Mark focused card as Done |
-| `Delete/Backspace` | Delete selected card |
-| `Escape` | Close modal / clear search |
-| `Cmd/Ctrl + Shift + C` | Open quick capture |
-| `?` | Show keyboard shortcuts |
+| `?` | Show all shortcuts |
 
-## Tech Stack
+## Scripts
 
-- React 19 + TypeScript
-- Vite
-- Tailwind CSS
-- @dnd-kit (drag and drop)
-- Supabase (optional auth & storage)
-- Vercel (hosting & serverless functions)
-- Vitest + React Testing Library
+| Command | Description |
+|---------|-------------|
+| `npm run dev` | Start the Vite dev server |
+| `npm run build` | Typecheck and build for production |
+| `npm run typecheck` | TypeScript check across the project |
+| `npm run lint` | ESLint |
+| `npm run test:run` | Run the full test suite |
+| `npm run test:coverage` | Run tests with coverage report |
+| `npm run preview` | Preview the production build |
 
 ## Documentation
 
-| Document | Description |
-|----------|-------------|
-| [ARCHITECTURE.md](ARCHITECTURE.md) | Technical architecture and data model |
-| [TESTING.md](TESTING.md) | Testing strategy and guidelines |
-| [docs/API.md](docs/API.md) | API reference: Webhook, Capture Hub, and Feedback endpoints |
+| Document | What it covers |
+|----------|----------------|
+| [ARCHITECTURE.md](ARCHITECTURE.md) | Data model, state machine, and architectural decisions |
+| [TESTING.md](TESTING.md) | Testing strategy and patterns |
+| [docs/API.md](docs/API.md) | Webhook, Capture Hub, and Feedback API reference |
 | [docs/SUPABASE.md](docs/SUPABASE.md) | Database schema and RLS setup |
 
 ## License
