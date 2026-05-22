@@ -46,39 +46,41 @@ export function TopStrip({
   onRedo: () => void;
 }) {
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-3 rounded-xl border border-gray-200 bg-white px-4 py-2.5 text-sm text-gray-700 shadow-sm dark:border-gray-700 dark:bg-gray-800 dark:text-gray-300">
-      <div className="flex items-center gap-1">
+    <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-gray-200 bg-white/80 px-4 py-2 text-sm text-gray-700 shadow-sm backdrop-blur dark:border-gray-700 dark:bg-gray-800/80 dark:text-gray-300">
+      <div className="flex items-center gap-0.5">
         <button
           onClick={onUndo}
           disabled={!canUndo}
-          className="rounded-lg p-1.5 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+          className="rounded-md p-1.5 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
           title="Undo (Cmd+Z)"
           aria-label="Undo"
         >
-          <Undo2 size={16} />
+          <Undo2 size={15} />
         </button>
         <button
           onClick={onRedo}
           disabled={!canRedo}
-          className="rounded-lg p-1.5 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:bg-transparent dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
+          className="rounded-md p-1.5 text-gray-500 transition hover:bg-gray-100 hover:text-gray-700 disabled:cursor-not-allowed disabled:opacity-30 disabled:hover:bg-transparent dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-gray-200"
           title="Redo (Cmd+Shift+Z)"
           aria-label="Redo"
         >
-          <Redo2 size={16} />
+          <Redo2 size={15} />
         </button>
       </div>
-      <div className="h-4 w-px bg-gray-200 dark:bg-gray-600" />
-      <div className="text-sm text-gray-700 dark:text-gray-300">
-        <span className="text-gray-500 dark:text-gray-400">Doing:</span>{" "}
-        <span className="font-medium text-emerald-700 dark:text-emerald-400">{doingCard ? doingCard.title : "None"}</span>
-      </div>
-      <div className="text-sm text-gray-700 dark:text-gray-300">
-        <span className="text-gray-500 dark:text-gray-400">Blocked:</span>{" "}
-        <span className={blockedCount > 0 ? "font-medium text-red-600 dark:text-red-400" : ""}>{blockedCount}</span>
-      </div>
-      <div className="text-sm text-gray-700 dark:text-gray-300">
-        <span className="text-gray-500 dark:text-gray-400">Due today:</span>{" "}
-        <span className={dueTodayCount > 0 ? "font-medium text-sky-600 dark:text-sky-400" : ""}>{dueTodayCount}</span>
+      <div className="h-5 w-px bg-gray-200 dark:bg-gray-600" />
+      <div className="flex items-center gap-4">
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">Doing</span>
+          <span className="max-w-[18ch] truncate font-medium text-emerald-700 dark:text-emerald-400">{doingCard ? doingCard.title : "—"}</span>
+        </div>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">Blocked</span>
+          <span className={blockedCount > 0 ? "font-medium text-red-600 dark:text-red-400" : "text-gray-700 dark:text-gray-300"}>{blockedCount}</span>
+        </div>
+        <div className="flex items-baseline gap-1.5">
+          <span className="text-[11px] uppercase tracking-wider text-gray-500 dark:text-gray-400">Due today</span>
+          <span className={dueTodayCount > 0 ? "font-medium text-sky-600 dark:text-sky-400" : "text-gray-700 dark:text-gray-300"}>{dueTodayCount}</span>
+        </div>
       </div>
       {metrics.currentStreak > 0 && (
         <div
@@ -222,7 +224,7 @@ function HelpMenu({
               <BookOpen size={16} className="text-emerald-600 dark:text-emerald-400" />
               <div>
                 <div className="font-medium">Getting Started</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">Learn how to use FocusBoard</div>
+                <div className="text-xs text-gray-500 dark:text-gray-400">Learn how to use Focusboard</div>
               </div>
             </button>
           )}

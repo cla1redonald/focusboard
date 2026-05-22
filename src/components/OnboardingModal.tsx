@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const STEPS = [
   {
-    title: "Welcome to FocusBoard",
+    title: "Welcome to Focusboard",
     emoji: "👋",
     description: "Your AI-powered kanban board for staying focused and getting things done. Let's walk through how to get the most out of it!",
   },

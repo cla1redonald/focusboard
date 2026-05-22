@@ -1,41 +1,78 @@
 @import "tailwindcss";
-@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=Inter:wght@400;500;600;700&display=swap");
 @custom-variant dark (&:where(.dark, .dark *));
+
+/* =====================================================================
+   Roami "Deep Tay" palette mapped into Tailwind's emerald/gray scales.
+   This re-skins every existing emerald-*/gray-* class to the Roami
+   brand without touching component files.
+   ===================================================================== */
+@theme {
+  /* Brand accent — replaces Tailwind emerald with Roami copper. */
+  --color-emerald-50:  #faf2e9;
+  --color-emerald-100: #f3e1cb;
+  --color-emerald-200: #e6c8a3;
+  --color-emerald-300: #d8ae7f;
+  --color-emerald-400: #cc9c6f;
+  --color-emerald-500: #c4956a; /* roami-copper — primary accent */
+  --color-emerald-600: #a87d55; /* roami-copper-dark */
+  --color-emerald-700: #8a6543;
+  --color-emerald-800: #6b4d33;
+  --color-emerald-900: #4a3624;
+
+  /* Warm neutrals — replaces Tailwind gray with Roami warm scale. */
+  --color-gray-50:  #faf6f1; /* roami-cream */
+  --color-gray-100: #f0eee8; /* roami-mist */
+  --color-gray-200: #e0d9cf; /* roami-stone */
+  --color-gray-300: #c4bdb2;
+  --color-gray-400: #a89880; /* roami-sand */
+  --color-gray-500: #8a7d6b;
+  --color-gray-600: #6b5d4f; /* roami-umber */
+  --color-gray-700: #4a3f35;
+  --color-gray-800: #2d2a26; /* roami-heading */
+  --color-gray-900: #111a24; /* roami-ink */
+
+  /* Fonts. */
+  --font-sans: "Inter", ui-sans-serif, system-ui, -apple-system,
+    BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --font-display: "Playfair Display", Georgia, "Times New Roman", serif;
+}
 
 :root {
   color-scheme: light;
 
-  /* Neutrals (slightly warmer gray) */
-  --neutral-50: #f9fafb;
-  --neutral-100: #f3f4f6;
-  --neutral-200: #e5e7eb;
-  --neutral-300: #d1d5db;
-  --neutral-400: #9ca3af;
-  --neutral-500: #6b7280;
-  --neutral-600: #4b5563;
-  --neutral-700: #374151;
-  --neutral-800: #1f2937;
-  --neutral-900: #111827;
+  /* Roami palette — direct CSS custom properties for components that
+     need brand colours outside the Tailwind class system. */
+  --roami-ink: #111a24;
+  --roami-tay: #1a2832;
+  --roami-midnight: #0d141c;
+  --roami-river: #2a5a5a;
+  --roami-copper: #c4956a;
+  --roami-copper-dark: #a87d55;
+  --roami-pine: #5a7247;
+  --roami-cream: #faf6f1;
+  --roami-mist: #f0eee8;
+  --roami-stone: #e0d9cf;
+  --roami-sand: #a89880;
+  --roami-umber: #6b5d4f;
+  --roami-heading: #2d2a26;
+  --roami-sage: #6a8a8a;
+  --roami-error: #a04040;
 
-  /* Accent (Emerald/Teal - Masterplan style) */
-  --accent-400: #34d399;
-  --accent-500: #10b981;
-  --accent-600: #059669;
+  /* Semantic. */
+  --success: var(--roami-pine);
+  --warning: var(--roami-copper);
+  --error: var(--roami-error);
 
-  /* Semantic */
-  --success: #10b981;
-  --warning: #f59e0b;
-  --error: #ef4444;
+  /* Shadows (warm undertone). */
+  --shadow-sm: 0 1px 2px rgba(17, 26, 36, 0.06);
+  --shadow-md: 0 4px 8px rgba(17, 26, 36, 0.08);
+  --shadow-lg: 0 12px 24px rgba(17, 26, 36, 0.12);
+  --shadow-xl: 0 24px 48px rgba(17, 26, 36, 0.16);
 
-  /* Shadows (softer) */
-  --shadow-sm: 0 1px 2px rgba(0,0,0,0.04);
-  --shadow-md: 0 4px 6px rgba(0,0,0,0.05);
-  --shadow-lg: 0 10px 20px rgba(0,0,0,0.06);
-  --shadow-xl: 0 20px 40px rgba(0,0,0,0.08);
-
-  font-family: "Inter", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
-  background-color: #f3f4f6;
-  color: var(--neutral-900);
+  font-family: var(--font-sans);
+  background-color: var(--roami-cream);
+  color: var(--roami-heading);
 }
 
 html,
@@ -46,13 +83,13 @@ body,
 
 body {
   margin: 0;
-  background: #f3f4f6;
+  background: var(--roami-cream);
 }
 
 .dark body,
 body.dark,
 .dark {
-  background: #111827;
+  background: var(--roami-ink);
   color-scheme: dark;
 }
 
@@ -74,12 +111,12 @@ body.dark,
 .bg-scrim {
   position: absolute;
   inset: 0;
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(250, 246, 241, 0.92);
   z-index: 1;
 }
 
 .dark .bg-scrim {
-  background: rgba(17, 24, 39, 0.95);
+  background: rgba(17, 26, 36, 0.95);
 }
 
 .app-shell {
@@ -87,10 +124,7 @@ body.dark,
   z-index: 3;
 }
 
-.orb {
-  display: none;
-}
-
+.orb,
 .orb-1,
 .orb-2,
 .orb-3 {
@@ -102,22 +136,24 @@ body.dark,
   inset: 0;
   background-image: repeating-linear-gradient(
     0deg,
-    rgba(0, 0, 0, 0.01) 0px,
-    rgba(0, 0, 0, 0.01) 1px,
+    rgba(17, 26, 36, 0.012) 0px,
+    rgba(17, 26, 36, 0.012) 1px,
     transparent 1px,
     transparent 2px
   );
-  opacity: 0.15;
+  opacity: 0.6;
   pointer-events: none;
   z-index: 2;
 }
 
+/* Playfair Display wordmark — used for the Focusboard branding. */
 .display-font {
-  font-family: "Inter", ui-sans-serif, system-ui, sans-serif;
-  letter-spacing: -0.01em;
+  font-family: var(--font-display);
+  font-weight: 600;
+  letter-spacing: -0.015em;
 }
 
-/* Date input styling - ensure calendar picker is visible and clickable */
+/* Date input styling — keep the calendar picker visible. */
 input[type="date"] {
   position: relative;
   cursor: pointer;
@@ -134,7 +170,7 @@ input[type="date"]::-webkit-calendar-picker-indicator {
 
 input[type="date"]::-webkit-calendar-picker-indicator:hover {
   opacity: 1;
-  background-color: rgba(16, 185, 129, 0.1);
+  background-color: rgba(196, 149, 106, 0.12); /* roami-copper @ 12% */
 }
 
 .dark input[type="date"]::-webkit-calendar-picker-indicator {

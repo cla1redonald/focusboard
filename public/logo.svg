@@ -1,25 +1,24 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" fill="none">
-  <!-- Background circle -->
-  <circle cx="60" cy="60" r="56" fill="#ECFDF5" stroke="#10B981" stroke-width="3"/>
+  <!-- Background circle - cream with copper ring -->
+  <circle cx="60" cy="60" r="56" fill="#faf6f1" stroke="#c4956a" stroke-width="3"/>
 
-  <!-- Three kanban columns -->
-  <rect x="22" y="32" width="22" height="56" rx="4" fill="#6EE7B7"/>
-  <rect x="49" y="32" width="22" height="56" rx="4" fill="#14B8A6"/>
-  <rect x="76" y="32" width="22" height="56" rx="4" fill="#059669"/>
+  <!-- Three kanban columns - warm scale -->
+  <rect x="22" y="32" width="22" height="56" rx="4" fill="#e0d9cf"/>
+  <rect x="49" y="32" width="22" height="56" rx="4" fill="#c4956a"/>
+  <rect x="76" y="32" width="22" height="56" rx="4" fill="#5a7247"/>
 
-  <!-- Cards in columns -->
-  <!-- Column 1 - Backlog -->
-  <rect x="26" y="38" width="14" height="10" rx="2" fill="white" stroke="#10B981" stroke-width="1"/>
-  <rect x="26" y="52" width="14" height="10" rx="2" fill="white" stroke="#10B981" stroke-width="1"/>
-  <rect x="26" y="66" width="14" height="10" rx="2" fill="white" stroke="#10B981" stroke-width="1"/>
+  <!-- Column 1 - Backlog cards -->
+  <rect x="26" y="38" width="14" height="10" rx="2" fill="white" stroke="#a89880" stroke-width="1"/>
+  <rect x="26" y="52" width="14" height="10" rx="2" fill="white" stroke="#a89880" stroke-width="1"/>
+  <rect x="26" y="66" width="14" height="10" rx="2" fill="white" stroke="#a89880" stroke-width="1"/>
 
-  <!-- Column 2 - Doing (highlighted with focus) -->
-  <rect x="53" y="38" width="14" height="10" rx="2" fill="white" stroke="#0D9488" stroke-width="1.5"/>
+  <!-- Column 2 - Doing (highlighted) -->
+  <rect x="53" y="38" width="14" height="10" rx="2" fill="white" stroke="#a87d55" stroke-width="1.5"/>
 
   <!-- Column 3 - Done -->
-  <rect x="80" y="38" width="14" height="10" rx="2" fill="white" stroke="#059669" stroke-width="1"/>
-  <rect x="80" y="52" width="14" height="10" rx="2" fill="white" stroke="#059669" stroke-width="1"/>
+  <rect x="80" y="38" width="14" height="10" rx="2" fill="white" stroke="#4a5d3a" stroke-width="1"/>
+  <rect x="80" y="52" width="14" height="10" rx="2" fill="white" stroke="#4a5d3a" stroke-width="1"/>
 
-  <!-- Focus indicator - bullseye on doing column -->
-  <circle cx="60" cy="43" r="3" fill="#0D9488"/>
+  <!-- Focus indicator - copper dot on doing column -->
+  <circle cx="60" cy="43" r="3" fill="#a87d55"/>
 </svg>

@@ -479,14 +479,14 @@ export function Board({
       <div className="mb-4 flex flex-wrap items-end justify-between gap-3 sm:mb-6">
         <div>
           <div className="flex items-center gap-3">
-            <img src="/logo.svg" alt="FocusBoard" className="h-10 w-10 sm:h-12 sm:w-12" />
+            <img src="/logo.svg" alt="Focusboard" className="h-10 w-10 sm:h-12 sm:w-12" />
             <div>
-              <div className="text-2xl font-bold tracking-tight text-gray-900 dark:text-white sm:text-3xl">
-                FocusBoard
-              </div>
-              <div className="text-sm text-gray-500 dark:text-gray-400">
+              <h1 className="display-font text-3xl text-gray-900 dark:text-white sm:text-4xl">
+                Focusboard
+              </h1>
+              <div className="text-sm text-gray-600 dark:text-gray-300">
                 {pendingCount === 0
-                  ? "No tasks pending. Time to plan your next goal!"
+                  ? "No tasks pending. Time to plan your next goal."
                   : `${pendingCount} tasks in progress`}
               </div>
             </div>

@@ -42,20 +42,21 @@ describe("Board", () => {
     it("renders all default columns", () => {
       render(<Board {...defaultProps} />);
 
-      // With swimlanes, each column appears twice (once per swimlane)
+      // With swimlanes, each column appears twice (once per swimlane).
+      // "Doing" and "Blocked" also appear as status labels in TopStrip.
       expect(screen.getAllByText("Backlog")).toHaveLength(2);
       expect(screen.getAllByText("Design & Planning")).toHaveLength(2);
       expect(screen.getAllByText("To Do")).toHaveLength(2);
-      expect(screen.getAllByText("Doing")).toHaveLength(2);
-      expect(screen.getAllByText("Blocked")).toHaveLength(2);
+      expect(screen.getAllByText("Doing")).toHaveLength(3);
+      expect(screen.getAllByText("Blocked")).toHaveLength(3);
       expect(screen.getAllByText("Done")).toHaveLength(2);
     });
 
-    it("renders FocusBoard header", () => {
+    it("renders Focusboard header", () => {
       render(<Board {...defaultProps} />);
 
-      // Header shows FocusBoard branding
-      const header = screen.getByText("FocusBoard");
+      // Header shows Focusboard branding
+      const header = screen.getByText("Focusboard");
       expect(header).toBeInTheDocument();
     });
 
