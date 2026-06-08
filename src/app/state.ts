@@ -1,6 +1,6 @@
 import React from "react";
 import { nanoid } from "nanoid";
-import type { AppState, Card, CardRelation, CardTemplate, Column, ColumnId, ColumnTransition, RelationType, Settings, SwimlaneId, Tag, TagCategory } from "./types";
+import type { AppState, Card, CardRelation, CardTemplate, Column, ColumnId, ColumnTransition, DailyPlan, RelationType, Settings, SwimlaneId, Tag, TagCategory } from "./types";
 import { debouncedSaveState, flushSaveState, loadState, setStorageUserId } from "./storage";
 import { DEFAULT_COLUMNS, DEFAULT_SETTINGS, DEFAULT_TAG_CATEGORIES, DEFAULT_TAGS } from "./constants";
 import { nowIso, suggestEmojiForTitle, suggestTagsForTitle } from "./utils";
@@ -38,6 +38,7 @@ type Action =
   | { type: "MOVE_CARD"; id: string; to: ColumnId; toSwimlane?: SwimlaneId; patch?: Partial<Card> }
   | { type: "REORDER_CARDS"; columnId: ColumnId; cardIds: string[]; swimlane?: SwimlaneId }
   | { type: "SET_SETTINGS"; settings: Settings }
+  | { type: "SET_DAILY_PLAN"; plan: DailyPlan | undefined }
   | { type: "TOGGLE_SWIMLANE_COLLAPSE"; swimlaneId: SwimlaneId }
   | { type: "ADD_COLUMN"; column: Omit<Column, "id" | "order"> }
   | { type: "UPDATE_COLUMN"; column: Column }
@@ -236,6 +237,9 @@ function appReducer(state: AppState, action: Action): AppState {
     }
     case "SET_SETTINGS":
       return { ...state, settings: action.settings };
+
+    case "SET_DAILY_PLAN":
+      return { ...state, dailyPlan: action.plan };
 
     case "TOGGLE_SWIMLANE_COLLAPSE": {
       const { swimlaneId } = action;

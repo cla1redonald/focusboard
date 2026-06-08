@@ -1,4 +1,4 @@
-import type { Card, Column, ColumnId } from "./types";
+import type { Card, Column, ColumnId, DailyPlan } from "./types";
 
 export type TodayReasonKind =
   | "doing"
@@ -48,7 +48,16 @@ type BuildTodayPlanOptions = {
   staleBacklogThreshold?: 3 | 7 | 14;
 };
 
-function dateKey(date: Date): string {
+export type TodayDailyPlan = {
+  date: string;
+  main: Card | null;
+  support: Card[];
+  plannedCardIds: string[];
+  completedCount: number;
+  plannedCount: number;
+};
+
+export function dateKey(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
@@ -178,5 +187,46 @@ export function buildTodayPlan(
     },
     wipPressure,
     activeCount: activeCards.length,
+  };
+}
+
+export function buildTodayDailyPlan(
+  dailyPlan: DailyPlan | undefined,
+  cards: Card[],
+  columns: Column[],
+  now: Date = new Date(),
+): TodayDailyPlan {
+  const today = dateKey(now);
+  const emptyPlan: TodayDailyPlan = {
+    date: today,
+    main: null,
+    support: [],
+    plannedCardIds: [],
+    completedCount: 0,
+    plannedCount: 0,
+  };
+
+  if (dailyPlan?.date !== today) {
+    return emptyPlan;
+  }
+
+  const terminalColumnIds = new Set(columns.filter((column) => column.isTerminal).map((column) => column.id));
+  const cardById = new Map(cards.filter((card) => !card.archivedAt).map((card) => [card.id, card]));
+  const main = dailyPlan.mainCardId ? cardById.get(dailyPlan.mainCardId) ?? null : null;
+  const support = dailyPlan.supportCardIds
+    .filter((id) => id !== dailyPlan.mainCardId)
+    .map((id) => cardById.get(id))
+    .filter((card): card is Card => Boolean(card));
+  const selectedCards = [main, ...support].filter((card): card is Card => Boolean(card));
+  const plannedCardIds = selectedCards.map((card) => card.id);
+  const completedCount = selectedCards.filter((card) => terminalColumnIds.has(card.column)).length;
+
+  return {
+    date: today,
+    main,
+    support,
+    plannedCardIds,
+    completedCount,
+    plannedCount: plannedCardIds.length,
   };
 }

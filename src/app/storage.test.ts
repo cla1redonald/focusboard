@@ -161,6 +161,29 @@ describe("storage", () => {
       const state = loadState();
       expect(state.settings).toEqual(DEFAULT_SETTINGS);
     });
+
+    it("loads today's saved daily plan from v4 state", () => {
+      const storedState: AppState = {
+        cards: [],
+        columns: DEFAULT_COLUMNS,
+        templates: [],
+        settings: DEFAULT_SETTINGS,
+        tagCategories: DEFAULT_TAG_CATEGORIES,
+        tags: DEFAULT_TAGS,
+        dailyPlan: {
+          date: "2026-06-08",
+          mainCardId: "main",
+          supportCardIds: ["support"],
+          createdAt: "2026-06-08T08:00:00.000Z",
+          updatedAt: "2026-06-08T09:00:00.000Z",
+        },
+      };
+
+      localStorage.setItem("focusboard:v4", JSON.stringify(storedState));
+
+      const state = loadState();
+      expect(state.dailyPlan).toEqual(storedState.dailyPlan);
+    });
   });
 
   describe("local-only → signed-in migration", () => {

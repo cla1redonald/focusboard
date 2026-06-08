@@ -14,6 +14,7 @@ import { cleanupCardAttachments } from "./attachmentCleanup";
 import { debouncedSaveMetricsToSupabase } from "./sync";
 import { useCaptureQueue } from "./useCaptureQueue";
 import type { ParsedCaptureCard } from "./captureTypes";
+import { dateKey } from "./today";
 import { Board } from "../components/Board";
 import { CardModal } from "../components/CardModal";
 import { SettingsPanel } from "../components/SettingsPanel";
@@ -174,6 +175,58 @@ function AppContent() {
     },
     [dispatch]
   );
+
+  const buildDailyPlan = React.useCallback(
+    (update: (plan: NonNullable<AppState["dailyPlan"]>, now: Date) => AppState["dailyPlan"]) => {
+      const now = new Date();
+      const today = dateKey(now);
+      const current = stateRef.current.dailyPlan?.date === today
+        ? stateRef.current.dailyPlan
+        : {
+            date: today,
+            supportCardIds: [],
+            createdAt: now.toISOString(),
+            updatedAt: now.toISOString(),
+          };
+      dispatch({ type: "SET_DAILY_PLAN", plan: update(current, now) });
+    },
+    [dispatch],
+  );
+
+  const handleSetMainFocus = React.useCallback(
+    (card: Card) => {
+      buildDailyPlan((plan, now) => ({
+        ...plan,
+        mainCardId: card.id,
+        supportCardIds: plan.supportCardIds.filter((id) => id !== card.id),
+        updatedAt: now.toISOString(),
+      }));
+      showToast({ type: "success", message: `"${card.title}" is today's main focus` });
+    },
+    [buildDailyPlan, showToast],
+  );
+
+  const handleToggleSupportTask = React.useCallback(
+    (card: Card) => {
+      buildDailyPlan((plan, now) => {
+        const isSupport = plan.supportCardIds.includes(card.id);
+        return {
+          ...plan,
+          supportCardIds: isSupport
+            ? plan.supportCardIds.filter((id) => id !== card.id)
+            : [...plan.supportCardIds, card.id],
+          updatedAt: now.toISOString(),
+        };
+      });
+    },
+    [buildDailyPlan],
+  );
+
+  const handleClearDailyPlan = React.useCallback(() => {
+    dispatch({ type: "SET_DAILY_PLAN", plan: undefined });
+    showToast({ type: "info", message: "Cleared today's plan" });
+  }, [dispatch, showToast]);
+
   // Memoized calculations for FocusSuggestionPanel
   const completedToday = React.useMemo(() => {
     const today = new Date().toISOString().split("T")[0];
@@ -519,12 +572,16 @@ function AppContent() {
               cards={activeCards}
               columns={state.columns}
               settings={state.settings}
+              dailyPlan={state.dailyPlan}
               captureCount={pendingCount}
               onClose={() => setTodayOpen(false)}
               onOpenCard={(card) => {
                 setTodayOpen(false);
                 setOpenCard(card);
               }}
+              onSetMainFocus={handleSetMainFocus}
+              onToggleSupportTask={handleToggleSupportTask}
+              onClearDailyPlan={handleClearDailyPlan}
               onStartCard={(card) => {
                 const doingColumn = state.columns.find((c) => c.id === "doing");
                 if (doingColumn) {

@@ -120,6 +120,14 @@ export type MetricsState = {
   lastCompletionDate?: string;
 };
 
+export type DailyPlan = {
+  date: string; // Local date key (YYYY-MM-DD)
+  mainCardId?: string;
+  supportCardIds: string[];
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type CardTemplate = {
   id: string;
   name: string;
@@ -215,6 +223,7 @@ export type AppState = {
   settings: Settings;
   tagCategories: TagCategory[];
   tags: Tag[];
+  dailyPlan?: DailyPlan;
 };
 
 // Filter types

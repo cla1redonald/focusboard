@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { DEFAULT_COLUMNS } from "./constants";
-import { buildTodayPlan } from "./today";
+import { buildTodayDailyPlan, buildTodayPlan, dateKey } from "./today";
 import type { Card } from "./types";
 
 const now = new Date("2026-06-08T12:00:00.000Z");
@@ -95,5 +95,79 @@ describe("buildTodayPlan", () => {
       }),
     ]);
     expect(plan.recommendations[0].reasons.map((r) => r.kind)).toContain("wip-pressure");
+  });
+});
+
+describe("dateKey", () => {
+  it("formats the local calendar day", () => {
+    expect(dateKey(now)).toBe("2026-06-08");
+  });
+});
+
+describe("buildTodayDailyPlan", () => {
+  it("resolves today's main and support cards with progress", () => {
+    const plan = buildTodayDailyPlan(
+      {
+        date: "2026-06-08",
+        mainCardId: "main",
+        supportCardIds: ["support", "done"],
+        createdAt: "2026-06-08T08:00:00.000Z",
+        updatedAt: "2026-06-08T08:00:00.000Z",
+      },
+      [
+        card({ id: "main", title: "Main", column: "doing" }),
+        card({ id: "support", title: "Support", column: "todo" }),
+        card({ id: "done", title: "Done", column: "done" }),
+      ],
+      DEFAULT_COLUMNS,
+      now,
+    );
+
+    expect(plan.main?.id).toBe("main");
+    expect(plan.support.map((item) => item.id)).toEqual(["support", "done"]);
+    expect(plan.plannedCardIds).toEqual(["main", "support", "done"]);
+    expect(plan.completedCount).toBe(1);
+    expect(plan.plannedCount).toBe(3);
+  });
+
+  it("ignores stale plans from previous days", () => {
+    const plan = buildTodayDailyPlan(
+      {
+        date: "2026-06-07",
+        mainCardId: "main",
+        supportCardIds: ["support"],
+        createdAt: "2026-06-07T08:00:00.000Z",
+        updatedAt: "2026-06-07T08:00:00.000Z",
+      },
+      [card({ id: "main" }), card({ id: "support" })],
+      DEFAULT_COLUMNS,
+      now,
+    );
+
+    expect(plan.main).toBeNull();
+    expect(plan.support).toEqual([]);
+    expect(plan.plannedCount).toBe(0);
+  });
+
+  it("drops archived and missing cards from the plan", () => {
+    const plan = buildTodayDailyPlan(
+      {
+        date: "2026-06-08",
+        mainCardId: "archived",
+        supportCardIds: ["missing", "support"],
+        createdAt: "2026-06-08T08:00:00.000Z",
+        updatedAt: "2026-06-08T08:00:00.000Z",
+      },
+      [
+        card({ id: "archived", archivedAt: "2026-06-08T09:00:00.000Z" }),
+        card({ id: "support" }),
+      ],
+      DEFAULT_COLUMNS,
+      now,
+    );
+
+    expect(plan.main).toBeNull();
+    expect(plan.support.map((item) => item.id)).toEqual(["support"]);
+    expect(plan.plannedCardIds).toEqual(["support"]);
   });
 });
