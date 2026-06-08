@@ -16,18 +16,18 @@ import { useCaptureQueue } from "./useCaptureQueue";
 import type { ParsedCaptureCard } from "./captureTypes";
 import { dateKey } from "./today";
 import { Board } from "../components/Board";
-import { CardModal } from "../components/CardModal";
-import { SettingsPanel } from "../components/SettingsPanel";
 import { KeyboardShortcutsModal } from "../components/KeyboardShortcutsModal";
-import { CommandPalette } from "../components/CommandPalette";
-import { OnboardingModal } from "../components/OnboardingModal";
 import { ToastContainer } from "../components/ToastContainer";
 import { LoginPage } from "../components/LoginPage";
 import { SetPasswordPage } from "../components/SetPasswordPage";
 import { ErrorBoundary } from "../components/ErrorBoundary";
-import { FeedbackModal } from "../components/FeedbackModal";
 
 // Lazy load heavy panel components to reduce initial bundle size
+const CardModal = React.lazy(() => import("../components/CardModal").then(m => ({ default: m.CardModal })));
+const SettingsPanel = React.lazy(() => import("../components/SettingsPanel").then(m => ({ default: m.SettingsPanel })));
+const CommandPalette = React.lazy(() => import("../components/CommandPalette").then(m => ({ default: m.CommandPalette })));
+const OnboardingModal = React.lazy(() => import("../components/OnboardingModal").then(m => ({ default: m.OnboardingModal })));
+const FeedbackModal = React.lazy(() => import("../components/FeedbackModal").then(m => ({ default: m.FeedbackModal })));
 const MetricsDashboard = React.lazy(() => import("../components/MetricsDashboard").then(m => ({ default: m.MetricsDashboard })));
 const TimelinePanel = React.lazy(() => import("../components/TimelinePanel").then(m => ({ default: m.TimelinePanel })));
 const FocusSuggestionPanel = React.lazy(() => import("../components/FocusSuggestionPanel").then(m => ({ default: m.FocusSuggestionPanel })));
@@ -604,70 +604,82 @@ function AppContent() {
         </div>
       </div>
 
-      <CardModal
-        open={!!openCard}
-        card={openCard ? state.cards.find((c) => c.id === openCard.id) ?? openCard : null}
-        allCards={activeCards}
-        tags={state.tags}
-        tagCategories={state.tagCategories}
-        userId={user?.id}
-        onClose={() => setOpenCard(null)}
-        onSave={(card) => {
-          dispatch({ type: "UPDATE_CARD", card });
-          setOpenCard(null);
-        }}
-        onDelete={(id) => {
-          const card = state.cards.find((c) => c.id === id);
-          // Cleanup attachments from Supabase Storage
-          if (card?.attachments?.length) {
-            void cleanupCardAttachments(card.attachments);
-          }
-          dispatch({ type: "DELETE_CARD", id });
-          setOpenCard(null);
-        }}
-        onMarkComplete={(id) => {
-          const card = state.cards.find((c) => c.id === id);
-          const doneColumn = state.columns.find((c) => c.isTerminal);
-          if (card && doneColumn) {
-            dispatch({ type: "MOVE_CARD", id, to: doneColumn.id, toSwimlane: card.swimlane });
-            setOpenCard(null);
-            showToast({ type: "success", message: `"${card.title}" marked complete!` });
-          }
-        }}
-        isCompleted={isOpenCardCompleted}
-        onArchive={(id) => {
-          handleArchiveCard(id);
-          setOpenCard(null);
-        }}
-        onAddRelation={(cardId: string, targetCardId: string, relationType: RelationType) => {
-          dispatch({ type: "ADD_RELATION", cardId, targetCardId, relationType });
-        }}
-        onRemoveRelation={(cardId: string, relationId: string) => {
-          dispatch({ type: "REMOVE_RELATION", cardId, relationId });
-        }}
-        onAddTag={(tag) => dispatch({ type: "ADD_TAG", tag })}
-      />
+      {openCard && (
+        <Suspense fallback={<PanelLoadingFallback />}>
+          <ErrorBoundary>
+            <CardModal
+              open={!!openCard}
+              card={state.cards.find((c) => c.id === openCard.id) ?? openCard}
+              allCards={activeCards}
+              tags={state.tags}
+              tagCategories={state.tagCategories}
+              userId={user?.id}
+              onClose={() => setOpenCard(null)}
+              onSave={(card) => {
+                dispatch({ type: "UPDATE_CARD", card });
+                setOpenCard(null);
+              }}
+              onDelete={(id) => {
+                const card = state.cards.find((c) => c.id === id);
+                // Cleanup attachments from Supabase Storage
+                if (card?.attachments?.length) {
+                  void cleanupCardAttachments(card.attachments);
+                }
+                dispatch({ type: "DELETE_CARD", id });
+                setOpenCard(null);
+              }}
+              onMarkComplete={(id) => {
+                const card = state.cards.find((c) => c.id === id);
+                const doneColumn = state.columns.find((c) => c.isTerminal);
+                if (card && doneColumn) {
+                  dispatch({ type: "MOVE_CARD", id, to: doneColumn.id, toSwimlane: card.swimlane });
+                  setOpenCard(null);
+                  showToast({ type: "success", message: `"${card.title}" marked complete!` });
+                }
+              }}
+              isCompleted={isOpenCardCompleted}
+              onArchive={(id) => {
+                handleArchiveCard(id);
+                setOpenCard(null);
+              }}
+              onAddRelation={(cardId: string, targetCardId: string, relationType: RelationType) => {
+                dispatch({ type: "ADD_RELATION", cardId, targetCardId, relationType });
+              }}
+              onRemoveRelation={(cardId: string, relationId: string) => {
+                dispatch({ type: "REMOVE_RELATION", cardId, relationId });
+              }}
+              onAddTag={(tag) => dispatch({ type: "ADD_TAG", tag })}
+            />
+          </ErrorBoundary>
+        </Suspense>
+      )}
 
-      <SettingsPanel
-        open={settingsOpen}
-        settings={state.settings}
-        columns={state.columns}
-        state={state}
-        onClose={() => setSettingsOpen(false)}
-        onChange={(settings) => dispatch({ type: "SET_SETTINGS", settings })}
-        onUpdateColumn={(column: Column) => dispatch({ type: "UPDATE_COLUMN", column })}
-        onAddColumn={(column: Omit<Column, "id" | "order">) => dispatch({ type: "ADD_COLUMN", column })}
-        onDeleteColumn={(id: string, migrateCardsTo?: string) => dispatch({ type: "DELETE_COLUMN", id, migrateCardsTo })}
-        onReorderColumns={(columns: Column[]) => dispatch({ type: "REORDER_COLUMNS", columns })}
-        onImport={(newState: AppState) => dispatch({ type: "IMPORT_STATE", state: newState })}
-        onSignOut={signOut}
-        onAddTag={(tag) => dispatch({ type: "ADD_TAG", tag })}
-        onUpdateTag={(tag) => dispatch({ type: "UPDATE_TAG", tag })}
-        onDeleteTag={(id) => dispatch({ type: "DELETE_TAG", id })}
-        onAddTagCategory={(category) => dispatch({ type: "ADD_TAG_CATEGORY", category })}
-        onUpdateTagCategory={(category) => dispatch({ type: "UPDATE_TAG_CATEGORY", category })}
-        onDeleteTagCategory={(id) => dispatch({ type: "DELETE_TAG_CATEGORY", id })}
-      />
+      {settingsOpen && (
+        <Suspense fallback={<PanelLoadingFallback />}>
+          <ErrorBoundary>
+            <SettingsPanel
+              open={settingsOpen}
+              settings={state.settings}
+              columns={state.columns}
+              state={state}
+              onClose={() => setSettingsOpen(false)}
+              onChange={(settings) => dispatch({ type: "SET_SETTINGS", settings })}
+              onUpdateColumn={(column: Column) => dispatch({ type: "UPDATE_COLUMN", column })}
+              onAddColumn={(column: Omit<Column, "id" | "order">) => dispatch({ type: "ADD_COLUMN", column })}
+              onDeleteColumn={(id: string, migrateCardsTo?: string) => dispatch({ type: "DELETE_COLUMN", id, migrateCardsTo })}
+              onReorderColumns={(columns: Column[]) => dispatch({ type: "REORDER_COLUMNS", columns })}
+              onImport={(newState: AppState) => dispatch({ type: "IMPORT_STATE", state: newState })}
+              onSignOut={signOut}
+              onAddTag={(tag) => dispatch({ type: "ADD_TAG", tag })}
+              onUpdateTag={(tag) => dispatch({ type: "UPDATE_TAG", tag })}
+              onDeleteTag={(id) => dispatch({ type: "DELETE_TAG", id })}
+              onAddTagCategory={(category) => dispatch({ type: "ADD_TAG_CATEGORY", category })}
+              onUpdateTagCategory={(category) => dispatch({ type: "UPDATE_TAG_CATEGORY", category })}
+              onDeleteTagCategory={(id) => dispatch({ type: "DELETE_TAG_CATEGORY", id })}
+            />
+          </ErrorBoundary>
+        </Suspense>
+      )}
 
       {/* Lazy-loaded panels wrapped in Suspense and ErrorBoundary */}
       {metricsDashboardOpen && (
@@ -887,56 +899,74 @@ function AppContent() {
         onClose={() => setShortcutsOpen(false)}
       />
 
-      <CommandPalette
-        open={commandPaletteOpen}
-        cards={activeCards}
-        columns={state.columns}
-        onClose={() => setCommandPaletteOpen(false)}
-        onOpenCard={(card) => {
-          setCommandPaletteOpen(false);
-          setOpenCard(card);
-        }}
-        onOpenSettings={() => {
-          setCommandPaletteOpen(false);
-          setSettingsOpen(true);
-        }}
-        onOpenMetrics={() => {
-          setCommandPaletteOpen(false);
-          setMetricsDashboardOpen(true);
-        }}
-        onOpenTimeline={() => {
-          setCommandPaletteOpen(false);
-          setTimelinePanelOpen(true);
-        }}
-        onOpenArchive={() => {
-          setCommandPaletteOpen(false);
-          setArchivePanelOpen(true);
-        }}
-        onOpenCapture={() => {
-          setCommandPaletteOpen(false);
-          setCaptureInboxOpen(true);
-        }}
-        onJumpToColumn={(columnId) => {
-          const columnEl = document.querySelector(`[data-column-id="${columnId}"]`);
-          if (columnEl) {
-            columnEl.scrollIntoView({ behavior: "smooth", inline: "center" });
-          }
-        }}
-      />
+      {commandPaletteOpen && (
+        <Suspense fallback={<PanelLoadingFallback />}>
+          <ErrorBoundary>
+            <CommandPalette
+              open={commandPaletteOpen}
+              cards={activeCards}
+              columns={state.columns}
+              onClose={() => setCommandPaletteOpen(false)}
+              onOpenCard={(card) => {
+                setCommandPaletteOpen(false);
+                setOpenCard(card);
+              }}
+              onOpenSettings={() => {
+                setCommandPaletteOpen(false);
+                setSettingsOpen(true);
+              }}
+              onOpenMetrics={() => {
+                setCommandPaletteOpen(false);
+                setMetricsDashboardOpen(true);
+              }}
+              onOpenTimeline={() => {
+                setCommandPaletteOpen(false);
+                setTimelinePanelOpen(true);
+              }}
+              onOpenArchive={() => {
+                setCommandPaletteOpen(false);
+                setArchivePanelOpen(true);
+              }}
+              onOpenCapture={() => {
+                setCommandPaletteOpen(false);
+                setCaptureInboxOpen(true);
+              }}
+              onJumpToColumn={(columnId) => {
+                const columnEl = document.querySelector(`[data-column-id="${columnId}"]`);
+                if (columnEl) {
+                  columnEl.scrollIntoView({ behavior: "smooth", inline: "center" });
+                }
+              }}
+            />
+          </ErrorBoundary>
+        </Suspense>
+      )}
 
-      <OnboardingModal
-        open={onboardingOpen}
-        onClose={() => {
-          setOnboardingOpen(false);
-          markOnboardingSeen();
-        }}
-      />
+      {onboardingOpen && (
+        <Suspense fallback={<PanelLoadingFallback />}>
+          <ErrorBoundary>
+            <OnboardingModal
+              open={onboardingOpen}
+              onClose={() => {
+                setOnboardingOpen(false);
+                markOnboardingSeen();
+              }}
+            />
+          </ErrorBoundary>
+        </Suspense>
+      )}
 
-      <FeedbackModal
-        open={feedbackOpen}
-        onClose={() => setFeedbackOpen(false)}
-        onSuccess={() => showToast({ type: "success", message: "Thanks for your feedback!" })}
-      />
+      {feedbackOpen && (
+        <Suspense fallback={<PanelLoadingFallback />}>
+          <ErrorBoundary>
+            <FeedbackModal
+              open={feedbackOpen}
+              onClose={() => setFeedbackOpen(false)}
+              onSuccess={() => showToast({ type: "success", message: "Thanks for your feedback!" })}
+            />
+          </ErrorBoundary>
+        </Suspense>
+      )}
 
       <ToastContainer />
     </div>
