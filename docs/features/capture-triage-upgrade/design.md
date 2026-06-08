@@ -20,6 +20,7 @@ Obsidian was checked before this programme. The open vaults had Focusboard showc
 ## Non-Goals
 
 - No Supabase schema migration in this PR.
+- Supabase-backed snooze persistence was added later in PR #13; see `docs/features/supabase-capture-snooze/design.md`.
 - No server-side snooze scheduling.
 - No multi-card splitting in this PR unless the parsed payload already contains multiple cards.
 

@@ -4,6 +4,29 @@
 **Complexity:** High  
 **Estimated files:** 18-26 across the full programme; 6-10 for the first PR
 
+## Completion Status
+
+Completed and deployed on 2026-06-08:
+
+| Slice | PR | Status |
+| --- | --- | --- |
+| Today workspace foundation | #7 | Merged and deployed |
+| Daily plan controls | #8 | Merged and deployed |
+| Focus mode sessions | #9 | Merged and deployed |
+| Capture triage upgrade | #10 | Merged and deployed |
+| Actionable WIP | #11 | Merged and deployed |
+| Review rituals | #12 | Merged and deployed |
+| Supabase capture snooze | #13 | Merged and deployed |
+| Automatic AI ranking | #14 | Merged and deployed |
+
+Implementation decisions:
+
+- Today remains a prominent workspace, not the default landing view.
+- Focus session history lives in Metrics.
+- Capture snooze is persisted in Supabase via `capture_queue.snoozed_until`.
+- Today calls the existing AI daily-focus endpoint automatically when AI keys exist, with deterministic ranking as fallback.
+- GitHub-native PR review comments were used for #13 and #14; Claude review automation was not used for those final reviews.
+
 ## Product Aim
 
 Focusboard already has a capable board, capture inbox, AI suggestions, metrics, timeline, archive, and Pomodoro timer. The next improvement should make the app feel less like "a board with features" and more like a daily operating system for choosing and finishing the right work.
@@ -225,9 +248,9 @@ For UI-heavy PRs, also run the local app and inspect:
 - empty board
 - overloaded board with overdue, blocked, stale, and WIP-pressure cards
 
-## Open Decisions
+## Resolved Decisions
 
-1. Should Today become the default landing surface, or should it be a prominent mode alongside Board for the first PR?
-2. Should focus session history live in `MetricsState`, or should it have separate storage to avoid overloading metrics?
-3. Should capture snooze be local-only first, or go straight into Supabase-backed queue schema?
-4. Should AI ranking be optional, with deterministic ranking as default, or should it be called automatically when API keys exist?
+1. Today should be a prominent mode alongside Board, not the default landing surface.
+2. Focus session history lives in `MetricsState`.
+3. Capture snooze shipped local-only first, then moved to Supabase-backed queue schema in PR #13.
+4. AI ranking is called automatically when API keys exist, with deterministic ranking as fallback.
