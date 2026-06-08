@@ -43,6 +43,7 @@ export function Board({
   onSettings,
   onOpenMetrics,
   onOpenTimeline,
+  onOpenToday,
   onOpenFocus,
   onOpenWeeklyPlan,
   onOpenFeedback,
@@ -72,6 +73,7 @@ export function Board({
   onSettings: () => void;
   onOpenMetrics: () => void;
   onOpenTimeline: () => void;
+  onOpenToday?: () => void;
   onOpenFocus?: () => void;
   onOpenWeeklyPlan?: () => void;
   onOpenFeedback?: () => void;
@@ -462,6 +464,7 @@ export function Board({
         archivedCount={archivedCount}
         onOpenMetrics={onOpenMetrics}
         onOpenTimeline={onOpenTimeline}
+        onOpenToday={onOpenToday}
         onOpenFocus={onOpenFocus}
         onOpenWeeklyPlan={onOpenWeeklyPlan}
         onOpenFeedback={onOpenFeedback}

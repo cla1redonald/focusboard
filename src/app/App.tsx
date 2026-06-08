@@ -33,6 +33,7 @@ const FocusSuggestionPanel = React.lazy(() => import("../components/FocusSuggest
 const WeeklyPlanPanel = React.lazy(() => import("../components/WeeklyPlanPanel").then(m => ({ default: m.WeeklyPlanPanel })));
 const ArchivePanel = React.lazy(() => import("../components/ArchivePanel").then(m => ({ default: m.ArchivePanel })));
 const CaptureInbox = React.lazy(() => import("../components/CaptureInbox").then(m => ({ default: m.CaptureInbox })));
+const TodayView = React.lazy(() => import("../components/TodayView").then(m => ({ default: m.TodayView })));
 
 // Loading fallback for lazy-loaded panels
 function PanelLoadingFallback() {
@@ -57,6 +58,7 @@ function AppContent() {
   const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [metricsDashboardOpen, setMetricsDashboardOpen] = React.useState(false);
   const [timelinePanelOpen, setTimelinePanelOpen] = React.useState(false);
+  const [todayOpen, setTodayOpen] = React.useState(false);
   const [focusPanelOpen, setFocusPanelOpen] = React.useState(false);
   const [weeklyPlanOpen, setWeeklyPlanOpen] = React.useState(false);
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
@@ -80,6 +82,7 @@ function AppContent() {
   const handleSettings = React.useCallback(() => setSettingsOpen(true), []);
   const handleOpenMetrics = React.useCallback(() => setMetricsDashboardOpen(true), []);
   const handleOpenTimeline = React.useCallback(() => setTimelinePanelOpen(true), []);
+  const handleOpenToday = React.useCallback(() => setTodayOpen(true), []);
   const handleOpenFocus = React.useCallback(() => setFocusPanelOpen(true), []);
   const handleOpenWeeklyPlan = React.useCallback(() => setWeeklyPlanOpen(true), []);
   const handleOpenFeedback = React.useCallback(() => setFeedbackOpen(true), []);
@@ -382,6 +385,7 @@ function AppContent() {
             onSettings={handleSettings}
             onOpenMetrics={handleOpenMetrics}
             onOpenTimeline={handleOpenTimeline}
+            onOpenToday={handleOpenToday}
             onOpenFocus={handleOpenFocus}
             onOpenWeeklyPlan={handleOpenWeeklyPlan}
             onOpenFeedback={handleOpenFeedback}
@@ -501,6 +505,42 @@ function AppContent() {
               onOpenCard={(card) => {
                 setTimelinePanelOpen(false);
                 setOpenCard(card);
+              }}
+            />
+          </ErrorBoundary>
+        </Suspense>
+      )}
+
+      {todayOpen && (
+        <Suspense fallback={<PanelLoadingFallback />}>
+          <ErrorBoundary>
+            <TodayView
+              open={todayOpen}
+              cards={activeCards}
+              columns={state.columns}
+              settings={state.settings}
+              captureCount={pendingCount}
+              onClose={() => setTodayOpen(false)}
+              onOpenCard={(card) => {
+                setTodayOpen(false);
+                setOpenCard(card);
+              }}
+              onStartCard={(card) => {
+                const doingColumn = state.columns.find((c) => c.id === "doing");
+                if (doingColumn) {
+                  if (card.column === doingColumn.id) {
+                    setTodayOpen(false);
+                    setOpenCard(card);
+                    return;
+                  }
+                  dispatch({ type: "MOVE_CARD", id: card.id, to: doingColumn.id, toSwimlane: card.swimlane });
+                  setTodayOpen(false);
+                  showToast({ type: "success", message: `Started "${card.title}"` });
+                }
+              }}
+              onOpenCapture={() => {
+                setTodayOpen(false);
+                setCaptureInboxOpen(true);
               }}
             />
           </ErrorBoundary>
