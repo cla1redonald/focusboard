@@ -3,6 +3,7 @@ import {
   loadMetrics,
   saveMetrics,
   recordCompletedCard,
+  recordFocusSession,
   recordWipViolation,
   calculateAverageLeadTime,
   calculateAverageCycleTime,
@@ -24,6 +25,7 @@ describe("metrics", () => {
 
       expect(metrics.completedCards).toEqual([]);
       expect(metrics.dailySnapshots).toEqual([]);
+      expect(metrics.focusSessions).toEqual([]);
       expect(metrics.wipViolations).toBe(0);
     });
 
@@ -33,6 +35,7 @@ describe("metrics", () => {
       const metrics = loadMetrics();
 
       expect(metrics.completedCards).toEqual([]);
+      expect(metrics.focusSessions).toEqual([]);
       expect(metrics.wipViolations).toBe(0);
     });
 
@@ -49,6 +52,17 @@ describe("metrics", () => {
           },
         ],
         dailySnapshots: [],
+        focusSessions: [
+          {
+            id: "focus-1",
+            cardId: "test-1",
+            cardTitle: "Test Card",
+            plannedMinutes: 25,
+            startedAt: "2024-01-01T09:00:00.000Z",
+            endedAt: "2024-01-01T09:25:00.000Z",
+            outcome: "progressed",
+          },
+        ],
         wipViolations: 5,
         currentStreak: 0,
         longestStreak: 0,
@@ -59,7 +73,42 @@ describe("metrics", () => {
 
       expect(metrics.completedCards).toHaveLength(1);
       expect(metrics.completedCards[0].cardId).toBe("test-1");
+      expect(metrics.focusSessions).toHaveLength(1);
       expect(metrics.wipViolations).toBe(5);
+    });
+  });
+
+  describe("recordFocusSession", () => {
+    it("prepends a completed focus session to metrics", () => {
+      const metrics: MetricsState = {
+        completedCards: [],
+        dailySnapshots: [],
+        focusSessions: [],
+        wipViolations: 0,
+        currentStreak: 0,
+        longestStreak: 0,
+      };
+
+      const updated = recordFocusSession(
+        {
+          id: "focus-1",
+          cardId: "card-1",
+          cardTitle: "Draft launch plan",
+          plannedMinutes: 50,
+          startedAt: "2026-06-08T09:00:00.000Z",
+          endedAt: "2026-06-08T09:50:00.000Z",
+          outcome: "completed",
+          note: "Done",
+        },
+        metrics,
+      );
+
+      expect(updated.focusSessions).toHaveLength(1);
+      expect(updated.focusSessions?.[0]).toMatchObject({
+        cardId: "card-1",
+        plannedMinutes: 50,
+        outcome: "completed",
+      });
     });
   });
 

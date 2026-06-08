@@ -12,7 +12,7 @@ type Props = {
   captureCount: number;
   onClose: () => void;
   onOpenCard: (card: Card) => void;
-  onStartCard: (card: Card) => void;
+  onStartFocusSession: (card: Card) => void;
   onSetMainFocus: (card: Card) => void;
   onToggleSupportTask: (card: Card) => void;
   onClearDailyPlan: () => void;
@@ -57,7 +57,7 @@ export function TodayView({
   captureCount,
   onClose,
   onOpenCard,
-  onStartCard,
+  onStartFocusSession,
   onSetMainFocus,
   onToggleSupportTask,
   onClearDailyPlan,
@@ -291,23 +291,13 @@ export function TodayView({
                             {supportCardIds.has(recommendation.card.id) ? "Remove" : "Support"}
                           </button>
                         )}
-                        {recommendation.card.column === "doing" ? (
-                          <button
-                            onClick={() => onOpenCard(recommendation.card)}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-emerald-700"
-                          >
-                            <Play size={14} />
-                            Continue
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => onStartCard(recommendation.card)}
-                            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-emerald-700"
-                          >
-                            <Play size={14} />
-                            Start
-                          </button>
-                        )}
+                        <button
+                          onClick={() => onStartFocusSession(recommendation.card)}
+                          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-emerald-700"
+                        >
+                          <Play size={14} />
+                          Focus
+                        </button>
                       </div>
                     </div>
                   </div>
