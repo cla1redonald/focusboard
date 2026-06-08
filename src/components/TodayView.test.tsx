@@ -28,6 +28,9 @@ const defaultProps = {
   onClose: vi.fn(),
   onOpenCard: vi.fn(),
   onStartCard: vi.fn(),
+  onSetMainFocus: vi.fn(),
+  onToggleSupportTask: vi.fn(),
+  onClearDailyPlan: vi.fn(),
   onOpenCapture: vi.fn(),
 };
 
@@ -75,5 +78,57 @@ describe("TodayView", () => {
 
     expect(onOpenCard).toHaveBeenCalledWith(expect.objectContaining({ id: "doing" }));
     expect(onStartCard).not.toHaveBeenCalled();
+  });
+
+  it("lets users choose a main focus and support task from recommendations", async () => {
+    const user = userEvent.setup();
+    const onSetMainFocus = vi.fn();
+    const onToggleSupportTask = vi.fn();
+    const dueCard = card({ id: "due", title: "Due task", dueDate: "2026-06-08" });
+
+    render(
+      <TodayView
+        {...defaultProps}
+        cards={[dueCard]}
+        onSetMainFocus={onSetMainFocus}
+        onToggleSupportTask={onToggleSupportTask}
+      />,
+    );
+
+    await user.click(screen.getByRole("button", { name: "Main" }));
+    await user.click(screen.getByRole("button", { name: "Support" }));
+
+    expect(onSetMainFocus).toHaveBeenCalledWith(expect.objectContaining({ id: "due" }));
+    expect(onToggleSupportTask).toHaveBeenCalledWith(expect.objectContaining({ id: "due" }));
+  });
+
+  it("shows saved daily plan progress and clears it", async () => {
+    const user = userEvent.setup();
+    const onClearDailyPlan = vi.fn();
+    const main = card({ id: "main", title: "Main task", column: "doing" });
+    const support = card({ id: "support", title: "Support task", column: "done" });
+
+    render(
+      <TodayView
+        {...defaultProps}
+        cards={[main, support]}
+        dailyPlan={{
+          date: new Date().toLocaleDateString("en-CA"),
+          mainCardId: "main",
+          supportCardIds: ["support"],
+          createdAt: "2026-06-08T08:00:00.000Z",
+          updatedAt: "2026-06-08T09:00:00.000Z",
+        }}
+        onClearDailyPlan={onClearDailyPlan}
+      />,
+    );
+
+    expect(screen.getByText("1/2 planned tasks complete")).toBeInTheDocument();
+    expect(screen.getAllByText("Main task").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Support task").length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole("button", { name: "Clear" }));
+
+    expect(onClearDailyPlan).toHaveBeenCalledTimes(1);
   });
 });

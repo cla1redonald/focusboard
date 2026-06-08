@@ -1,17 +1,21 @@
 import React from "react";
-import { AlertTriangle, ArrowRight, CheckCircle2, Clock3, Focus, Inbox, Play, X } from "lucide-react";
-import type { Card, Column, Settings } from "../app/types";
-import { buildTodayPlan, type TodayRecommendation } from "../app/today";
+import { AlertTriangle, ArrowRight, CheckCircle2, Clock3, Focus, Inbox, ListChecks, Play, Star, X } from "lucide-react";
+import type { Card, Column, DailyPlan, Settings } from "../app/types";
+import { buildTodayDailyPlan, buildTodayPlan, type TodayRecommendation } from "../app/today";
 
 type Props = {
   open: boolean;
   cards: Card[];
   columns: Column[];
   settings: Settings;
+  dailyPlan?: DailyPlan;
   captureCount: number;
   onClose: () => void;
   onOpenCard: (card: Card) => void;
   onStartCard: (card: Card) => void;
+  onSetMainFocus: (card: Card) => void;
+  onToggleSupportTask: (card: Card) => void;
+  onClearDailyPlan: () => void;
   onOpenCapture: () => void;
 };
 
@@ -49,10 +53,14 @@ export function TodayView({
   cards,
   columns,
   settings,
+  dailyPlan,
   captureCount,
   onClose,
   onOpenCard,
   onStartCard,
+  onSetMainFocus,
+  onToggleSupportTask,
+  onClearDailyPlan,
   onOpenCapture,
 }: Props) {
   const titleId = React.useId();
@@ -62,6 +70,10 @@ export function TodayView({
   const plan = React.useMemo(
     () => buildTodayPlan(cards, columns, { staleBacklogThreshold: settings.staleBacklogThreshold }),
     [cards, columns, settings.staleBacklogThreshold],
+  );
+  const selectedPlan = React.useMemo(
+    () => buildTodayDailyPlan(dailyPlan, cards, columns),
+    [cards, columns, dailyPlan],
   );
 
   React.useEffect(() => {
@@ -120,6 +132,8 @@ export function TodayView({
     { label: "Blocked", value: plan.attention.blocked.length, tone: "text-amber-600 dark:text-amber-400" },
     { label: "Stale", value: plan.attention.stale.length, tone: "text-gray-600 dark:text-gray-300" },
   ];
+  const mainCard = selectedPlan.main;
+  const supportCardIds = new Set(selectedPlan.support.map((card) => card.id));
 
   return (
     <div className="fixed inset-0 z-[1200] flex items-center justify-center">
@@ -139,7 +153,11 @@ export function TodayView({
               <h2 id={titleId} className="text-xl font-semibold text-gray-900 dark:text-white">Today</h2>
             </div>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
-              {plan.activeCount === 0 ? "Nothing active. Capture or plan the next useful thing." : `${plan.activeCount} active task${plan.activeCount === 1 ? "" : "s"} on the board`}
+              {selectedPlan.plannedCount > 0
+                ? `${selectedPlan.completedCount}/${selectedPlan.plannedCount} planned task${selectedPlan.plannedCount === 1 ? "" : "s"} complete`
+                : plan.activeCount === 0
+                  ? "Nothing active. Capture or plan the next useful thing."
+                  : `${plan.activeCount} active task${plan.activeCount === 1 ? "" : "s"} on the board`}
             </p>
           </div>
           <button
@@ -154,6 +172,65 @@ export function TodayView({
 
         <div className="grid flex-1 gap-0 overflow-hidden lg:grid-cols-[1.4fr_0.9fr]">
           <div className="overflow-y-auto px-6 py-5">
+            <section className="mb-5 rounded-xl border border-emerald-200 bg-emerald-50 p-4 dark:border-emerald-900/50 dark:bg-emerald-900/20">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <div className="flex items-center gap-2 text-sm font-semibold text-emerald-900 dark:text-emerald-100">
+                    <ListChecks size={16} />
+                    Daily plan
+                  </div>
+                  <p className="mt-1 text-sm text-emerald-800/80 dark:text-emerald-200/80">
+                    Pick one main focus and a few support tasks for today.
+                  </p>
+                </div>
+                {selectedPlan.plannedCount > 0 && (
+                  <button
+                    onClick={onClearDailyPlan}
+                    className="rounded-lg border border-emerald-200 bg-white px-2.5 py-1 text-xs font-medium text-emerald-800 transition hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-950/50 dark:text-emerald-100 dark:hover:bg-emerald-900"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+
+              {selectedPlan.plannedCount === 0 ? (
+                <p className="mt-3 rounded-lg border border-dashed border-emerald-200 bg-white/70 p-3 text-sm text-emerald-800 dark:border-emerald-800 dark:bg-emerald-950/30 dark:text-emerald-200">
+                  Use the controls below to choose today's commitments.
+                </p>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  {mainCard && (
+                    <button
+                      onClick={() => onOpenCard(mainCard)}
+                      className="flex w-full items-center justify-between rounded-lg bg-white p-3 text-left shadow-sm transition hover:bg-emerald-50 dark:bg-emerald-950/50 dark:hover:bg-emerald-900/50"
+                    >
+                      <span className="min-w-0">
+                        <span className="flex items-center gap-2 text-xs font-semibold uppercase text-emerald-700 dark:text-emerald-300">
+                          <Star size={13} />
+                          Main focus
+                        </span>
+                        <span className="mt-1 block truncate text-sm font-medium text-gray-900 dark:text-white">{mainCard.title}</span>
+                      </span>
+                      <ArrowRight size={15} className="shrink-0 text-emerald-500" />
+                    </button>
+                  )}
+                  {selectedPlan.support.length > 0 && (
+                    <div className="grid gap-2 sm:grid-cols-2">
+                      {selectedPlan.support.map((card) => (
+                        <button
+                          key={card.id}
+                          onClick={() => onOpenCard(card)}
+                          className="min-w-0 rounded-lg bg-white p-3 text-left text-sm text-gray-800 shadow-sm transition hover:bg-emerald-50 dark:bg-emerald-950/50 dark:text-gray-100 dark:hover:bg-emerald-900/50"
+                        >
+                          <span className="block truncate">{card.title}</span>
+                        </button>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )}
+            </section>
+
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
                 <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Recommended focus</h3>
@@ -182,13 +259,38 @@ export function TodayView({
                         <CardTitle card={recommendation.card} />
                         <ReasonChips recommendation={recommendation} />
                       </div>
-                      <div className="flex shrink-0 items-center gap-2">
+                      <div className="flex shrink-0 flex-wrap items-center justify-end gap-2">
                         <button
                           onClick={() => onOpenCard(recommendation.card)}
                           className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 transition hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
                         >
                           Open
                         </button>
+                        {mainCard?.id === recommendation.card.id ? (
+                          <span className="inline-flex items-center gap-1 rounded-lg bg-emerald-100 px-2.5 py-1.5 text-xs font-medium text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">
+                            <Star size={13} />
+                            Main
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => onSetMainFocus(recommendation.card)}
+                            className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm text-gray-700 transition hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+                          >
+                            Main
+                          </button>
+                        )}
+                        {mainCard?.id !== recommendation.card.id && (
+                          <button
+                            onClick={() => onToggleSupportTask(recommendation.card)}
+                            className={`rounded-lg border px-3 py-1.5 text-sm transition ${
+                              supportCardIds.has(recommendation.card.id)
+                                ? "border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200"
+                                : "border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-gray-600 dark:bg-gray-900 dark:text-gray-200 dark:hover:bg-gray-800"
+                            }`}
+                          >
+                            {supportCardIds.has(recommendation.card.id) ? "Remove" : "Support"}
+                          </button>
+                        )}
                         {recommendation.card.column === "doing" ? (
                           <button
                             onClick={() => onOpenCard(recommendation.card)}

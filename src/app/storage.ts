@@ -1,4 +1,4 @@
-import type { AppState, Card, CardLink, Column, Tag, TagCategory } from "./types";
+import type { AppState, Card, CardLink, Column, DailyPlan, Tag, TagCategory } from "./types";
 import { nanoid } from "nanoid";
 import { DEFAULT_SETTINGS, DEFAULT_COLUMNS, DEFAULT_TAG_CATEGORIES, DEFAULT_TAGS } from "./constants";
 
@@ -238,6 +238,22 @@ function getDefaultState(): AppState {
     settings: DEFAULT_SETTINGS,
     tagCategories: DEFAULT_TAG_CATEGORIES,
     tags: DEFAULT_TAGS,
+    dailyPlan: undefined,
+  };
+}
+
+function normalizeDailyPlan(value: unknown): DailyPlan | undefined {
+  if (!value || typeof value !== "object") return undefined;
+  const candidate = value as Partial<DailyPlan>;
+  if (typeof candidate.date !== "string") return undefined;
+  if (!Array.isArray(candidate.supportCardIds)) return undefined;
+
+  return {
+    date: candidate.date,
+    mainCardId: typeof candidate.mainCardId === "string" ? candidate.mainCardId : undefined,
+    supportCardIds: candidate.supportCardIds.filter((id): id is string => typeof id === "string"),
+    createdAt: typeof candidate.createdAt === "string" ? candidate.createdAt : new Date().toISOString(),
+    updatedAt: typeof candidate.updatedAt === "string" ? candidate.updatedAt : new Date().toISOString(),
   };
 }
 
@@ -358,6 +374,7 @@ export function loadState(): AppState {
         },
         tagCategories,
         tags,
+        dailyPlan: normalizeDailyPlan(parsed.dailyPlan),
       };
     }
 
