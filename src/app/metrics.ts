@@ -25,6 +25,7 @@ const DEFAULT_METRICS: MetricsState = {
   dailySnapshots: [],
   focusSessions: [],
   wipOverrides: [],
+  reviewMarkers: {},
   wipViolations: 0,
   currentStreak: 0,
   longestStreak: 0,
@@ -40,6 +41,7 @@ export function loadMetrics(): MetricsState {
       dailySnapshots: parsed.dailySnapshots ?? [],
       focusSessions: parsed.focusSessions ?? [],
       wipOverrides: parsed.wipOverrides ?? [],
+      reviewMarkers: parsed.reviewMarkers ?? {},
       wipViolations: parsed.wipViolations ?? 0,
       lastSnapshotDate: parsed.lastSnapshotDate,
       currentStreak: parsed.currentStreak ?? 0,
@@ -190,6 +192,26 @@ export function recordWipOverride(
     ...metrics,
     wipViolations: metrics.wipViolations + 1,
     wipOverrides: [override, ...(metrics.wipOverrides ?? [])].slice(0, MAX_WIP_OVERRIDES),
+  };
+}
+
+export function markDailyShutdownComplete(metrics: MetricsState, date: string): MetricsState {
+  return {
+    ...metrics,
+    reviewMarkers: {
+      ...(metrics.reviewMarkers ?? {}),
+      dailyShutdownDate: date,
+    },
+  };
+}
+
+export function markWeeklyReviewComplete(metrics: MetricsState, week: string): MetricsState {
+  return {
+    ...metrics,
+    reviewMarkers: {
+      ...(metrics.reviewMarkers ?? {}),
+      weeklyReviewWeek: week,
+    },
   };
 }
 

@@ -1,5 +1,5 @@
 import React from "react";
-import { Undo2, Redo2, Calendar, Sparkles, CalendarDays, HelpCircle, BookOpen, Keyboard, MessageSquarePlus, Archive, Inbox, Focus } from "lucide-react";
+import { Undo2, Redo2, Calendar, Sparkles, CalendarDays, HelpCircle, BookOpen, Keyboard, MessageSquarePlus, Archive, Inbox, Focus, Moon, Repeat } from "lucide-react";
 import type { Card, MetricsState } from "../app/types";
 import { MetricsWidget } from "./MetricsWidget";
 import { PomodoroTimer } from "./PomodoroTimer";
@@ -16,6 +16,8 @@ export function TopStrip({
   onOpenToday,
   onOpenFocus,
   onOpenWeeklyPlan,
+  onOpenDailyShutdown,
+  onOpenWeeklyReview,
   onOpenFeedback,
   onOpenArchive,
   onOpenCapture,
@@ -37,6 +39,8 @@ export function TopStrip({
   onOpenToday?: () => void;
   onOpenFocus?: () => void;
   onOpenWeeklyPlan?: () => void;
+  onOpenDailyShutdown?: () => void;
+  onOpenWeeklyReview?: () => void;
   onOpenFeedback?: () => void;
   onOpenArchive?: () => void;
   onOpenCapture?: () => void;
@@ -127,6 +131,28 @@ export function TopStrip({
         >
           <CalendarDays size={16} />
           <span className="text-sm">Plan Week</span>
+        </button>
+      )}
+      {onOpenDailyShutdown && (
+        <button
+          onClick={onOpenDailyShutdown}
+          className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-gray-600 transition hover:bg-emerald-50 hover:text-emerald-700 dark:text-gray-400 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-400"
+          title="Daily shutdown"
+          aria-label="Daily Shutdown"
+        >
+          <Moon size={16} />
+          <span className="text-sm">Shutdown</span>
+        </button>
+      )}
+      {onOpenWeeklyReview && (
+        <button
+          onClick={onOpenWeeklyReview}
+          className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-gray-600 transition hover:bg-emerald-50 hover:text-emerald-700 dark:text-gray-400 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-400"
+          title="Weekly review"
+          aria-label="Weekly Review"
+        >
+          <Repeat size={16} />
+          <span className="text-sm">Review</span>
         </button>
       )}
       <button

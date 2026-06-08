@@ -5,6 +5,8 @@ import {
   recordCompletedCard,
   recordFocusSession,
   recordWipOverride,
+  markDailyShutdownComplete,
+  markWeeklyReviewComplete,
   recordWipViolation,
   calculateAverageLeadTime,
   calculateAverageCycleTime,
@@ -28,6 +30,7 @@ describe("metrics", () => {
       expect(metrics.dailySnapshots).toEqual([]);
       expect(metrics.focusSessions).toEqual([]);
       expect(metrics.wipOverrides).toEqual([]);
+      expect(metrics.reviewMarkers).toEqual({});
       expect(metrics.wipViolations).toBe(0);
     });
 
@@ -318,6 +321,38 @@ describe("metrics", () => {
       expect(updated.wipOverrides?.[0]).toMatchObject({
         cardId: "card-1",
         reason: "Customer incident",
+      });
+    });
+  });
+
+  describe("review markers", () => {
+    it("marks daily shutdown complete", () => {
+      const metrics: MetricsState = {
+        completedCards: [],
+        dailySnapshots: [],
+        wipViolations: 0,
+        currentStreak: 0,
+        longestStreak: 0,
+      };
+
+      expect(markDailyShutdownComplete(metrics, "2026-06-08").reviewMarkers).toEqual({
+        dailyShutdownDate: "2026-06-08",
+      });
+    });
+
+    it("marks weekly review complete", () => {
+      const metrics: MetricsState = {
+        completedCards: [],
+        dailySnapshots: [],
+        reviewMarkers: { dailyShutdownDate: "2026-06-08" },
+        wipViolations: 0,
+        currentStreak: 0,
+        longestStreak: 0,
+      };
+
+      expect(markWeeklyReviewComplete(metrics, "2026-06-08").reviewMarkers).toEqual({
+        dailyShutdownDate: "2026-06-08",
+        weeklyReviewWeek: "2026-06-08",
       });
     });
   });

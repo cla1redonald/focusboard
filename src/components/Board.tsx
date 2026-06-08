@@ -48,6 +48,8 @@ export function Board({
   onOpenToday,
   onOpenFocus,
   onOpenWeeklyPlan,
+  onOpenDailyShutdown,
+  onOpenWeeklyReview,
   onOpenFeedback,
   onOpenArchive,
   onOpenCapture,
@@ -80,6 +82,8 @@ export function Board({
   onOpenToday?: () => void;
   onOpenFocus?: () => void;
   onOpenWeeklyPlan?: () => void;
+  onOpenDailyShutdown?: () => void;
+  onOpenWeeklyReview?: () => void;
   onOpenFeedback?: () => void;
   onOpenArchive?: () => void;
   onOpenCapture?: () => void;
@@ -474,6 +478,8 @@ export function Board({
         onOpenToday={onOpenToday}
         onOpenFocus={onOpenFocus}
         onOpenWeeklyPlan={onOpenWeeklyPlan}
+        onOpenDailyShutdown={onOpenDailyShutdown}
+        onOpenWeeklyReview={onOpenWeeklyReview}
         onOpenFeedback={onOpenFeedback}
         onOpenArchive={onOpenArchive}
         onOpenCapture={onOpenCapture}
