@@ -231,7 +231,9 @@ const MAX_RECENT_EMOJIS = 8;
 function loadRecentEmojis(): string[] {
   try {
     const stored = localStorage.getItem(RECENT_EMOJIS_KEY);
-    return stored ? JSON.parse(stored) : [];
+    if (!stored) return [];
+    const parsed: unknown = JSON.parse(stored);
+    return Array.isArray(parsed) ? parsed.filter((item): item is string => typeof item === "string") : [];
   } catch {
     return [];
   }
@@ -330,13 +332,14 @@ export function CardModal({
   }, [card]);
 
   // Load signed URLs for existing attachments
+  const attachments = draft?.attachments;
   React.useEffect(() => {
-    if (!draft?.attachments?.length) return;
+    if (!attachments?.length) return;
     let isMounted = true;
 
     const loadUrls = async () => {
       const urls: Record<string, string> = {};
-      for (const att of draft.attachments!) {
+      for (const att of attachments) {
         // Check isMounted to prevent update after unmount (race condition fix)
         if (!isMounted) return;
         if (!signedUrls[att.id]) {
@@ -350,7 +353,7 @@ export function CardModal({
     };
     void loadUrls();
     return () => { isMounted = false; };
-  }, [draft?.attachments]); // Removed getSignedUrl - it's stable
+  }, [attachments, getSignedUrl, signedUrls]);
 
   // File upload handlers
   const handleFiles = async (files: FileList | null) => {

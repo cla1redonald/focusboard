@@ -4,7 +4,7 @@
 
 /* =====================================================================
    Roami "Deep Tay" palette mapped into Tailwind's emerald/gray scales.
-   This re-skins every existing emerald-*/gray-* class to the Roami
+   This re-skins existing emerald and gray utility classes to the Roami
    brand without touching component files.
    ===================================================================== */
 @theme {

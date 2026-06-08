@@ -117,6 +117,58 @@ type CardForPlan = {
   swimlane: string;
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function getErrorMessage(data: unknown, fallback: string): string {
+  if (isRecord(data) && typeof data.error === "string") return data.error;
+  return fallback;
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === "string") : [];
+}
+
+function isParsedCard(value: unknown): value is ParsedCard {
+  if (!isRecord(value) || typeof value.title !== "string") return false;
+  return (
+    (value.column === undefined || typeof value.column === "string") &&
+    (value.tags === undefined || Array.isArray(value.tags)) &&
+    (value.dueDate === undefined || typeof value.dueDate === "string") &&
+    (value.swimlane === undefined || value.swimlane === "work" || value.swimlane === "personal") &&
+    (value.notes === undefined || typeof value.notes === "string")
+  );
+}
+
+function isSubtask(value: unknown): value is Subtask {
+  if (!isRecord(value) || typeof value.text !== "string") return false;
+  return (
+    value.estimatedEffort === undefined ||
+    value.estimatedEffort === "quick" ||
+    value.estimatedEffort === "medium" ||
+    value.estimatedEffort === "large"
+  );
+}
+
+function isFocusSuggestion(value: unknown): value is FocusSuggestion {
+  return (
+    isRecord(value) &&
+    typeof value.cardId === "string" &&
+    typeof value.reason === "string" &&
+    (value.priority === 1 || value.priority === 2 || value.priority === 3)
+  );
+}
+
+function isPlanSuggestion(value: unknown): value is PlanSuggestion {
+  return (
+    isRecord(value) &&
+    typeof value.cardId === "string" &&
+    typeof value.suggestedDate === "string" &&
+    typeof value.reason === "string"
+  );
+}
+
 type UseAIOptions = {
   availableTags?: Tag[];
   availableColumns?: Column[];
@@ -144,15 +196,16 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
         });
 
         if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error ?? "Failed to get suggestions");
+          const data: unknown = await response.json();
+          throw new Error(getErrorMessage(data, "Failed to get suggestions"));
         }
 
-        const data = await response.json();
+        const data: unknown = await response.json();
+        const suggestedTags = isRecord(data) ? stringArray(data.suggestedTags) : [];
 
         // Map suggested tag names to IDs
         const suggestedIds: string[] = [];
-        for (const tagName of data.suggestedTags ?? []) {
+        for (const tagName of suggestedTags) {
           const tag = availableTags.find(
             (t) => t.name.toLowerCase() === tagName.toLowerCase() || t.id === tagName
           );
@@ -193,12 +246,13 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
         });
 
         if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error ?? "Failed to parse card");
+          const data: unknown = await response.json();
+          throw new Error(getErrorMessage(data, "Failed to parse card"));
         }
 
-        const data = await response.json();
-        return data.card ?? null;
+        const data: unknown = await response.json();
+        const card = isRecord(data) ? data.card : null;
+        return isParsedCard(card) ? card : null;
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
         logger.error("Failed to parse card with AI", { action: "parseCard" }, err);
@@ -234,14 +288,20 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
         });
 
         if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error ?? "Failed to break down task");
+          const data: unknown = await response.json();
+          throw new Error(getErrorMessage(data, "Failed to break down task"));
         }
 
-        const data = await response.json();
+        const data: unknown = await response.json();
+        const subtasks = isRecord(data) && Array.isArray(data.subtasks)
+          ? data.subtasks.filter(isSubtask)
+          : [];
+        const suggestion = isRecord(data) && typeof data.suggestion === "string"
+          ? data.suggestion
+          : undefined;
         return {
-          subtasks: data.subtasks ?? [],
-          suggestion: data.suggestion,
+          subtasks,
+          suggestion,
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
@@ -278,14 +338,18 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
         });
 
         if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error ?? "Failed to get daily focus");
+          const data: unknown = await response.json();
+          throw new Error(getErrorMessage(data, "Failed to get daily focus"));
         }
 
-        const data = await response.json();
+        const data: unknown = await response.json();
+        const suggestions = isRecord(data) && Array.isArray(data.suggestions)
+          ? data.suggestions.filter(isFocusSuggestion)
+          : [];
+        const insight = isRecord(data) && typeof data.insight === "string" ? data.insight : undefined;
         return {
-          suggestions: data.suggestions ?? [],
-          insight: data.insight,
+          suggestions,
+          insight,
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";
@@ -326,15 +390,20 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
         });
 
         if (!response.ok) {
-          const data = await response.json();
-          throw new Error(data.error ?? "Failed to get weekly plan");
+          const data: unknown = await response.json();
+          throw new Error(getErrorMessage(data, "Failed to get weekly plan"));
         }
 
-        const data = await response.json();
+        const data: unknown = await response.json();
+        const suggestions = isRecord(data) && Array.isArray(data.suggestions)
+          ? data.suggestions.filter(isPlanSuggestion)
+          : [];
+        const weeklyGoal = isRecord(data) && typeof data.weeklyGoal === "string" ? data.weeklyGoal : undefined;
+        const capacityWarning = isRecord(data) && typeof data.capacityWarning === "string" ? data.capacityWarning : undefined;
         return {
-          suggestions: data.suggestions ?? [],
-          weeklyGoal: data.weeklyGoal,
-          capacityWarning: data.capacityWarning,
+          suggestions,
+          weeklyGoal,
+          capacityWarning,
         };
       } catch (err) {
         const message = err instanceof Error ? err.message : "Unknown error";

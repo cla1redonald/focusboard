@@ -1,13 +1,13 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import { createClient } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";
-import type { AppState, Card, ColumnId, SwimlaneId } from "../../src/app/types";
+import type { AppState, Card, ColumnId, SwimlaneId } from "../../src/app/types.js";
 import {
   DEFAULT_COLUMNS,
   DEFAULT_SETTINGS,
   DEFAULT_TAG_CATEGORIES,
   DEFAULT_TAGS,
-} from "../../src/app/defaults";
+} from "../../src/app/defaults.js";
 import { setCorsHeaders, handlePreflight } from "../_lib/cors.js";
 
 function createCard(

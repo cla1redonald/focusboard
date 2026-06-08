@@ -100,7 +100,7 @@ When updating documentation:
 - [similar format]
 
 ### Code Comments
-- [file:line] Added/updated comment for [reason]
+- [file path and line] Added/updated comment for [reason]
 ```
 
 ## Current Project Files

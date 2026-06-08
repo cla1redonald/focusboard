@@ -1,4 +1,4 @@
-import type { Column, Settings, SwimlaneId, Tag, TagCategory } from "./types";
+import type { Column, Settings, SwimlaneId, Tag, TagCategory } from "./types.js";
 
 export type Swimlane = {
   id: SwimlaneId;

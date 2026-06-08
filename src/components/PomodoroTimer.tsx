@@ -32,7 +32,15 @@ function loadPomodoroState(): PomodoroState {
   try {
     const stored = localStorage.getItem(STORAGE_KEY);
     if (stored) {
-      return JSON.parse(stored);
+      const parsed: unknown = JSON.parse(stored);
+      if (
+        typeof parsed === "object" &&
+        parsed !== null &&
+        typeof (parsed as Partial<PomodoroState>).completedPomodoros === "number" &&
+        typeof (parsed as Partial<PomodoroState>).totalFocusMinutes === "number"
+      ) {
+        return parsed as PomodoroState;
+      }
     }
   } catch {
     // Ignore errors

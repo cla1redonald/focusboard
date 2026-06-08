@@ -10,6 +10,18 @@ type Props = {
   onSuccess?: () => void;
 };
 
+function getErrorMessage(data: unknown, fallback: string): string {
+  if (
+    typeof data === "object" &&
+    data !== null &&
+    "error" in data &&
+    typeof data.error === "string"
+  ) {
+    return data.error;
+  }
+  return fallback;
+}
+
 export function FeedbackModal({ open, onClose, onSuccess }: Props) {
   const [type, setType] = React.useState<FeedbackType>("feature");
   const [title, setTitle] = React.useState("");
@@ -64,10 +76,10 @@ export function FeedbackModal({ open, onClose, onSuccess }: Props) {
         }),
       });
 
-      const data = await response.json();
+      const data: unknown = await response.json();
 
       if (!response.ok) {
-        throw new Error(data.error ?? "Failed to submit feedback");
+        throw new Error(getErrorMessage(data, "Failed to submit feedback"));
       }
 
       onSuccess?.();

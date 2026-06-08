@@ -3,8 +3,8 @@ import Anthropic from "@anthropic-ai/sdk";
 import { createClient } from "@supabase/supabase-js";
 import { timingSafeEqual } from "crypto";
 import { setCorsHeaders, handlePreflight } from "../_lib/cors.js";
-import type { AppState } from "../../src/app/types";
-import type { ParsedCaptureCard } from "../../src/app/captureTypes";
+import type { AppState } from "../../src/app/types.js";
+import type { ParsedCaptureCard } from "../../src/app/captureTypes.js";
 
 const CONFIDENCE_THRESHOLD = 0.8;
 
