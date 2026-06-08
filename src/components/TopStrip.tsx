@@ -1,5 +1,5 @@
 import React from "react";
-import { Undo2, Redo2, Calendar, Sparkles, CalendarDays, HelpCircle, BookOpen, Keyboard, MessageSquarePlus, Archive, Inbox } from "lucide-react";
+import { Undo2, Redo2, Calendar, Sparkles, CalendarDays, HelpCircle, BookOpen, Keyboard, MessageSquarePlus, Archive, Inbox, Focus } from "lucide-react";
 import type { Card, MetricsState } from "../app/types";
 import { MetricsWidget } from "./MetricsWidget";
 import { PomodoroTimer } from "./PomodoroTimer";
@@ -13,6 +13,7 @@ export function TopStrip({
   captureCount = 0,
   onOpenMetrics,
   onOpenTimeline,
+  onOpenToday,
   onOpenFocus,
   onOpenWeeklyPlan,
   onOpenFeedback,
@@ -33,6 +34,7 @@ export function TopStrip({
   captureCount?: number;
   onOpenMetrics: () => void;
   onOpenTimeline: () => void;
+  onOpenToday?: () => void;
   onOpenFocus?: () => void;
   onOpenWeeklyPlan?: () => void;
   onOpenFeedback?: () => void;
@@ -94,6 +96,17 @@ export function TopStrip({
       <div className="ml-auto h-4 w-px bg-gray-200 dark:bg-gray-600" />
       <PomodoroTimer />
       <div className="h-4 w-px bg-gray-200 dark:bg-gray-600" />
+      {onOpenToday && (
+        <button
+          onClick={onOpenToday}
+          className="flex items-center gap-1.5 rounded-lg px-2 py-1 text-gray-600 transition hover:bg-emerald-50 hover:text-emerald-700 dark:text-gray-400 dark:hover:bg-emerald-900/30 dark:hover:text-emerald-400"
+          title="Open Today's workspace"
+          aria-label="Today"
+        >
+          <Focus size={16} />
+          <span className="text-sm">Today</span>
+        </button>
+      )}
       {onOpenFocus && (
         <button
           onClick={onOpenFocus}
