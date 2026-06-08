@@ -7,7 +7,8 @@ export type TodayReasonKind =
   | "due-soon"
   | "blocked"
   | "stale"
-  | "wip-pressure";
+  | "wip-pressure"
+  | "ai";
 
 export type TodayReason = {
   kind: TodayReasonKind;

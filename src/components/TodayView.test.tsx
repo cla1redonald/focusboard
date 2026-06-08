@@ -1,9 +1,21 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { describe, expect, it, vi } from "vitest";
+import { beforeEach, describe, expect, it, vi } from "vitest";
 import { DEFAULT_COLUMNS, DEFAULT_SETTINGS } from "../app/constants";
 import type { Card } from "../app/types";
 import { TodayView } from "./TodayView";
+
+const aiMocks = vi.hoisted(() => ({
+  getDailyFocus: vi.fn(),
+  isLoading: false,
+}));
+
+vi.mock("../app/useAI", () => ({
+  useAI: () => ({
+    getDailyFocus: aiMocks.getDailyFocus,
+    isLoading: aiMocks.isLoading,
+  }),
+}));
 
 function card(overrides: Partial<Card>): Card {
   return {
@@ -35,6 +47,12 @@ const defaultProps = {
 };
 
 describe("TodayView", () => {
+  beforeEach(() => {
+    aiMocks.getDailyFocus.mockReset();
+    aiMocks.getDailyFocus.mockResolvedValue(null);
+    aiMocks.isLoading = false;
+  });
+
   it("renders as a modal dialog and keeps tab focus inside", async () => {
     const user = userEvent.setup();
     const onClose = vi.fn();
@@ -130,5 +148,58 @@ describe("TodayView", () => {
     await user.click(screen.getByRole("button", { name: "Clear" }));
 
     expect(onClearDailyPlan).toHaveBeenCalledTimes(1);
+  });
+
+  it("requests AI focus ranking automatically when opened", async () => {
+    const dueCard = card({ id: "due", title: "Due task", dueDate: "2026-06-08" });
+    aiMocks.getDailyFocus.mockResolvedValue({
+      suggestions: [{ cardId: "due", reason: "Most important thing today", priority: 1 }],
+      insight: "Protect this task before adding more work.",
+    });
+
+    render(<TodayView {...defaultProps} cards={[dueCard]} />);
+
+    await waitFor(() => expect(aiMocks.getDailyFocus).toHaveBeenCalledTimes(1));
+    expect(aiMocks.getDailyFocus).toHaveBeenCalledWith(
+      [expect.objectContaining({ id: "due", title: "Due task", urgencyLevel: expect.any(String) })],
+      expect.objectContaining({ wipLimit: expect.any(Number) }),
+    );
+    expect(await screen.findByText("AI ranked")).toBeInTheDocument();
+    expect(screen.getByText("Protect this task before adding more work.")).toBeInTheDocument();
+    expect(screen.getByText("Most important thing today")).toBeInTheDocument();
+  });
+
+  it("keeps deterministic recommendations when AI ranking is unavailable", async () => {
+    const dueCard = card({ id: "due", title: "Due task", dueDate: "2026-06-08" });
+    aiMocks.getDailyFocus.mockResolvedValue(null);
+
+    render(<TodayView {...defaultProps} cards={[dueCard]} />);
+
+    await waitFor(() => expect(aiMocks.getDailyFocus).toHaveBeenCalledTimes(1));
+    expect(screen.getByText("Rules ranked")).toBeInTheDocument();
+    expect(screen.getAllByText("Due today").length).toBeGreaterThan(0);
+  });
+
+  it("ignores AI results that arrive after Today closes", async () => {
+    let resolveFocus: (value: {
+      suggestions: { cardId: string; reason: string; priority: 1 | 2 | 3 }[];
+      insight: string;
+    }) => void = () => undefined;
+    aiMocks.getDailyFocus.mockReturnValue(new Promise((resolve) => {
+      resolveFocus = resolve;
+    }));
+
+    const { rerender } = render(<TodayView {...defaultProps} />);
+    await waitFor(() => expect(aiMocks.getDailyFocus).toHaveBeenCalledTimes(1));
+
+    rerender(<TodayView {...defaultProps} open={false} />);
+    resolveFocus({
+      suggestions: [{ cardId: "due", reason: "Late AI result", priority: 1 }],
+      insight: "This should not appear.",
+    });
+    rerender(<TodayView {...defaultProps} open />);
+
+    expect(screen.queryByText("Late AI result")).not.toBeInTheDocument();
+    expect(screen.queryByText("This should not appear.")).not.toBeInTheDocument();
   });
 });
