@@ -27,6 +27,7 @@ export type CaptureQueueItem = {
   parsed_cards: ParsedCaptureCard[] | null;
   created_at: string;
   processed_at: string | null;
+  snoozed_until: string | null;
 };
 
 // Source display config for the UI
