@@ -1,7 +1,9 @@
 import React from "react";
-import { AlertTriangle, ArrowRight, CheckCircle2, Clock3, Focus, Inbox, ListChecks, Play, Star, X } from "lucide-react";
+import { AlertTriangle, ArrowRight, CheckCircle2, Clock3, Focus, Inbox, ListChecks, Play, Sparkles, Star, X } from "lucide-react";
 import type { Card, Column, DailyPlan, Settings } from "../app/types";
 import { buildTodayDailyPlan, buildTodayPlan, type TodayRecommendation } from "../app/today";
+import { useAI } from "../app/useAI";
+import { getUrgencyLevel } from "../app/urgency";
 
 type Props = {
   open: boolean;
@@ -67,6 +69,10 @@ export function TodayView({
   const dialogRef = React.useRef<HTMLDivElement>(null);
   const closeButtonRef = React.useRef<HTMLButtonElement>(null);
   const previousActiveElementRef = React.useRef<HTMLElement | null>(null);
+  const { getDailyFocus, isLoading: aiLoading } = useAI();
+  const [aiRecommendations, setAiRecommendations] = React.useState<TodayRecommendation[] | null>(null);
+  const [aiInsight, setAiInsight] = React.useState<string | undefined>();
+  const aiAttemptedRef = React.useRef(false);
   const plan = React.useMemo(
     () => buildTodayPlan(cards, columns, { staleBacklogThreshold: settings.staleBacklogThreshold }),
     [cards, columns, settings.staleBacklogThreshold],
@@ -75,6 +81,70 @@ export function TodayView({
     () => buildTodayDailyPlan(dailyPlan, cards, columns),
     [cards, columns, dailyPlan],
   );
+  const aiCandidateCards = React.useMemo(() => {
+    const terminalColumnIds = new Set(columns.filter((column) => column.isTerminal).map((column) => column.id));
+    return cards.filter((card) => !card.archivedAt && !terminalColumnIds.has(card.column));
+  }, [cards, columns]);
+  const doingColumn = columns.find((column) => column.id === "doing");
+  const wipLimit = doingColumn?.wipLimit ?? 3;
+
+  React.useEffect(() => {
+    if (!open || aiAttemptedRef.current || aiCandidateCards.length === 0) return;
+    let cancelled = false;
+    aiAttemptedRef.current = true;
+
+    const loadAiRecommendations = async () => {
+      const cardById = new Map(aiCandidateCards.map((card) => [card.id, card]));
+      const result = await getDailyFocus(
+        aiCandidateCards.map((card) => ({
+          id: card.id,
+          title: card.title,
+          column: card.column,
+          dueDate: card.dueDate,
+          tags: card.tags ?? [],
+          urgencyLevel: getUrgencyLevel(card),
+          createdAt: card.createdAt,
+          blockedReason: card.blockedReason,
+        })),
+        { wipLimit },
+      );
+
+      if (cancelled) return;
+      if (!result?.suggestions.length) return;
+
+      const recommendations: TodayRecommendation[] = result.suggestions
+        .flatMap((suggestion) => {
+          const card = cardById.get(suggestion.cardId);
+          if (!card) return [];
+          return [{
+            card,
+            score: 120 - suggestion.priority,
+            reasons: [{
+              kind: "ai" as const,
+              label: suggestion.reason,
+              weight: 120 - suggestion.priority,
+            }],
+          }];
+        });
+
+      if (recommendations.length > 0) {
+        setAiRecommendations(recommendations);
+        setAiInsight(result.insight);
+      }
+    };
+
+    void loadAiRecommendations();
+    return () => {
+      cancelled = true;
+    };
+  }, [open, aiCandidateCards, getDailyFocus, wipLimit]);
+
+  React.useEffect(() => {
+    if (open) return;
+    aiAttemptedRef.current = false;
+    setAiRecommendations(null);
+    setAiInsight(undefined);
+  }, [open]);
 
   React.useEffect(() => {
     if (!open) return;
@@ -134,6 +204,7 @@ export function TodayView({
   ];
   const mainCard = selectedPlan.main;
   const supportCardIds = new Set(selectedPlan.support.map((card) => card.id));
+  const displayRecommendations = aiRecommendations ?? plan.recommendations;
 
   return (
     <div className="fixed inset-0 z-[1200] flex items-center justify-center">
@@ -234,11 +305,17 @@ export function TodayView({
             <div className="mb-4 flex items-center justify-between gap-3">
               <div>
                 <h3 className="text-sm font-semibold uppercase tracking-wide text-gray-500 dark:text-gray-400">Recommended focus</h3>
-                <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">Start with the work that has the clearest reason to matter today.</p>
+                <p className="mt-1 text-sm text-gray-600 dark:text-gray-300">
+                  {aiInsight ?? "Start with the work that has the clearest reason to matter today."}
+                </p>
               </div>
+              <span className="inline-flex shrink-0 items-center gap-1.5 rounded-full border border-emerald-200 bg-emerald-50 px-2.5 py-1 text-xs font-medium text-emerald-700 dark:border-emerald-800 dark:bg-emerald-900/30 dark:text-emerald-200">
+                <Sparkles size={13} />
+                {aiLoading ? "Ranking..." : aiRecommendations ? "AI ranked" : "Rules ranked"}
+              </span>
             </div>
 
-            {plan.recommendations.length === 0 ? (
+            {displayRecommendations.length === 0 ? (
               <div className="rounded-xl border border-dashed border-gray-200 p-8 text-center dark:border-gray-700">
                 <CheckCircle2 className="mx-auto text-emerald-500" size={32} />
                 <p className="mt-3 text-sm font-medium text-gray-700 dark:text-gray-200">No urgent focus candidates</p>
@@ -246,7 +323,7 @@ export function TodayView({
               </div>
             ) : (
               <div className="space-y-3">
-                {plan.recommendations.map((recommendation, index) => (
+                {displayRecommendations.map((recommendation, index) => (
                   <div
                     key={recommendation.card.id}
                     className="rounded-xl border border-gray-200 bg-gray-50 p-4 transition hover:border-emerald-300 dark:border-gray-700 dark:bg-gray-800/70 dark:hover:border-emerald-600"
