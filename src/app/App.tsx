@@ -2,8 +2,8 @@ import React, { Suspense } from "react";
 import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { useAppState } from "./state";
-import type { AppState, Card, Column, ColumnId, MetricsState, RelationType, SwimlaneId } from "./types";
-import { loadMetrics, saveMetrics, recordCompletedCard, takeDailySnapshot } from "./metrics";
+import type { AppState, Card, Column, ColumnId, FocusSessionLength, FocusSessionOutcome, MetricsState, RelationType, SwimlaneId } from "./types";
+import { loadMetrics, saveMetrics, recordCompletedCard, recordFocusSession, takeDailySnapshot } from "./metrics";
 import { hasSeenOnboarding, markOnboardingSeen } from "./storage";
 import { AuthProvider, useRequireAuth, useAuth } from "./AuthContext";
 import { ToastProvider, useToast } from "./ToastContext";
@@ -35,6 +35,7 @@ const WeeklyPlanPanel = React.lazy(() => import("../components/WeeklyPlanPanel")
 const ArchivePanel = React.lazy(() => import("../components/ArchivePanel").then(m => ({ default: m.ArchivePanel })));
 const CaptureInbox = React.lazy(() => import("../components/CaptureInbox").then(m => ({ default: m.CaptureInbox })));
 const TodayView = React.lazy(() => import("../components/TodayView").then(m => ({ default: m.TodayView })));
+const FocusMode = React.lazy(() => import("../components/FocusMode").then(m => ({ default: m.FocusMode })));
 
 // Loading fallback for lazy-loaded panels
 function PanelLoadingFallback() {
@@ -67,6 +68,7 @@ function AppContent() {
   const [feedbackOpen, setFeedbackOpen] = React.useState(false);
   const [archivePanelOpen, setArchivePanelOpen] = React.useState(false);
   const [captureInboxOpen, setCaptureInboxOpen] = React.useState(false);
+  const [focusSessionCard, setFocusSessionCard] = React.useState<Card | null>(null);
   const [onboardingOpen, setOnboardingOpen] = React.useState(() => !hasSeenOnboarding());
   const [metrics, setMetrics] = React.useState<MetricsState>(() => loadMetrics());
   const { reviewItems, processingItems, autoAddedItems, pendingCount, dismissItem, deleteItem } = useCaptureQueue(user?.id ?? null);
@@ -93,6 +95,80 @@ function AppContent() {
   const handleOpenCapture = React.useCallback(() => setCaptureInboxOpen(true), []);
   const handleUndo = React.useCallback(() => dispatch({ type: "UNDO" }), [dispatch]);
   const handleRedo = React.useCallback(() => dispatch({ type: "REDO" }), [dispatch]);
+
+  const handleStartFocusSession = React.useCallback(
+    (card: Card) => {
+      const doingColumn = stateRef.current.columns.find((c) => c.id === "doing");
+      if (doingColumn && card.column !== doingColumn.id) {
+        dispatch({ type: "MOVE_CARD", id: card.id, to: doingColumn.id, toSwimlane: card.swimlane });
+      }
+      setTodayOpen(false);
+      setFocusSessionCard(card);
+      showToast({ type: "success", message: `Focus session ready for "${card.title}"` });
+    },
+    [dispatch, showToast]
+  );
+
+  const handleFocusSessionComplete = React.useCallback(
+    (details: {
+      card: Card;
+      outcome: FocusSessionOutcome;
+      note?: string;
+      plannedMinutes: FocusSessionLength;
+      startedAt: string;
+      endedAt: string;
+    }) => {
+      const sessionId = typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${details.card.id}-${details.endedAt}`;
+
+      setMetrics((current) => {
+        const updated = recordFocusSession(
+          {
+            id: sessionId,
+            cardId: details.card.id,
+            cardTitle: details.card.title,
+            plannedMinutes: details.plannedMinutes,
+            startedAt: details.startedAt,
+            endedAt: details.endedAt,
+            outcome: details.outcome,
+            note: details.note,
+          },
+          current
+        );
+        saveMetrics(updated);
+        return updated;
+      });
+
+      const latestCard = stateRef.current.cards.find((card) => card.id === details.card.id) ?? details.card;
+      if (details.outcome === "completed") {
+        const doneColumn = stateRef.current.columns.find((column) => column.isTerminal);
+        if (doneColumn && latestCard.column !== doneColumn.id) {
+          dispatch({ type: "MOVE_CARD", id: latestCard.id, to: doneColumn.id, toSwimlane: latestCard.swimlane });
+        }
+        showToast({ type: "success", message: `"${latestCard.title}" completed from focus mode` });
+      } else if (details.outcome === "blocked") {
+        const blockedColumn = stateRef.current.columns.find((column) => column.id === "blocked");
+        if (blockedColumn) {
+          dispatch({
+            type: "MOVE_CARD",
+            id: latestCard.id,
+            to: blockedColumn.id,
+            toSwimlane: latestCard.swimlane,
+            patch: { blockedReason: details.note },
+          });
+        } else {
+          dispatch({ type: "UPDATE_CARD", card: { ...latestCard, blockedReason: details.note } });
+        }
+        showToast({ type: "warning", message: `"${latestCard.title}" marked blocked` });
+      } else {
+        showToast({ type: "info", message: `Focus session saved for "${latestCard.title}"` });
+      }
+
+      setFocusSessionCard(null);
+    },
+    [dispatch, showToast]
+  );
 
   const handleAdd = React.useCallback(
     (column: ColumnId, title: string, swimlane?: SwimlaneId) => {
@@ -582,23 +658,24 @@ function AppContent() {
               onSetMainFocus={handleSetMainFocus}
               onToggleSupportTask={handleToggleSupportTask}
               onClearDailyPlan={handleClearDailyPlan}
-              onStartCard={(card) => {
-                const doingColumn = state.columns.find((c) => c.id === "doing");
-                if (doingColumn) {
-                  if (card.column === doingColumn.id) {
-                    setTodayOpen(false);
-                    setOpenCard(card);
-                    return;
-                  }
-                  dispatch({ type: "MOVE_CARD", id: card.id, to: doingColumn.id, toSwimlane: card.swimlane });
-                  setTodayOpen(false);
-                  showToast({ type: "success", message: `Started "${card.title}"` });
-                }
-              }}
+              onStartFocusSession={handleStartFocusSession}
               onOpenCapture={() => {
                 setTodayOpen(false);
                 setCaptureInboxOpen(true);
               }}
+            />
+          </ErrorBoundary>
+        </Suspense>
+      )}
+
+      {focusSessionCard && (
+        <Suspense fallback={<PanelLoadingFallback />}>
+          <ErrorBoundary>
+            <FocusMode
+              open={!!focusSessionCard}
+              card={focusSessionCard}
+              onClose={() => setFocusSessionCard(null)}
+              onComplete={handleFocusSessionComplete}
             />
           </ErrorBoundary>
         </Suspense>

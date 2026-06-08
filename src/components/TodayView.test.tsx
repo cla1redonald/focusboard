@@ -27,7 +27,7 @@ const defaultProps = {
   captureCount: 0,
   onClose: vi.fn(),
   onOpenCard: vi.fn(),
-  onStartCard: vi.fn(),
+  onStartFocusSession: vi.fn(),
   onSetMainFocus: vi.fn(),
   onToggleSupportTask: vi.fn(),
   onClearDailyPlan: vi.fn(),
@@ -59,10 +59,10 @@ describe("TodayView", () => {
     expect(onClose).toHaveBeenCalledTimes(1);
   });
 
-  it("opens already in-progress cards instead of starting them again", async () => {
+  it("starts a focus session for already in-progress cards", async () => {
     const user = userEvent.setup();
     const onOpenCard = vi.fn();
-    const onStartCard = vi.fn();
+    const onStartFocusSession = vi.fn();
     const doingCard = card({ id: "doing", title: "Current task", column: "doing" });
 
     render(
@@ -70,14 +70,14 @@ describe("TodayView", () => {
         {...defaultProps}
         cards={[doingCard]}
         onOpenCard={onOpenCard}
-        onStartCard={onStartCard}
+        onStartFocusSession={onStartFocusSession}
       />,
     );
 
-    await user.click(screen.getByRole("button", { name: /Continue/i }));
+    await user.click(screen.getByRole("button", { name: /Focus/i }));
 
-    expect(onOpenCard).toHaveBeenCalledWith(expect.objectContaining({ id: "doing" }));
-    expect(onStartCard).not.toHaveBeenCalled();
+    expect(onStartFocusSession).toHaveBeenCalledWith(expect.objectContaining({ id: "doing" }));
+    expect(onOpenCard).not.toHaveBeenCalled();
   });
 
   it("lets users choose a main focus and support task from recommendations", async () => {

@@ -110,9 +110,25 @@ export type DailySnapshot = {
   wipViolations: number;
 };
 
+export type FocusSessionOutcome = "progressed" | "blocked" | "completed" | "abandoned";
+
+export type FocusSessionLength = 25 | 50 | 90;
+
+export type FocusSession = {
+  id: string;
+  cardId: string;
+  cardTitle: string;
+  plannedMinutes: FocusSessionLength;
+  startedAt: string;
+  endedAt: string;
+  outcome: FocusSessionOutcome;
+  note?: string;
+};
+
 export type MetricsState = {
   completedCards: CompletedCardMetric[];
   dailySnapshots: DailySnapshot[];
+  focusSessions?: FocusSession[];
   wipViolations: number;
   lastSnapshotDate?: string;
   currentStreak: number;
