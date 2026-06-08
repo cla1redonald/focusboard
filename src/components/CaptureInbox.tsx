@@ -1,5 +1,5 @@
 import React from "react";
-import { X, Check, Pencil, ChevronDown, ChevronRight, Inbox, Loader2 } from "lucide-react";
+import { X, Check, Clock3, Pencil, ChevronDown, ChevronRight, Inbox, Loader2 } from "lucide-react";
 import type { Column, Tag } from "../app/types";
 import type { CaptureQueueItem, ParsedCaptureCard } from "../app/captureTypes";
 import { SOURCE_CONFIG } from "../app/captureTypes";
@@ -13,6 +13,7 @@ type Props = {
   tags: Tag[];
   onClose: () => void;
   onAddCard: (parsedCard: ParsedCaptureCard, captureId: string) => void;
+  onSnooze: (captureId: string, minutes: number) => void;
   onDismiss: (captureId: string) => void;
   onDelete: (captureId: string) => void;
 };
@@ -26,6 +27,7 @@ export function CaptureInbox({
   tags,
   onClose,
   onAddCard,
+  onSnooze,
   onDismiss,
   onDelete,
 }: Props) {
@@ -36,6 +38,7 @@ export function CaptureInbox({
   const [editSwimlane, setEditSwimlane] = React.useState<"work" | "personal">("work");
   const [editDueDate, setEditDueDate] = React.useState("");
   const [editTags, setEditTags] = React.useState<string[]>([]);
+  const [editNotes, setEditNotes] = React.useState("");
   const [now, setNow] = React.useState(0);
 
   // Reset state when panel opens and update current time
@@ -86,6 +89,7 @@ export function CaptureInbox({
     setEditSwimlane(card.swimlane ?? "work");
     setEditDueDate(card.dueDate ?? "");
     setEditTags(card.tags ?? []);
+    setEditNotes(card.notes ?? item.raw_content);
   };
 
   const confirmEdit = (captureId: string) => {
@@ -96,6 +100,7 @@ export function CaptureInbox({
         swimlane: editSwimlane,
         dueDate: editDueDate || undefined,
         tags: editTags,
+        notes: editNotes.trim() || undefined,
         confidence: 1,
       },
       captureId
@@ -135,8 +140,8 @@ export function CaptureInbox({
           <button
             onClick={() => onDismiss(item.id)}
             className="rounded-md p-1 text-gray-300 opacity-0 transition hover:bg-gray-100 hover:text-gray-500 group-hover:opacity-100 dark:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-400"
-            aria-label="Dismiss"
-            title="Dismiss"
+            aria-label="Discard capture"
+            title="Discard capture"
           >
             <X size={14} />
           </button>
@@ -179,6 +184,14 @@ export function CaptureInbox({
                 className="rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-2 py-1 text-xs text-gray-700 dark:text-gray-300 outline-none focus:border-emerald-500"
               />
             </div>
+            <textarea
+              value={editNotes}
+              onChange={(e) => setEditNotes(e.target.value)}
+              rows={3}
+              aria-label="Capture notes"
+              className="w-full rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-2.5 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20"
+              placeholder="Notes or original context"
+            />
             {/* Tag picker */}
             <div className="flex flex-wrap gap-1">
               {tags.map((tag) => {
@@ -298,6 +311,14 @@ export function CaptureInbox({
               </div>
               <div className="flex items-center gap-1">
                 <button
+                  onClick={() => onSnooze(item.id, 60)}
+                  className="rounded-lg p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-300"
+                  title="Snooze for 1 hour"
+                  aria-label="Snooze capture"
+                >
+                  <Clock3 size={14} />
+                </button>
+                <button
                   onClick={() => onAddCard(card, item.id)}
                   className="rounded-lg bg-emerald-50 p-1.5 text-emerald-600 transition hover:bg-emerald-100 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50"
                   title="Add as-is"
@@ -393,8 +414,8 @@ export function CaptureInbox({
                     <button
                       onClick={() => onDismiss(item.id)}
                       className="rounded-md p-1 text-gray-300 opacity-0 transition hover:bg-gray-100 hover:text-gray-500 group-hover:opacity-100 dark:text-gray-600 dark:hover:bg-gray-700 dark:hover:text-gray-400 shrink-0"
-                      aria-label="Dismiss"
-                      title="Cancel processing"
+                      aria-label="Discard capture"
+                      title="Discard capture"
                     >
                       <X size={14} />
                     </button>

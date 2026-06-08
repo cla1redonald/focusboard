@@ -21,6 +21,7 @@ describe("CaptureInbox", () => {
     tags,
     onClose: vi.fn(),
     onAddCard: vi.fn(),
+    onSnooze: vi.fn(),
     onDismiss: vi.fn(),
     onDelete: vi.fn(),
   };
@@ -99,9 +100,20 @@ describe("CaptureInbox", () => {
     const item = makeItem();
     render(<CaptureInbox {...defaultProps} reviewItems={[item]} onDismiss={onDismiss} />);
 
-    await user.click(screen.getByRole("button", { name: "Dismiss" }));
+    await user.click(screen.getByRole("button", { name: "Discard capture" }));
 
     expect(onDismiss).toHaveBeenCalledWith("cap-1");
+  });
+
+  it("calls onSnooze when snooze button is clicked", async () => {
+    const user = userEvent.setup();
+    const onSnooze = vi.fn();
+    const item = makeItem();
+    render(<CaptureInbox {...defaultProps} reviewItems={[item]} onSnooze={onSnooze} />);
+
+    await user.click(screen.getByRole("button", { name: "Snooze capture" }));
+
+    expect(onSnooze).toHaveBeenCalledWith("cap-1", 60);
   });
 
   it("closes on Escape key", async () => {
@@ -160,7 +172,7 @@ describe("CaptureInbox", () => {
 
   // ── Inline editor submit ─────────────────────────────────────────
 
-  it("inline editor submits edited card with onAddCard", async () => {
+  it("inline editor submits edited card with notes preserved", async () => {
     const user = userEvent.setup();
     const onAddCard = vi.fn();
     const item = makeItem();
@@ -174,11 +186,15 @@ describe("CaptureInbox", () => {
     await user.clear(titleInput);
     await user.type(titleInput, "Updated title");
 
+    const notesInput = screen.getByLabelText("Capture notes");
+    await user.clear(notesInput);
+    await user.type(notesInput, "Edited context");
+
     // Click Add Card
     await user.click(screen.getByText("Add Card"));
 
     expect(onAddCard).toHaveBeenCalledWith(
-      expect.objectContaining({ title: "Updated title", confidence: 1 }),
+      expect.objectContaining({ title: "Updated title", notes: "Edited context", confidence: 1 }),
       "cap-1"
     );
   });

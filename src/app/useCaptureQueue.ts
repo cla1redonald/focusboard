@@ -3,10 +3,43 @@ import { supabase } from "./supabase";
 import type { CaptureQueueItem, CaptureStatus } from "./captureTypes";
 
 const STALE_THRESHOLD_MS = 30_000; // 30 seconds
+const SNOOZE_KEY_PREFIX = "focusboard:capture-snoozes";
+
+function loadSnoozes(userId: string | null): Record<string, number> {
+  if (!userId) return {};
+  try {
+    const raw = localStorage.getItem(`${SNOOZE_KEY_PREFIX}:${userId}`);
+    if (!raw) return {};
+    const parsed = JSON.parse(raw) as Record<string, number>;
+    const now = Date.now();
+    return Object.fromEntries(
+      Object.entries(parsed).filter(([, until]) => typeof until === "number" && until > now)
+    );
+  } catch {
+    return {};
+  }
+}
+
+function saveSnoozes(userId: string | null, snoozes: Record<string, number>): void {
+  if (!userId) return;
+  localStorage.setItem(`${SNOOZE_KEY_PREFIX}:${userId}`, JSON.stringify(snoozes));
+}
 
 export function useCaptureQueue(userId: string | null) {
   const [items, setItems] = React.useState<CaptureQueueItem[]>([]);
   const [loading, setLoading] = React.useState(false);
+  const [snoozedUntil, setSnoozedUntil] = React.useState<Record<string, number>>(() => loadSnoozes(userId));
+  const [snoozeNow, setSnoozeNow] = React.useState(0);
+
+  React.useEffect(() => {
+    setSnoozedUntil(loadSnoozes(userId));
+    setSnoozeNow(Date.now());
+  }, [userId]);
+
+  React.useEffect(() => {
+    const interval = window.setInterval(() => setSnoozeNow(Date.now()), 60_000);
+    return () => window.clearInterval(interval);
+  }, []);
 
   // Fetch items with status 'ready' or 'auto_added' (last 24h for auto_added)
   const fetchItems = React.useCallback(async () => {
@@ -102,6 +135,15 @@ export function useCaptureQueue(userId: string | null) {
     setItems((prev) => prev.filter((i) => i.id !== captureId));
   }, []);
 
+  const snoozeItem = React.useCallback((captureId: string, minutes: number) => {
+    const until = Date.now() + minutes * 60_000;
+    setSnoozedUntil((current) => {
+      const next = { ...current, [captureId]: until };
+      saveSnoozes(userId, next);
+      return next;
+    });
+  }, [userId]);
+
   // Delete an item
   const deleteItem = React.useCallback(async (captureId: string) => {
     if (!supabase) return;
@@ -112,26 +154,30 @@ export function useCaptureQueue(userId: string | null) {
     setItems((prev) => prev.filter((i) => i.id !== captureId));
   }, []);
 
+  const visibleItems = React.useMemo(() => {
+    return items.filter((item) => (snoozedUntil[item.id] ?? 0) <= snoozeNow);
+  }, [items, snoozeNow, snoozedUntil]);
+
   // Count of items needing attention (ready status)
   const pendingCount = React.useMemo(
-    () => items.filter((i) => i.status === "ready" || i.status === "pending" || i.status === "processing").length,
-    [items]
+    () => visibleItems.filter((i) => i.status === "ready" || i.status === "pending" || i.status === "processing").length,
+    [visibleItems]
   );
 
   // Split items by section
   const reviewItems = React.useMemo(
-    () => items.filter((i) => i.status === "ready"),
-    [items]
+    () => visibleItems.filter((i) => i.status === "ready"),
+    [visibleItems]
   );
 
   const processingItems = React.useMemo(
-    () => items.filter((i) => i.status === "pending" || i.status === "processing"),
-    [items]
+    () => visibleItems.filter((i) => i.status === "pending" || i.status === "processing"),
+    [visibleItems]
   );
 
   const autoAddedItems = React.useMemo(
-    () => items.filter((i) => i.status === "auto_added"),
-    [items]
+    () => visibleItems.filter((i) => i.status === "auto_added"),
+    [visibleItems]
   );
 
   return {
@@ -143,6 +189,7 @@ export function useCaptureQueue(userId: string | null) {
     loading,
     fetchItems,
     dismissItem,
+    snoozeItem,
     deleteItem,
   };
 }
