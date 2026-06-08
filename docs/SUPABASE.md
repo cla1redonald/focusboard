@@ -65,6 +65,7 @@ CREATE TABLE capture_queue (
   raw_content   TEXT NOT NULL,
   raw_metadata  JSONB DEFAULT '{}',
   parsed_cards  JSONB,
+  snoozed_until TIMESTAMPTZ,
   created_at    TIMESTAMPTZ DEFAULT now(),
   processed_at  TIMESTAMPTZ
 );
@@ -80,6 +81,7 @@ CREATE TABLE capture_queue (
 | `raw_content` | TEXT | Original captured text (max 10,000 chars) |
 | `raw_metadata` | JSONB | Source-specific context (channel name, URL, sender, etc.) |
 | `parsed_cards` | JSONB | Array of structured card objects produced by the AI pipeline |
+| `snoozed_until` | TIMESTAMPTZ | Optional user snooze expiry; hidden from Capture Inbox until this time |
 | `created_at` | TIMESTAMPTZ | Row creation timestamp |
 | `processed_at` | TIMESTAMPTZ | When AI processing completed |
 
@@ -93,7 +95,9 @@ CREATE TABLE capture_queue (
 | `auto_added` | Processed, confidence >= 0.8 -- cards added directly to the board |
 | `dismissed` | User dismissed the item from the Capture Inbox |
 
-**Migration file:** `supabase/migrations/20260207170000_capture_queue.sql`
+Snoozing keeps the item in its current lifecycle state and sets `snoozed_until`; the client hides the item until the timestamp has passed.
+
+**Migration files:** `supabase/migrations/20260207170000_capture_queue.sql`, `supabase/migrations/20260608121500_capture_queue_snoozed_until.sql`
 
 ---
 

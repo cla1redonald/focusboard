@@ -65,6 +65,7 @@ describe("captureTypes", () => {
             confidence: 0.85,
           },
         ],
+        snoozed_until: null,
         created_at: new Date().toISOString(),
         processed_at: new Date().toISOString(),
       };
@@ -82,12 +83,14 @@ describe("captureTypes", () => {
         raw_content: "Some email",
         raw_metadata: {},
         parsed_cards: null,
+        snoozed_until: "2026-06-08T12:30:00.000Z",
         created_at: new Date().toISOString(),
         processed_at: null,
       };
       expect(item.confidence).toBeNull();
       expect(item.parsed_cards).toBeNull();
       expect(item.processed_at).toBeNull();
+      expect(item.snoozed_until).toBe("2026-06-08T12:30:00.000Z");
     });
   });
 

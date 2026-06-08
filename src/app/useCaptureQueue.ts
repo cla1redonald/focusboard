@@ -3,36 +3,20 @@ import { supabase } from "./supabase";
 import type { CaptureQueueItem, CaptureStatus } from "./captureTypes";
 
 const STALE_THRESHOLD_MS = 30_000; // 30 seconds
-const SNOOZE_KEY_PREFIX = "focusboard:capture-snoozes";
 
-function loadSnoozes(userId: string | null): Record<string, number> {
-  if (!userId) return {};
-  try {
-    const raw = localStorage.getItem(`${SNOOZE_KEY_PREFIX}:${userId}`);
-    if (!raw) return {};
-    const parsed = JSON.parse(raw) as Record<string, number>;
-    const now = Date.now();
-    return Object.fromEntries(
-      Object.entries(parsed).filter(([, until]) => typeof until === "number" && until > now)
-    );
-  } catch {
-    return {};
-  }
-}
-
-function saveSnoozes(userId: string | null, snoozes: Record<string, number>): void {
-  if (!userId) return;
-  localStorage.setItem(`${SNOOZE_KEY_PREFIX}:${userId}`, JSON.stringify(snoozes));
+export function isCaptureVisible(item: Pick<CaptureQueueItem, "snoozed_until">, nowMs: number): boolean {
+  if (!item.snoozed_until) return true;
+  const snoozedUntilMs = new Date(item.snoozed_until).getTime();
+  if (Number.isNaN(snoozedUntilMs)) return true;
+  return snoozedUntilMs <= nowMs;
 }
 
 export function useCaptureQueue(userId: string | null) {
   const [items, setItems] = React.useState<CaptureQueueItem[]>([]);
   const [loading, setLoading] = React.useState(false);
-  const [snoozedUntil, setSnoozedUntil] = React.useState<Record<string, number>>(() => loadSnoozes(userId));
   const [snoozeNow, setSnoozeNow] = React.useState(0);
 
   React.useEffect(() => {
-    setSnoozedUntil(loadSnoozes(userId));
     setSnoozeNow(Date.now());
   }, [userId]);
 
@@ -135,14 +119,20 @@ export function useCaptureQueue(userId: string | null) {
     setItems((prev) => prev.filter((i) => i.id !== captureId));
   }, []);
 
-  const snoozeItem = React.useCallback((captureId: string, minutes: number) => {
-    const until = Date.now() + minutes * 60_000;
-    setSnoozedUntil((current) => {
-      const next = { ...current, [captureId]: until };
-      saveSnoozes(userId, next);
-      return next;
-    });
-  }, [userId]);
+  const snoozeItem = React.useCallback(async (captureId: string, minutes: number) => {
+    const until = new Date(Date.now() + minutes * 60_000).toISOString();
+    setItems((prev) => prev.map((item) =>
+      item.id === captureId ? { ...item, snoozed_until: until } : item
+    ));
+    if (!supabase) return;
+    const { error } = await supabase
+      .from("capture_queue")
+      .update({ snoozed_until: until })
+      .eq("id", captureId);
+    if (error) {
+      void fetchItems();
+    }
+  }, [fetchItems]);
 
   // Delete an item
   const deleteItem = React.useCallback(async (captureId: string) => {
@@ -155,8 +145,8 @@ export function useCaptureQueue(userId: string | null) {
   }, []);
 
   const visibleItems = React.useMemo(() => {
-    return items.filter((item) => (snoozedUntil[item.id] ?? 0) <= snoozeNow);
-  }, [items, snoozeNow, snoozedUntil]);
+    return items.filter((item) => isCaptureVisible(item, snoozeNow));
+  }, [items, snoozeNow]);
 
   // Count of items needing attention (ready status)
   const pendingCount = React.useMemo(

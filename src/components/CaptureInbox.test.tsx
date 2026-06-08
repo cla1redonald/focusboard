@@ -44,6 +44,7 @@ describe("CaptureInbox", () => {
         confidence: 0.85,
       },
     ],
+    snoozed_until: null,
     created_at: new Date().toISOString(),
     processed_at: new Date().toISOString(),
     ...overrides,
