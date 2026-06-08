@@ -71,7 +71,7 @@ function AppContent() {
   const [focusSessionCard, setFocusSessionCard] = React.useState<Card | null>(null);
   const [onboardingOpen, setOnboardingOpen] = React.useState(() => !hasSeenOnboarding());
   const [metrics, setMetrics] = React.useState<MetricsState>(() => loadMetrics());
-  const { reviewItems, processingItems, autoAddedItems, pendingCount, dismissItem, deleteItem } = useCaptureQueue(user?.id ?? null);
+  const { reviewItems, processingItems, autoAddedItems, pendingCount, dismissItem, snoozeItem, deleteItem } = useCaptureQueue(user?.id ?? null);
   const hasBgImage = !!state.settings.backgroundImage;
 
   // Ref for accessing current state in stable callbacks without creating deps
@@ -770,6 +770,7 @@ function AppContent() {
               tags={state.tags}
               onClose={() => setCaptureInboxOpen(false)}
               onAddCard={handleAddCaptureCard}
+              onSnooze={snoozeItem}
               onDismiss={dismissItem}
               onDelete={deleteItem}
             />
