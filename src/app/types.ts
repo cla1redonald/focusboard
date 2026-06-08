@@ -135,11 +135,17 @@ export type WipOverrideMetric = {
   createdAt: string;
 };
 
+export type ReviewMarkers = {
+  dailyShutdownDate?: string;
+  weeklyReviewWeek?: string;
+};
+
 export type MetricsState = {
   completedCards: CompletedCardMetric[];
   dailySnapshots: DailySnapshot[];
   focusSessions?: FocusSession[];
   wipOverrides?: WipOverrideMetric[];
+  reviewMarkers?: ReviewMarkers;
   wipViolations: number;
   lastSnapshotDate?: string;
   currentStreak: number;

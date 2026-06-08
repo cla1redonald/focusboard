@@ -3,7 +3,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { useAppState } from "./state";
 import type { AppState, Card, Column, ColumnId, FocusSessionLength, FocusSessionOutcome, MetricsState, RelationType, SwimlaneId } from "./types";
-import { loadMetrics, saveMetrics, recordCompletedCard, recordFocusSession, recordWipOverride, takeDailySnapshot } from "./metrics";
+import { loadMetrics, saveMetrics, recordCompletedCard, recordFocusSession, recordWipOverride, markDailyShutdownComplete, markWeeklyReviewComplete, takeDailySnapshot } from "./metrics";
 import { hasSeenOnboarding, markOnboardingSeen } from "./storage";
 import { AuthProvider, useRequireAuth, useAuth } from "./AuthContext";
 import { ToastProvider, useToast } from "./ToastContext";
@@ -36,6 +36,8 @@ const ArchivePanel = React.lazy(() => import("../components/ArchivePanel").then(
 const CaptureInbox = React.lazy(() => import("../components/CaptureInbox").then(m => ({ default: m.CaptureInbox })));
 const TodayView = React.lazy(() => import("../components/TodayView").then(m => ({ default: m.TodayView })));
 const FocusMode = React.lazy(() => import("../components/FocusMode").then(m => ({ default: m.FocusMode })));
+const DailyShutdownPanel = React.lazy(() => import("../components/DailyShutdownPanel").then(m => ({ default: m.DailyShutdownPanel })));
+const WeeklyReviewPanel = React.lazy(() => import("../components/WeeklyReviewPanel").then(m => ({ default: m.WeeklyReviewPanel })));
 
 // Loading fallback for lazy-loaded panels
 function PanelLoadingFallback() {
@@ -63,6 +65,8 @@ function AppContent() {
   const [todayOpen, setTodayOpen] = React.useState(false);
   const [focusPanelOpen, setFocusPanelOpen] = React.useState(false);
   const [weeklyPlanOpen, setWeeklyPlanOpen] = React.useState(false);
+  const [dailyShutdownOpen, setDailyShutdownOpen] = React.useState(false);
+  const [weeklyReviewOpen, setWeeklyReviewOpen] = React.useState(false);
   const [shortcutsOpen, setShortcutsOpen] = React.useState(false);
   const [commandPaletteOpen, setCommandPaletteOpen] = React.useState(false);
   const [feedbackOpen, setFeedbackOpen] = React.useState(false);
@@ -88,6 +92,8 @@ function AppContent() {
   const handleOpenToday = React.useCallback(() => setTodayOpen(true), []);
   const handleOpenFocus = React.useCallback(() => setFocusPanelOpen(true), []);
   const handleOpenWeeklyPlan = React.useCallback(() => setWeeklyPlanOpen(true), []);
+  const handleOpenDailyShutdown = React.useCallback(() => setDailyShutdownOpen(true), []);
+  const handleOpenWeeklyReview = React.useCallback(() => setWeeklyReviewOpen(true), []);
   const handleOpenFeedback = React.useCallback(() => setFeedbackOpen(true), []);
   const handleShowTutorial = React.useCallback(() => setOnboardingOpen(true), []);
   const handleShowShortcuts = React.useCallback(() => setShortcutsOpen(true), []);
@@ -95,6 +101,30 @@ function AppContent() {
   const handleOpenCapture = React.useCallback(() => setCaptureInboxOpen(true), []);
   const handleUndo = React.useCallback(() => dispatch({ type: "UNDO" }), [dispatch]);
   const handleRedo = React.useCallback(() => dispatch({ type: "REDO" }), [dispatch]);
+
+  const handleDailyShutdownComplete = React.useCallback(
+    (date: string) => {
+      setMetrics((current) => {
+        const updated = markDailyShutdownComplete(current, date);
+        saveMetrics(updated);
+        return updated;
+      });
+      showToast({ type: "success", message: "Daily shutdown complete" });
+    },
+    [showToast]
+  );
+
+  const handleWeeklyReviewComplete = React.useCallback(
+    (week: string) => {
+      setMetrics((current) => {
+        const updated = markWeeklyReviewComplete(current, week);
+        saveMetrics(updated);
+        return updated;
+      });
+      showToast({ type: "success", message: "Weekly review complete" });
+    },
+    [showToast]
+  );
 
   const handleStartFocusSession = React.useCallback(
     (card: Card) => {
@@ -559,6 +589,8 @@ function AppContent() {
             onOpenToday={handleOpenToday}
             onOpenFocus={handleOpenFocus}
             onOpenWeeklyPlan={handleOpenWeeklyPlan}
+            onOpenDailyShutdown={handleOpenDailyShutdown}
+            onOpenWeeklyReview={handleOpenWeeklyReview}
             onOpenFeedback={handleOpenFeedback}
             onShowTutorial={handleShowTutorial}
             onShowShortcuts={handleShowShortcuts}
@@ -787,6 +819,44 @@ function AppContent() {
                 setArchivePanelOpen(false);
                 setOpenCard(card);
               }}
+            />
+          </ErrorBoundary>
+        </Suspense>
+      )}
+
+      {dailyShutdownOpen && (
+        <Suspense fallback={<PanelLoadingFallback />}>
+          <ErrorBoundary>
+            <DailyShutdownPanel
+              open={dailyShutdownOpen}
+              cards={activeCards}
+              columns={state.columns}
+              metrics={metrics}
+              onClose={() => setDailyShutdownOpen(false)}
+              onOpenCard={(card) => {
+                setDailyShutdownOpen(false);
+                setOpenCard(card);
+              }}
+              onComplete={handleDailyShutdownComplete}
+            />
+          </ErrorBoundary>
+        </Suspense>
+      )}
+
+      {weeklyReviewOpen && (
+        <Suspense fallback={<PanelLoadingFallback />}>
+          <ErrorBoundary>
+            <WeeklyReviewPanel
+              open={weeklyReviewOpen}
+              cards={activeCards}
+              columns={state.columns}
+              metrics={metrics}
+              onClose={() => setWeeklyReviewOpen(false)}
+              onOpenCard={(card) => {
+                setWeeklyReviewOpen(false);
+                setOpenCard(card);
+              }}
+              onComplete={handleWeeklyReviewComplete}
             />
           </ErrorBoundary>
         </Suspense>

@@ -15,7 +15,7 @@ import {
   getBurndownData,
 } from "../app/metrics";
 
-type TabId = "overview" | "flow" | "burndown" | "blocked" | "stale";
+type TabId = "overview" | "focus" | "flow" | "burndown" | "blocked" | "stale";
 
 function MetricCard({
   label,
@@ -629,9 +629,13 @@ export function MetricsDashboard({
     avgLeadTime && avgCycleTime ? (avgCycleTime / avgLeadTime) * 100 : null;
 
   const recentCompletions = metrics.completedCards.slice(0, 5);
+  const focusSessions = metrics.focusSessions ?? [];
+  const completedFocusSessions = focusSessions.filter((session) => session.outcome === "completed").length;
+  const blockedFocusSessions = focusSessions.filter((session) => session.outcome === "blocked").length;
 
   const tabs: { id: TabId; label: string }[] = [
     { id: "overview", label: "Overview" },
+    { id: "focus", label: "Focus" },
     { id: "flow", label: "Flow Analysis" },
     { id: "burndown", label: "Burndown" },
     { id: "blocked", label: "Blocked" },
@@ -820,6 +824,45 @@ export function MetricsDashboard({
 
         {activeTab === "flow" && (
           <CumulativeFlowDiagram metrics={metrics} columns={columns} />
+        )}
+
+        {activeTab === "focus" && (
+          <div className="space-y-4">
+            <div className="grid grid-cols-3 gap-3">
+              <MetricCard label="Sessions" value={String(focusSessions.length)} sublabel="All time" />
+              <MetricCard label="Completed" value={String(completedFocusSessions)} sublabel="Ended with card done" />
+              <MetricCard label="Blocked" value={String(blockedFocusSessions)} sublabel="Sessions that found a blocker" />
+            </div>
+
+            <div className="rounded-xl border border-gray-200 bg-white/80 p-4 dark:border-gray-700 dark:bg-gray-800/80">
+              <h3 className="mb-3 text-sm font-medium text-gray-900 dark:text-white">Recent Focus Sessions</h3>
+              {focusSessions.length === 0 ? (
+                <p className="text-sm text-gray-500 dark:text-gray-400">No focus sessions logged yet.</p>
+              ) : (
+                <div className="space-y-2">
+                  {focusSessions.slice(0, 10).map((session) => (
+                    <div
+                      key={session.id}
+                      className="rounded-lg border border-gray-200 bg-gray-50 px-3 py-2 dark:border-gray-700 dark:bg-gray-900"
+                    >
+                      <div className="flex items-center justify-between gap-3">
+                        <span className="min-w-0 truncate text-sm font-medium text-gray-900 dark:text-white">{session.cardTitle}</span>
+                        <span className="shrink-0 rounded-full bg-emerald-50 px-2 py-0.5 text-[10px] font-medium uppercase text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                          {session.outcome}
+                        </span>
+                      </div>
+                      <div className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                        {session.plannedMinutes}m planned · {new Date(session.endedAt).toLocaleString()}
+                      </div>
+                      {session.note && (
+                        <p className="mt-1 text-xs text-gray-600 dark:text-gray-300">{session.note}</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </div>
         )}
 
         {activeTab === "burndown" && (
