@@ -125,10 +125,21 @@ export type FocusSession = {
   note?: string;
 };
 
+export type WipOverrideMetric = {
+  id: string;
+  cardId: string;
+  cardTitle: string;
+  fromColumnId: ColumnId;
+  toColumnId: ColumnId;
+  reason: string;
+  createdAt: string;
+};
+
 export type MetricsState = {
   completedCards: CompletedCardMetric[];
   dailySnapshots: DailySnapshot[];
   focusSessions?: FocusSession[];
+  wipOverrides?: WipOverrideMetric[];
   wipViolations: number;
   lastSnapshotDate?: string;
   currentStreak: number;

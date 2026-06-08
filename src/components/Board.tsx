@@ -39,6 +39,8 @@ export function Board({
   onAddWithData,
   onMove,
   onDelete,
+  onArchiveCard,
+  onWipOverride,
   onOpenCard,
   onSettings,
   onOpenMetrics,
@@ -69,6 +71,8 @@ export function Board({
   onAddWithData?: (column: ColumnId, title: string, swimlane: SwimlaneId, data: { tags?: string[]; dueDate?: string; notes?: string }) => void;
   onMove: (id: string, to: ColumnId, toSwimlane?: SwimlaneId, patch?: Partial<Card>) => void;
   onDelete: (id: string) => void;
+  onArchiveCard?: (id: string) => void;
+  onWipOverride?: (details: { card: Card; from: ColumnId; to: ColumnId; reason: string }) => void;
   onOpenCard: (card: Card) => void;
   onSettings: () => void;
   onOpenMetrics: () => void;
@@ -314,6 +318,9 @@ export function Board({
   const lastCelebrateRef = React.useRef<number>(0);
 
   const pendingRef = React.useRef<{ id: string; from: ColumnId; to: ColumnId; fromSwimlane?: SwimlaneId; toSwimlane?: SwimlaneId } | null>(null);
+  const activeWipModal = modal?.kind === "wip" ? modal : null;
+  const wipPressureColumn = activeWipModal ? getColumn(activeWipModal.to) : undefined;
+  const wipPressureCards = activeWipModal ? (byCol[activeWipModal.to] ?? []) : [];
 
   const openWipModal = (cardId: string, from: ColumnId, to: ColumnId, allowOverride: boolean) => {
     setModal({ kind: "wip", cardId, from, to, allowOverride });
@@ -580,18 +587,40 @@ export function Board({
         open={!!modal && modal.kind === "wip"}
         title="WIP limit reached"
         message="This column is at its WIP limit. Move something out first, or override with a reason."
+        pressureColumn={wipPressureColumn}
+        pressureCards={wipPressureCards}
+        fallbackColumnId={modal?.kind === "wip" ? modal.from : undefined}
         askReason={!!modal && modal.kind === "wip" && modal.allowOverride}
         reasonLabel="Override reason"
         onCancel={() => setModal(null)}
+        onOpenCard={(card) => {
+          setModal(null);
+          pendingRef.current = null;
+          onOpenCard(card);
+        }}
+        onMoveCardBack={(card, toColumn, swimlane) => {
+          onMove(card.id, toColumn, swimlane);
+          setModal(null);
+          pendingRef.current = null;
+        }}
+        onArchiveCard={(card) => {
+          onArchiveCard?.(card.id);
+          setModal(null);
+          pendingRef.current = null;
+        }}
         onConfirm={(reason) => {
           const pending = pendingRef.current;
           if (!pending || !modal) return;
+          const card = cards.find((candidate) => candidate.id === pending.id);
 
           // override move
           onMove(pending.id, pending.to, pending.toSwimlane, {
             lastOverrideReason: reason,
             lastOverrideAt: nowIso(),
           });
+          if (card && reason) {
+            onWipOverride?.({ card, from: pending.from, to: pending.to, reason });
+          }
 
           if (reducedMotion) {
             if (isTerminalColumn(pending.to)) pulseDoneHeader();

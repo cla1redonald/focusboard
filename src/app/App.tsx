@@ -3,7 +3,7 @@ import { Analytics } from "@vercel/analytics/react";
 import { SpeedInsights } from "@vercel/speed-insights/react";
 import { useAppState } from "./state";
 import type { AppState, Card, Column, ColumnId, FocusSessionLength, FocusSessionOutcome, MetricsState, RelationType, SwimlaneId } from "./types";
-import { loadMetrics, saveMetrics, recordCompletedCard, recordFocusSession, takeDailySnapshot } from "./metrics";
+import { loadMetrics, saveMetrics, recordCompletedCard, recordFocusSession, recordWipOverride, takeDailySnapshot } from "./metrics";
 import { hasSeenOnboarding, markOnboardingSeen } from "./storage";
 import { AuthProvider, useRequireAuth, useAuth } from "./AuthContext";
 import { ToastProvider, useToast } from "./ToastContext";
@@ -236,6 +236,46 @@ function AppContent() {
       }
     },
     [dispatch, showToast]
+  );
+
+  const handleArchiveCard = React.useCallback(
+    (id: string) => {
+      const card = stateRef.current.cards.find((c) => c.id === id);
+      dispatch({ type: "ARCHIVE_CARD", id });
+      if (card) {
+        showToast({
+          type: "info",
+          message: `Archived "${card.title}"`,
+          undoAction: () => dispatch({ type: "UNDO" }),
+        });
+      }
+    },
+    [dispatch, showToast]
+  );
+
+  const handleWipOverride = React.useCallback(
+    ({ card, from, to, reason }: { card: Card; from: ColumnId; to: ColumnId; reason: string }) => {
+      const overrideId = typeof crypto !== "undefined" && "randomUUID" in crypto
+        ? crypto.randomUUID()
+        : `${card.id}-${Date.now()}`;
+      setMetrics((current) => {
+        const updated = recordWipOverride(
+          {
+            id: overrideId,
+            cardId: card.id,
+            cardTitle: card.title,
+            fromColumnId: from,
+            toColumnId: to,
+            reason,
+            createdAt: new Date().toISOString(),
+          },
+          current
+        );
+        saveMetrics(updated);
+        return updated;
+      });
+    },
+    []
   );
 
   const handleReorderCards = React.useCallback(
@@ -510,6 +550,8 @@ function AppContent() {
             onAddWithData={handleAddWithData}
             onMove={handleMove}
             onDelete={handleDelete}
+            onArchiveCard={handleArchiveCard}
+            onWipOverride={handleWipOverride}
             onOpenCard={handleOpenCard}
             onSettings={handleSettings}
             onOpenMetrics={handleOpenMetrics}
@@ -562,16 +604,8 @@ function AppContent() {
         }}
         isCompleted={isOpenCardCompleted}
         onArchive={(id) => {
-          const card = state.cards.find((c) => c.id === id);
-          dispatch({ type: "ARCHIVE_CARD", id });
+          handleArchiveCard(id);
           setOpenCard(null);
-          if (card) {
-            showToast({
-              type: "info",
-              message: `Archived "${card.title}"`,
-              undoAction: () => dispatch({ type: "UNDO" }),
-            });
-          }
         }}
         onAddRelation={(cardId: string, targetCardId: string, relationType: RelationType) => {
           dispatch({ type: "ADD_RELATION", cardId, targetCardId, relationType });
