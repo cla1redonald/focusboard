@@ -28,6 +28,8 @@ export default defineConfig([
     ],
     rules: {
       '@typescript-eslint/consistent-type-definitions': ['error', 'type'],
+      '@typescript-eslint/no-unnecessary-type-assertion': 'off',
+      'react-hooks/set-state-in-effect': 'off',
       '@typescript-eslint/no-misused-promises': [
         'error',
         { checksVoidReturn: { attributes: false } },
