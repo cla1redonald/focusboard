@@ -35,6 +35,6 @@ jobs:
           additional_permissions: |
             actions: read
           claude_args: |
-            --max-turns 8
-            --allowedTools "Bash(npm ci),Bash(npm run typecheck),Bash(npm run lint),Bash(npm run test:run),Bash(npm run build)"
+            --max-turns 20
+            --allowedTools "Bash(git status:*),Bash(git diff:*),Bash(git log:*),Bash(git show:*),Bash(npm ci),Bash(npm run typecheck),Bash(npm run lint),Bash(npm run test:run),Bash(npm run build)"
             --system-prompt "Use REVIEW.md when reviewing Focusboard PRs. For PR review requests, prioritize correctness, data loss, security, user-facing regressions, and missing tests. Do not make code changes unless the user explicitly asks for implementation."
