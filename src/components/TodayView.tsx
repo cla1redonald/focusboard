@@ -55,6 +55,10 @@ export function TodayView({
   onStartCard,
   onOpenCapture,
 }: Props) {
+  const titleId = React.useId();
+  const dialogRef = React.useRef<HTMLDivElement>(null);
+  const closeButtonRef = React.useRef<HTMLButtonElement>(null);
+  const previousActiveElementRef = React.useRef<HTMLElement | null>(null);
   const plan = React.useMemo(
     () => buildTodayPlan(cards, columns, { staleBacklogThreshold: settings.staleBacklogThreshold }),
     [cards, columns, settings.staleBacklogThreshold],
@@ -62,11 +66,50 @@ export function TodayView({
 
   React.useEffect(() => {
     if (!open) return;
+    previousActiveElementRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    closeButtonRef.current?.focus();
+
     const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+      if (event.key === "Escape") {
+        onClose();
+        return;
+      }
+
+      if (event.key !== "Tab") return;
+      const dialog = dialogRef.current;
+      if (!dialog) return;
+
+      const focusable = Array.from(
+        dialog.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        ),
+      ).filter((element) => !element.hasAttribute("disabled"));
+
+      if (focusable.length === 0) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const first = focusable[0];
+      const last = focusable[focusable.length - 1];
+      const activeElement = document.activeElement;
+
+      if (event.shiftKey && activeElement === first) {
+        event.preventDefault();
+        last.focus();
+      } else if (!event.shiftKey && activeElement === last) {
+        event.preventDefault();
+        first.focus();
+      }
     };
+
     document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+      previousActiveElementRef.current?.focus();
+      previousActiveElementRef.current = null;
+    };
   }, [open, onClose]);
 
   if (!open) return null;
@@ -81,18 +124,26 @@ export function TodayView({
   return (
     <div className="fixed inset-0 z-[1200] flex items-center justify-center">
       <div className="absolute inset-0 bg-gray-900/35 backdrop-blur-sm dark:bg-gray-950/60" onClick={onClose} />
-      <div className="relative flex max-h-[90vh] w-[1040px] max-w-[94vw] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900">
+      <div
+        ref={dialogRef}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby={titleId}
+        tabIndex={-1}
+        className="relative flex max-h-[90vh] w-[1040px] max-w-[94vw] flex-col overflow-hidden rounded-xl border border-gray-200 bg-white shadow-2xl dark:border-gray-700 dark:bg-gray-900"
+      >
         <div className="flex shrink-0 items-center justify-between border-b border-gray-100 px-6 py-4 dark:border-gray-800">
           <div>
             <div className="flex items-center gap-2">
               <Focus size={20} className="text-emerald-600 dark:text-emerald-400" />
-              <h2 className="text-xl font-semibold text-gray-900 dark:text-white">Today</h2>
+              <h2 id={titleId} className="text-xl font-semibold text-gray-900 dark:text-white">Today</h2>
             </div>
             <p className="mt-1 text-sm text-gray-500 dark:text-gray-400">
               {plan.activeCount === 0 ? "Nothing active. Capture or plan the next useful thing." : `${plan.activeCount} active task${plan.activeCount === 1 ? "" : "s"} on the board`}
             </p>
           </div>
           <button
+            ref={closeButtonRef}
             onClick={onClose}
             className="rounded-md p-1.5 text-gray-400 transition hover:bg-gray-100 hover:text-gray-600 dark:hover:bg-gray-800 dark:hover:text-gray-300"
             aria-label="Close Today"
@@ -138,13 +189,23 @@ export function TodayView({
                         >
                           Open
                         </button>
-                        <button
-                          onClick={() => onStartCard(recommendation.card)}
-                          className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-emerald-700"
-                        >
-                          <Play size={14} />
-                          Start
-                        </button>
+                        {recommendation.card.column === "doing" ? (
+                          <button
+                            onClick={() => onOpenCard(recommendation.card)}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-emerald-700"
+                          >
+                            <Play size={14} />
+                            Continue
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => onStartCard(recommendation.card)}
+                            className="inline-flex items-center gap-1.5 rounded-lg bg-emerald-600 px-3 py-1.5 text-sm font-medium text-white transition hover:bg-emerald-700"
+                          >
+                            <Play size={14} />
+                            Start
+                          </button>
+                        )}
                       </div>
                     </div>
                   </div>

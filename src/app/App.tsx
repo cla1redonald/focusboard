@@ -528,6 +528,11 @@ function AppContent() {
               onStartCard={(card) => {
                 const doingColumn = state.columns.find((c) => c.id === "doing");
                 if (doingColumn) {
+                  if (card.column === doingColumn.id) {
+                    setTodayOpen(false);
+                    setOpenCard(card);
+                    return;
+                  }
                   dispatch({ type: "MOVE_CARD", id: card.id, to: doingColumn.id, toSwimlane: card.swimlane });
                   setTodayOpen(false);
                   showToast({ type: "success", message: `Started "${card.title}"` });
