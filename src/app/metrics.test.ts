@@ -4,6 +4,7 @@ import {
   saveMetrics,
   recordCompletedCard,
   recordFocusSession,
+  recordWipOverride,
   recordWipViolation,
   calculateAverageLeadTime,
   calculateAverageCycleTime,
@@ -26,6 +27,7 @@ describe("metrics", () => {
       expect(metrics.completedCards).toEqual([]);
       expect(metrics.dailySnapshots).toEqual([]);
       expect(metrics.focusSessions).toEqual([]);
+      expect(metrics.wipOverrides).toEqual([]);
       expect(metrics.wipViolations).toBe(0);
     });
 
@@ -63,6 +65,17 @@ describe("metrics", () => {
             outcome: "progressed",
           },
         ],
+        wipOverrides: [
+          {
+            id: "override-1",
+            cardId: "test-1",
+            cardTitle: "Test Card",
+            fromColumnId: "todo",
+            toColumnId: "doing",
+            reason: "Urgent customer issue",
+            createdAt: "2024-01-01T09:30:00.000Z",
+          },
+        ],
         wipViolations: 5,
         currentStreak: 0,
         longestStreak: 0,
@@ -74,6 +87,7 @@ describe("metrics", () => {
       expect(metrics.completedCards).toHaveLength(1);
       expect(metrics.completedCards[0].cardId).toBe("test-1");
       expect(metrics.focusSessions).toHaveLength(1);
+      expect(metrics.wipOverrides).toHaveLength(1);
       expect(metrics.wipViolations).toBe(5);
     });
   });
@@ -273,6 +287,38 @@ describe("metrics", () => {
       const updated = recordWipViolation(metrics);
 
       expect(updated.wipViolations).toBe(6);
+    });
+  });
+
+  describe("recordWipOverride", () => {
+    it("stores the override reason and increments WIP violations", () => {
+      const metrics: MetricsState = {
+        completedCards: [],
+        dailySnapshots: [],
+        wipOverrides: [],
+        wipViolations: 0,
+        currentStreak: 0,
+        longestStreak: 0,
+      };
+
+      const updated = recordWipOverride(
+        {
+          id: "override-1",
+          cardId: "card-1",
+          cardTitle: "Escalation",
+          fromColumnId: "todo",
+          toColumnId: "doing",
+          reason: "Customer incident",
+          createdAt: "2026-06-08T10:00:00.000Z",
+        },
+        metrics,
+      );
+
+      expect(updated.wipViolations).toBe(1);
+      expect(updated.wipOverrides?.[0]).toMatchObject({
+        cardId: "card-1",
+        reason: "Customer incident",
+      });
     });
   });
 

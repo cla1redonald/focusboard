@@ -352,6 +352,18 @@ export function TodayView({
                         <span className="font-mono text-xs text-amber-700 dark:text-amber-300">{pressure.count}/{pressure.limit}</span>
                       </div>
                       <p className="mt-1 text-xs text-amber-700 dark:text-amber-300">Move something forward or back before adding more here.</p>
+                      <div className="mt-2 space-y-1.5">
+                        {pressure.cards.slice(0, 3).map((card) => (
+                          <button
+                            key={card.id}
+                            onClick={() => onOpenCard(card)}
+                            className="flex w-full items-center justify-between rounded-lg bg-white px-2.5 py-1.5 text-left text-xs text-gray-800 transition hover:bg-amber-100 dark:bg-gray-950/60 dark:text-gray-100 dark:hover:bg-amber-900/40"
+                          >
+                            <span className="min-w-0 truncate">{card.title}</span>
+                            <ArrowRight size={13} className="ml-2 shrink-0 text-amber-500" />
+                          </button>
+                        ))}
+                      </div>
                     </div>
                   ))}
                 </div>

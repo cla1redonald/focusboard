@@ -4,6 +4,7 @@ import type {
   CompletedCardMetric,
   FocusSession,
   MetricsState,
+  WipOverrideMetric,
   DailySnapshot,
   StaleCard,
   ColumnAgeStats,
@@ -17,11 +18,13 @@ const METRICS_KEY = "focusboard:metrics";
 const MAX_COMPLETED_CARDS = 500;
 const MAX_DAILY_SNAPSHOTS = 90;
 const MAX_FOCUS_SESSIONS = 500;
+const MAX_WIP_OVERRIDES = 500;
 
 const DEFAULT_METRICS: MetricsState = {
   completedCards: [],
   dailySnapshots: [],
   focusSessions: [],
+  wipOverrides: [],
   wipViolations: 0,
   currentStreak: 0,
   longestStreak: 0,
@@ -36,6 +39,7 @@ export function loadMetrics(): MetricsState {
       completedCards: parsed.completedCards ?? [],
       dailySnapshots: parsed.dailySnapshots ?? [],
       focusSessions: parsed.focusSessions ?? [],
+      wipOverrides: parsed.wipOverrides ?? [],
       wipViolations: parsed.wipViolations ?? 0,
       lastSnapshotDate: parsed.lastSnapshotDate,
       currentStreak: parsed.currentStreak ?? 0,
@@ -175,6 +179,17 @@ export function recordWipViolation(metrics: MetricsState): MetricsState {
   return {
     ...metrics,
     wipViolations: metrics.wipViolations + 1,
+  };
+}
+
+export function recordWipOverride(
+  override: WipOverrideMetric,
+  metrics: MetricsState
+): MetricsState {
+  return {
+    ...metrics,
+    wipViolations: metrics.wipViolations + 1,
+    wipOverrides: [override, ...(metrics.wipOverrides ?? [])].slice(0, MAX_WIP_OVERRIDES),
   };
 }
 
