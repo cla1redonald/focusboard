@@ -31,22 +31,39 @@ const DEFAULT_METRICS: MetricsState = {
   longestStreak: 0,
 };
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null;
+}
+
+function asArray<T>(value: unknown): T[] {
+  return Array.isArray(value) ? (value as T[]) : [];
+}
+
+function asString(value: unknown): string | undefined {
+  return typeof value === "string" ? value : undefined;
+}
+
+function asNumber(value: unknown, fallback: number): number {
+  return typeof value === "number" ? value : fallback;
+}
+
 export function loadMetrics(): MetricsState {
   try {
     const raw = localStorage.getItem(METRICS_KEY);
     if (!raw) return DEFAULT_METRICS;
-    const parsed = JSON.parse(raw);
+    const parsed: unknown = JSON.parse(raw);
+    if (!isRecord(parsed)) return DEFAULT_METRICS;
     return {
-      completedCards: parsed.completedCards ?? [],
-      dailySnapshots: parsed.dailySnapshots ?? [],
-      focusSessions: parsed.focusSessions ?? [],
-      wipOverrides: parsed.wipOverrides ?? [],
-      reviewMarkers: parsed.reviewMarkers ?? {},
-      wipViolations: parsed.wipViolations ?? 0,
-      lastSnapshotDate: parsed.lastSnapshotDate,
-      currentStreak: parsed.currentStreak ?? 0,
-      longestStreak: parsed.longestStreak ?? 0,
-      lastCompletionDate: parsed.lastCompletionDate,
+      completedCards: asArray<CompletedCardMetric>(parsed.completedCards),
+      dailySnapshots: asArray<DailySnapshot>(parsed.dailySnapshots),
+      focusSessions: asArray<FocusSession>(parsed.focusSessions),
+      wipOverrides: asArray<WipOverrideMetric>(parsed.wipOverrides),
+      reviewMarkers: isRecord(parsed.reviewMarkers) ? parsed.reviewMarkers : {},
+      wipViolations: asNumber(parsed.wipViolations, 0),
+      lastSnapshotDate: asString(parsed.lastSnapshotDate),
+      currentStreak: asNumber(parsed.currentStreak, 0),
+      longestStreak: asNumber(parsed.longestStreak, 0),
+      lastCompletionDate: asString(parsed.lastCompletionDate),
     };
   } catch {
     return DEFAULT_METRICS;

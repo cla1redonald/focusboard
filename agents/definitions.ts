@@ -241,7 +241,7 @@ Provide a summary of documentation changes:
 
 ## Output Format
 List issues by severity with:
-- Location (file:line)
+- Location with file path and line number
 - Impact (what could happen)
 - Fix (how to remediate)`,
     tools: ["Read", "Glob", "Grep", "Bash"],

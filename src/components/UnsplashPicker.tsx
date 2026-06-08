@@ -21,10 +21,26 @@ type Props = {
   onCancel: () => void;
 };
 
-const UNSPLASH_ACCESS_KEY = import.meta.env.VITE_UNSPLASH_ACCESS_KEY;
+function getEnvString(key: string): string | undefined {
+  const value: unknown = import.meta.env[key];
+  return typeof value === "string" && value.length > 0 ? value : undefined;
+}
+
+const UNSPLASH_ACCESS_KEY = getEnvString("VITE_UNSPLASH_ACCESS_KEY");
 
 // Popular search suggestions
 const SUGGESTIONS = ["nature", "abstract", "minimal", "gradient", "workspace", "mountains", "ocean", "city", "forest", "sunset"];
+
+function isUnsplashImage(value: unknown): value is UnsplashImage {
+  if (typeof value !== "object" || value === null) return false;
+  const image = value as Partial<UnsplashImage>;
+  return (
+    typeof image.id === "string" &&
+    typeof image.urls?.regular === "string" &&
+    typeof image.urls.small === "string" &&
+    typeof image.urls.thumb === "string"
+  );
+}
 
 export function UnsplashPicker({ onSelect, onCancel }: Props) {
   const [query, setQuery] = React.useState("");
@@ -56,8 +72,9 @@ export function UnsplashPicker({ onSelect, onCancel }: Props) {
         throw new Error("Failed to fetch images");
       }
 
-      const data = await response.json();
-      setImages(data.results);
+      const data: unknown = await response.json();
+      const results = typeof data === "object" && data !== null && "results" in data ? data.results : [];
+      setImages(Array.isArray(results) ? results.filter(isUnsplashImage) : []);
     } catch (err) {
       setError("Failed to search images. Please try again.");
       console.error("Unsplash search error:", err);

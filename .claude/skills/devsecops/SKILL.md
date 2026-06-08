@@ -101,7 +101,7 @@ export default async function handler(req, res) {
 
 ### CRITICAL Issues
 - [Issue]: [Description]
-  - Location: [file:line]
+  - Location: [file path and line]
   - Impact: [What could happen]
   - Fix: [How to fix]
 
