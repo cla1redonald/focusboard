@@ -16,6 +16,7 @@ const PAT_PREFIX = "fb_pat_";
 export const SCOPES = {
   CAPTURE_READ: "capture:read",
   CAPTURE_WRITE: "capture:write",
+  BOARD_READ: "board:read", // Phase 2 — read-only board access (today/cards/wip)
   CARD_WRITE: "card:write", // reserved for Phase 4
 } as const;
 

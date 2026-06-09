@@ -42,6 +42,22 @@ describe("aliases", () => {
   });
 });
 
+describe("card aliases (c-N) alongside capture aliases", () => {
+  it("saving card aliases does not clobber capture aliases (and vice versa)", () => {
+    saveAliases(["cap-uuid-1"], "cap");
+    saveAliases(["card-uuid-1", "card-uuid-2"], "c");
+    expect(resolveId("cap-1")).toBe("cap-uuid-1");
+    expect(resolveId("c-2")).toBe("card-uuid-2");
+    saveAliases(["cap-uuid-9"], "cap"); // refresh captures
+    expect(resolveId("c-1")).toBe("card-uuid-1"); // cards survive
+    expect(resolveId("cap-1")).toBe("cap-uuid-9");
+  });
+
+  it("unknown card alias hints at fb list (not fb inbox)", () => {
+    expect(() => resolveId("c-99")).toThrow(/fb list/);
+  });
+});
+
 describe("parseDuration", () => {
   it.each([
     ["90", 90],

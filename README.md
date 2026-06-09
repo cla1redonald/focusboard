@@ -112,12 +112,18 @@ fb capture "Follow up with ENSEK about next steps"
 fb inbox                 # pending captures with cap-N aliases + AI-parsed titles
 fb snooze cap-2 --for 2h
 fb inbox dismiss cap-3
+
+fb today                 # daily plan, rule-ranked focus recommendations, attention, WIP pressure
+fb list --status doing   # active cards with c-N aliases
+fb search "invoice"      # matches title, notes, tags, checklist text
+fb wip                   # per-column WIP vs limits
 ```
 
 Flags: `--json` (full IDs, machine-readable), `--quiet`, `--no-color` (NO_COLOR respected).
 
-**MCP for agents** — Tier 1 capture-safe tools (`focusboard_capture`, `focusboard_inbox`,
-`focusboard_snooze_capture`):
+**MCP for agents** — Tier 1 capture-safe (`focusboard_capture`, `focusboard_inbox`,
+`focusboard_snooze_capture`) + Tier 2 read-board (`focusboard_today`, `focusboard_cards`,
+`focusboard_wip`):
 
 ```bash
 claude mcp add focusboard -- fb mcp   # or any MCP client; auth via `fb auth login` or FOCUSBOARD_TOKEN

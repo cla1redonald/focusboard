@@ -5,7 +5,7 @@
 **Prod:** https://focusboard-claire-donalds-projects.vercel.app · **Supabase project ref:** `pqjzwyrhcqczplrubfqs`
 
 ## TL;DR
-**Phases 0, 0.5 AND 1 are shipped.** Phase 0 (PAT auth + API) was hardened in Phase 0.5 (enforced scope table, CORS hostname fix, frozen `{ ok, data }`/`{ ok, error }` envelope + REST routes, the Vercel multi-segment routing fix) and **Phase 1 — the `fb` CLI + stdio MCP server (`cli/` package) — is built and merged.** Next is **Phase 2: read-only board access** (`/api/today`, `/api/cards`, `/api/cards/search`, `/api/wip` + `fb today|list|search|wip` + Tier-2 MCP tools). Phase-4 concurrency is DECIDED (normalized `cards` table) so Phase-2 reads need NO version/etag plumbing.
+**Phases 0, 0.5 AND 1 are shipped.** Phase 0 (PAT auth + API) was hardened in Phase 0.5 (enforced scope table, CORS hostname fix, frozen `{ ok, data }`/`{ ok, error }` envelope + REST routes, the Vercel multi-segment routing fix) and **Phase 1 — the `fb` CLI + stdio MCP server (`cli/` package) — is built and merged.** **Phase 2 (read-only board) is ALSO shipped**: `GET /api/today|/api/cards|/api/wip` (scope `board:read`, new default on minted tokens), `fb today|list|search|wip` (c-N card aliases), Tier-2 MCP tools (`focusboard_today|cards|wip`). Board semantics are IMPORTED from `src/app/today.ts` + `filters.ts` (shared with the web — the TRIAGE_STATUSES lesson applied by construction). Next is **Phase 3: focus sessions** — EXTRACT a `focus_sessions` table first (focus history lives in the `app_state` blob = already a mutation hazard). NOTE: pre-Phase-2 tokens lack `board:read` — mint a fresh token for board commands.
 
 ---
 

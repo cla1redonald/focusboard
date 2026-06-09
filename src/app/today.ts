@@ -95,6 +95,16 @@ function reason(kind: TodayReasonKind, label: string, weight: number): TodayReas
   return { kind, label, weight };
 }
 
+/**
+ * The single definition of an "active" card (not archived, not in a terminal
+ * column) — shared by the web Today view and the read-only board API so the two
+ * surfaces cannot drift on what counts as live work.
+ */
+export function getActiveCards(cards: Card[], columns: Column[]): Card[] {
+  const terminalColumnIds = new Set(columns.filter((column) => column.isTerminal).map((column) => column.id));
+  return cards.filter((card) => !card.archivedAt && !isTerminal(card, terminalColumnIds));
+}
+
 export function buildTodayPlan(
   cards: Card[],
   columns: Column[],
@@ -103,9 +113,8 @@ export function buildTodayPlan(
   const now = options.now ?? new Date();
   const maxRecommendations = options.maxRecommendations ?? 5;
   const staleBacklogThreshold = options.staleBacklogThreshold ?? 7;
-  const terminalColumnIds = new Set(columns.filter((column) => column.isTerminal).map((column) => column.id));
 
-  const activeCards = cards.filter((card) => !card.archivedAt && !isTerminal(card, terminalColumnIds));
+  const activeCards = getActiveCards(cards, columns);
 
   const overdue: Card[] = [];
   const dueToday: Card[] = [];

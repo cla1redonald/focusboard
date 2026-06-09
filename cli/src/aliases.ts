@@ -3,49 +3,70 @@ import { join } from "node:path";
 import { configDir } from "./config.js";
 
 /**
- * Short aliases for capture IDs (cap-1, cap-2, …).
+ * Short aliases for IDs shown in tables: captures get cap-1, cap-2, … (from
+ * `fb inbox`); cards get c-1, c-2, … (from `fb list` / `fb search` / `fb today`).
  *
- * `fb inbox` numbers the rows it shows and persists the alias → UUID map; a later
- * `fb snooze cap-2` resolves through the map. The CLI always sends FULL IDs to the
- * API; aliases exist only in human-facing input/output. `--json` output always
- * carries the full IDs.
+ * Listing commands number the rows they show and persist the alias → ID map; a
+ * later `fb snooze cap-2` (or, in Phase 3+, `fb focus start c-4`) resolves
+ * through the map. The CLI always sends FULL IDs to the API — aliases exist only
+ * in human-facing input/output. `--json` output always carries the full IDs.
+ *
+ * The two prefixes live in one file but are saved independently: refreshing the
+ * card list does not invalidate capture aliases, and vice versa.
  */
 
 const FILE = "aliases.json";
+const PREFIXES = ["cap", "c"] as const;
+export type AliasPrefix = (typeof PREFIXES)[number];
 
-export function saveAliases(ids: string[]): Record<string, string> {
-  const map: Record<string, string> = {};
-  ids.forEach((id, i) => {
-    map[`cap-${i + 1}`] = id;
-  });
-  try {
-    mkdirSync(configDir(), { recursive: true, mode: 0o700 });
-    writeFileSync(join(configDir(), FILE), JSON.stringify(map, null, 2) + "\n");
-  } catch {
-    // Aliases are a convenience — failing to persist them must not fail the command.
-  }
-  return map;
+function aliasPath(): string {
+  return join(configDir(), FILE);
 }
 
-export function loadAliases(): Record<string, string> {
+function readAll(): Record<string, string> {
   try {
-    return JSON.parse(readFileSync(join(configDir(), FILE), "utf8")) as Record<string, string>;
+    return JSON.parse(readFileSync(aliasPath(), "utf8")) as Record<string, string>;
   } catch {
     return {};
   }
 }
 
+export function saveAliases(ids: string[], prefix: AliasPrefix = "cap"): Record<string, string> {
+  const existing = readAll();
+  // Drop this prefix's old entries; keep the other prefix's intact.
+  const kept = Object.fromEntries(
+    Object.entries(existing).filter(([alias]) => !alias.startsWith(`${prefix}-`))
+  );
+  const fresh: Record<string, string> = {};
+  ids.forEach((id, i) => {
+    fresh[`${prefix}-${i + 1}`] = id;
+  });
+  try {
+    mkdirSync(configDir(), { recursive: true, mode: 0o700 });
+    writeFileSync(aliasPath(), JSON.stringify({ ...kept, ...fresh }, null, 2) + "\n");
+  } catch {
+    // Aliases are a convenience — failing to persist them must not fail the command.
+  }
+  return fresh;
+}
+
+export function loadAliases(): Record<string, string> {
+  return readAll();
+}
+
 /**
- * Resolve a user-supplied ID: a cap-N alias from the last `fb inbox`, or a full
- * UUID passed through unchanged. Unknown aliases throw with a next-action hint.
+ * Resolve a user-supplied ID: a cap-N / c-N alias from the last listing, or a
+ * full ID passed through unchanged. Unknown aliases throw with a next-action hint.
  */
 export function resolveId(input: string): string {
-  if (/^cap-\d+$/i.test(input)) {
-    const map = loadAliases();
+  const match = /^(cap|c)-\d+$/i.exec(input);
+  if (match) {
+    const map = readAll();
     const id = map[input.toLowerCase()];
     if (!id) {
+      const refresh = match[1]!.toLowerCase() === "cap" ? "fb inbox" : "fb list";
       throw new Error(
-        `Unknown alias "${input}" — run \`fb inbox\` first to refresh aliases, or pass the full capture ID`
+        `Unknown alias "${input}" — run \`${refresh}\` first to refresh aliases, or pass the full ID`
       );
     }
     return id;

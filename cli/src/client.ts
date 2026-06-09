@@ -43,6 +43,57 @@ export type CaptureItem = {
 
 export type Me = { userId: string; kind: string; scopes: string[] };
 
+export type SlimCard = {
+  id: string;
+  title: string;
+  column: string;
+  swimlane: string;
+  order: number;
+  dueDate?: string;
+  tags: string[];
+  blockedReason?: string;
+  notes?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type TodayData = {
+  date: string;
+  activeCount: number;
+  dailyPlan: {
+    main: SlimCard | null;
+    support: SlimCard[];
+    completedCount: number;
+    plannedCount: number;
+  };
+  recommendations: { card: SlimCard; reasons: string[]; score: number }[];
+  attention: {
+    overdue: SlimCard[];
+    dueToday: SlimCard[];
+    blocked: SlimCard[];
+    stale: SlimCard[];
+  };
+  wipPressure: { column: string; columnTitle: string; count: number; limit: number }[];
+};
+
+export type CardsData = {
+  total: number;
+  items: SlimCard[];
+  columns: { id: string; title: string; wipLimit: number | null; isTerminal: boolean }[];
+};
+
+export type WipData = {
+  columns: {
+    id: string;
+    title: string;
+    count: number;
+    limit: number | null;
+    atLimit: boolean;
+    isTerminal: boolean;
+  }[];
+  activeCount: number;
+};
+
 export class FocusboardClient {
   private baseUrl: string;
   private token: string | null;
@@ -157,6 +208,24 @@ export class FocusboardClient {
 
   async inbox(): Promise<{ items: CaptureItem[]; total: number }> {
     return this.request("GET", "/api/capture");
+  }
+
+  today(): Promise<TodayData> {
+    return this.request("GET", "/api/today");
+  }
+
+  cards(opts: { column?: string; q?: string; swimlane?: string; limit?: number } = {}): Promise<CardsData> {
+    const params = new URLSearchParams();
+    if (opts.column) params.set("column", opts.column);
+    if (opts.q) params.set("q", opts.q);
+    if (opts.swimlane) params.set("swimlane", opts.swimlane);
+    if (opts.limit) params.set("limit", String(opts.limit));
+    const qs = params.toString();
+    return this.request("GET", `/api/cards${qs ? `?${qs}` : ""}`);
+  }
+
+  wip(): Promise<WipData> {
+    return this.request("GET", "/api/wip");
   }
 
   snooze(captureId: string, minutes: number): Promise<{ captureId: string; snoozedUntil: string }> {
