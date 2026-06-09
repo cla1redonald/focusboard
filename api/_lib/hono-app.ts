@@ -3,12 +3,17 @@
  * Extracted into a separate importable module so tests can import
  * `app` directly without dealing with the bracket filename.
  *
- * Routes:
- *   GET  /api/capture         → inbox listing         (scope: capture:read)
- *   POST /api/capture         → capture / snooze / dismiss (scope: capture:write)
- *   GET  /api/tokens          → list PATs             (session only)
- *   POST /api/tokens          → create PAT            (session only)
- *   DELETE /api/tokens        → revoke PAT            (session only)
+ * Routes (auth policy lives in ROUTE_SCOPES, enforced app-wide):
+ *   GET    /api/capture              → inbox listing      (scope: capture:read)
+ *   POST   /api/capture              → capture            (PAT | webhook secret | session)
+ *   POST   /api/capture/:id/snooze   → snooze a capture   (scope: capture:write)
+ *   POST   /api/capture/:id/dismiss  → dismiss a capture  (scope: capture:write)
+ *   GET    /api/tokens               → list PATs          (session only)
+ *   POST   /api/tokens               → create PAT         (session only)
+ *   DELETE /api/tokens/:id           → revoke PAT         (session only)
+ *
+ * Every response uses the envelope from envelope.ts:
+ *   { ok: true, data } | { ok: false, error: { code, message, hint? } }
  */
 
 import { Hono, type Context } from "hono";
@@ -16,16 +21,15 @@ import { cors } from "hono/cors";
 import { waitUntil } from "@vercel/functions";
 import { createClient } from "@supabase/supabase-js";
 import {
-  requireScope,
-  requireSession,
+  enforceRouteScopes,
   authenticateWebhook,
-  authenticate,
   principalHasScope,
   type AuthEnv,
 } from "./auth-middleware.js";
 import { resolveApiToken, SCOPES, generateToken } from "./token.js";
+import { ok, fail } from "./envelope.js";
 
-// ── Allowed origins (mirrors api/_lib/cors.ts) ─────────────────────────────────
+// ── Allowed origins ────────────────────────────────────────────────────────────
 
 const ALLOWED_ORIGINS = [
   "https://focusboard.vercel.app",
@@ -34,11 +38,23 @@ const ALLOWED_ORIGINS = [
   "http://localhost:3000",
 ];
 
-function isAllowedOrigin(origin: string): boolean {
-  return (
-    ALLOWED_ORIGINS.includes(origin) ||
-    (origin.includes("focusboard") && origin.includes("vercel.app"))
-  );
+/**
+ * Exact allowlist match, or a focusboard* deployment on *.vercel.app — checked on
+ * the parsed HOSTNAME, not by substring (a substring check admits
+ * https://focusboard.vercel.app.evil.com).
+ */
+export function isAllowedOrigin(origin: string): boolean {
+  if (ALLOWED_ORIGINS.includes(origin)) return true;
+  try {
+    const { protocol, hostname } = new URL(origin);
+    return (
+      protocol === "https:" &&
+      hostname.startsWith("focusboard") &&
+      hostname.endsWith(".vercel.app")
+    );
+  } catch {
+    return false;
+  }
 }
 
 // ── Rate-limit / snooze constants ──────────────────────────────────────────────
@@ -61,7 +77,6 @@ function getServiceClient() {
 
 export const app = new Hono<AuthEnv>().basePath("/api");
 
-// CORS middleware — equivalent to api/_lib/cors.ts behaviour
 app.use("*", cors({
   origin: (origin) => (isAllowedOrigin(origin) ? origin : ""),
   allowMethods: ["GET", "POST", "DELETE", "OPTIONS"],
@@ -69,9 +84,12 @@ app.use("*", cors({
   credentials: true,
 }));
 
+// Auth policy for every route below — see ROUTE_SCOPES in auth-middleware.ts.
+app.use("*", enforceRouteScopes);
+
 // ── GET /api/capture — inbox listing ──────────────────────────────────────────
 
-app.get("/capture", requireScope(SCOPES.CAPTURE_READ), async (c: Context<AuthEnv>) => {
+app.get("/capture", async (c: Context<AuthEnv>) => {
   const principal = c.get("principal");
   try {
     const supabase = getServiceClient();
@@ -90,56 +108,38 @@ app.get("/capture", requireScope(SCOPES.CAPTURE_READ), async (c: Context<AuthEnv
 
     if (error) {
       console.error("Inbox fetch error:", error.message);
-      return c.json({ error: "Failed to fetch inbox" }, 500);
+      return fail(c, 500, "INTERNAL", "Failed to fetch inbox");
     }
 
-    return c.json({ items: data ?? [], total: (data ?? []).length });
+    return ok(c, { items: data ?? [], total: (data ?? []).length });
   } catch (err) {
     console.error("Inbox unexpected error:", err);
-    return c.json({ error: "Internal server error" }, 500);
+    return fail(c, 500, "INTERNAL", "Internal server error");
   }
 });
 
 // 405 for unsupported methods on /capture
 app.on(["PUT", "PATCH", "HEAD"], "/capture", (c: Context<AuthEnv>) =>
-  c.json({ error: "Method not allowed" }, 405)
+  fail(c, 405, "METHOD_NOT_ALLOWED", "Method not allowed")
 );
 
-// ── POST /api/capture — capture / snooze / dismiss ────────────────────────────
+// ── POST /api/capture/:id/snooze ───────────────────────────────────────────────
 
-app.post("/capture", async (c: Context<AuthEnv>) => {
-  let body: Record<string, unknown>;
+app.post("/capture/:id/snooze", async (c: Context<AuthEnv>) => {
+  const principal = c.get("principal");
+  const captureId = c.req.param("id");
+
+  let body: { minutes?: unknown };
   try {
-    body = (await c.req.json()) as Record<string, unknown>;
+    body = (await c.req.json()) as { minutes?: unknown };
   } catch {
     body = {};
   }
 
-  const action = body.action;
-
-  if (action === "snooze") {
-    return handleSnooze(c, body);
-  }
-  if (action === "dismiss") {
-    return handleDismiss(c, body);
-  }
-  return handleCapture(c, body);
-});
-
-async function handleSnooze(c: Context<AuthEnv>, body: Record<string, unknown>) {
-  const principal = await authenticate(c.req.raw.headers);
-  if (!principal) return c.json({ error: "Unauthorized" }, 401);
-  if (!principalHasScope(principal, SCOPES.CAPTURE_WRITE)) {
-    return c.json({ error: "Insufficient scope" }, 403);
-  }
-
-  const { captureId, minutes: rawMinutes = 60 } = body;
-
-  if (!captureId || typeof captureId !== "string") {
-    return c.json({ error: "captureId is required" }, 400);
-  }
-
-  const minutes = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, Number(rawMinutes) || 60));
+  const minutes = Math.max(
+    MIN_MINUTES,
+    Math.min(MAX_MINUTES, Number(body.minutes) || 60)
+  );
   const snoozedUntil = new Date(Date.now() + minutes * 60_000).toISOString();
 
   try {
@@ -154,29 +154,22 @@ async function handleSnooze(c: Context<AuthEnv>, body: Record<string, unknown>) 
 
     if (error) {
       console.error("Snooze update error:", error.message);
-      return c.json({ error: "Failed to snooze capture" }, 500);
+      return fail(c, 500, "INTERNAL", "Failed to snooze capture");
     }
-    if (!data) return c.json({ error: "Capture not found" }, 404);
+    if (!data) return fail(c, 404, "NOT_FOUND", "Capture not found");
 
-    return c.json({ ok: true, snoozedUntil });
+    return ok(c, { captureId, snoozedUntil });
   } catch (err) {
     console.error("Snooze unexpected error:", err);
-    return c.json({ error: "Internal server error" }, 500);
+    return fail(c, 500, "INTERNAL", "Internal server error");
   }
-}
+});
 
-async function handleDismiss(c: Context<AuthEnv>, body: Record<string, unknown>) {
-  const principal = await authenticate(c.req.raw.headers);
-  if (!principal) return c.json({ error: "Unauthorized" }, 401);
-  if (!principalHasScope(principal, SCOPES.CAPTURE_WRITE)) {
-    return c.json({ error: "Insufficient scope" }, 403);
-  }
+// ── POST /api/capture/:id/dismiss ──────────────────────────────────────────────
 
-  const { captureId } = body;
-
-  if (!captureId || typeof captureId !== "string") {
-    return c.json({ error: "captureId is required" }, 400);
-  }
+app.post("/capture/:id/dismiss", async (c: Context<AuthEnv>) => {
+  const principal = c.get("principal");
+  const captureId = c.req.param("id");
 
   try {
     const supabase = getServiceClient();
@@ -190,18 +183,41 @@ async function handleDismiss(c: Context<AuthEnv>, body: Record<string, unknown>)
 
     if (error) {
       console.error("Dismiss update error:", error.message);
-      return c.json({ error: "Failed to dismiss capture" }, 500);
+      return fail(c, 500, "INTERNAL", "Failed to dismiss capture");
     }
-    if (!data) return c.json({ error: "Capture not found" }, 404);
+    if (!data) return fail(c, 404, "NOT_FOUND", "Capture not found");
 
-    return c.json({ ok: true });
+    return ok(c, { captureId });
   } catch (err) {
     console.error("Dismiss unexpected error:", err);
-    return c.json({ error: "Internal server error" }, 500);
+    return fail(c, 500, "INTERNAL", "Internal server error");
   }
-}
+});
 
-async function handleCapture(c: Context<AuthEnv>, body: Record<string, unknown>) {
+// ── POST /api/capture — capture ────────────────────────────────────────────────
+//
+// INLINE_AUTH in ROUTE_SCOPES: the webhook path authenticates with a secret in the
+// JSON body, so this handler must read the body before it can resolve a principal.
+// Auth priority mirrors authenticate(): PAT > webhook secret > session.
+
+app.post("/capture", async (c: Context<AuthEnv>) => {
+  let body: Record<string, unknown>;
+  try {
+    body = (await c.req.json()) as Record<string, unknown>;
+  } catch {
+    body = {};
+  }
+
+  if (typeof body.action === "string") {
+    return fail(
+      c,
+      400,
+      "VALIDATION",
+      `action="${body.action}" is no longer supported on POST /api/capture`,
+      "Use POST /api/capture/:id/snooze or POST /api/capture/:id/dismiss"
+    );
+  }
+
   const { content, source = "in_app", metadata = {}, secret } = body;
 
   const supabaseUrl = process.env.SUPABASE_URL!;
@@ -210,45 +226,42 @@ async function handleCapture(c: Context<AuthEnv>, body: Record<string, unknown>)
   let userId: string | null = null;
   let isPatCapture = false;
 
-  // Auth priority: PAT > webhook secret > session
-  const patResolved = await resolveApiToken(
-    { headers: { authorization: c.req.header("authorization") ?? "" } } as Parameters<typeof resolveApiToken>[0]
-  );
+  const patResolved = await resolveApiToken(c.req.header("authorization"));
 
   if (patResolved) {
     if (!principalHasScope(
       { userId: patResolved.userId, scopes: patResolved.scopes, kind: "pat" },
       SCOPES.CAPTURE_WRITE
     )) {
-      return c.json({ error: "Insufficient scope" }, 403);
+      return fail(c, 403, "INSUFFICIENT_SCOPE", `Requires scope ${SCOPES.CAPTURE_WRITE}`);
     }
     userId = patResolved.userId;
     isPatCapture = true;
   } else if (secret) {
     const webhookPrincipal = authenticateWebhook(secret);
     if (!webhookPrincipal) {
-      return c.json({ error: "Invalid secret" }, 401);
+      return fail(c, 401, "NOT_AUTHENTICATED", "Invalid secret");
     }
     userId = webhookPrincipal.userId;
   } else {
-    const bearerToken = c.req.header("authorization")?.replace("Bearer ", "");
-    if (!bearerToken) return c.json({ error: "Unauthorized" }, 401);
+    const sessionToken = c.req.header("authorization")?.replace(/^Bearer\s+/i, "");
+    if (!sessionToken) return fail(c, 401, "NOT_AUTHENTICATED", "Missing or invalid credentials");
     const authClient = createClient(supabaseUrl, supabaseKey);
-    const { data: { user }, error } = await authClient.auth.getUser(bearerToken);
-    if (error || !user) return c.json({ error: "Unauthorized" }, 401);
+    const { data: { user }, error } = await authClient.auth.getUser(sessionToken);
+    if (error || !user) return fail(c, 401, "NOT_AUTHENTICATED", "Missing or invalid credentials");
     userId = user.id;
   }
 
-  if (!userId) return c.json({ error: "User ID required" }, 400);
+  if (!userId) return fail(c, 400, "VALIDATION", "User ID required");
 
   if (typeof content !== "string" || !content.trim()) {
-    return c.json({ error: "Content is required" }, 400);
+    return fail(c, 400, "VALIDATION", "Content is required");
   }
 
   const supabase = createClient(supabaseUrl, supabaseKey);
 
   if (isPatCapture) {
-    // Rate limit
+    // Rate limit (per user — single-user app; revisit per-token when multi-device)
     const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_SECONDS * 1000).toISOString();
     const { count } = await supabase
       .from("capture_queue")
@@ -257,7 +270,7 @@ async function handleCapture(c: Context<AuthEnv>, body: Record<string, unknown>)
       .gte("created_at", windowStart);
 
     if ((count ?? 0) >= RATE_LIMIT_MAX) {
-      return c.json({ error: "Rate limit exceeded" }, 429);
+      return fail(c, 429, "RATE_LIMITED", "Rate limit exceeded", "Retry in 60 seconds");
     }
 
     // Idempotency pre-check
@@ -271,10 +284,9 @@ async function handleCapture(c: Context<AuthEnv>, body: Record<string, unknown>)
         .maybeSingle();
 
       if (existing) {
-        return c.json({
-          success: true,
-          message: "Duplicate capture — returning existing",
+        return ok(c, {
           captureId: (existing as { id: string }).id,
+          duplicate: true,
         });
       }
     }
@@ -324,16 +336,15 @@ async function handleCapture(c: Context<AuthEnv>, body: Record<string, unknown>)
             .eq("idempotency_key", idempotencyKey)
             .maybeSingle();
 
-          return c.json({
-            success: true,
-            message: "Duplicate capture — returning existing",
+          return ok(c, {
             captureId: (raced as { id: string } | null)?.id ?? null,
+            duplicate: true,
           });
         }
       }
 
       console.error("Capture insert error:", insertError.message);
-      return c.json({ error: "Failed to save capture" }, 500);
+      return fail(c, 500, "INTERNAL", "Failed to save capture");
     }
 
     const host = c.req.header("host");
@@ -352,20 +363,19 @@ async function handleCapture(c: Context<AuthEnv>, body: Record<string, unknown>)
       }).catch((err) => console.error("Process trigger failed:", err))
     );
 
-    return c.json({
-      success: true,
-      message: `Captured from ${safeSource}`,
+    return ok(c, {
       captureId: (data as { id: string }).id,
+      source: safeSource,
     });
   } catch (err) {
     console.error("Capture unexpected error:", err);
-    return c.json({ error: "Internal server error" }, 500);
+    return fail(c, 500, "INTERNAL", "Internal server error");
   }
-}
+});
 
 // ── GET /api/tokens — list PATs ────────────────────────────────────────────────
 
-app.get("/tokens", requireSession, async (c: Context<AuthEnv>) => {
+app.get("/tokens", async (c: Context<AuthEnv>) => {
   const principal = c.get("principal");
   try {
     const supabase = getServiceClient();
@@ -377,13 +387,13 @@ app.get("/tokens", requireSession, async (c: Context<AuthEnv>) => {
 
     if (error) {
       console.error("Token list error:", error.message);
-      return c.json({ error: "Failed to list tokens" }, 500);
+      return fail(c, 500, "INTERNAL", "Failed to list tokens");
     }
 
-    return c.json({ tokens: data ?? [] });
+    return ok(c, { tokens: data ?? [] });
   } catch (err) {
     console.error("Token list unexpected error:", err);
-    return c.json({ error: "Internal server error" }, 500);
+    return fail(c, 500, "INTERNAL", "Internal server error");
   }
 });
 
@@ -391,7 +401,7 @@ app.get("/tokens", requireSession, async (c: Context<AuthEnv>) => {
 
 const ALLOWED_SCOPES = new Set<string>([SCOPES.CAPTURE_READ, SCOPES.CAPTURE_WRITE]);
 
-app.post("/tokens", requireSession, async (c: Context<AuthEnv>) => {
+app.post("/tokens", async (c: Context<AuthEnv>) => {
   const principal = c.get("principal");
   let body: { name?: unknown; scopes?: unknown };
   try {
@@ -401,20 +411,26 @@ app.post("/tokens", requireSession, async (c: Context<AuthEnv>) => {
   }
 
   const name = typeof body.name === "string" ? body.name.trim() : "";
-  if (!name) return c.json({ error: "name is required" }, 400);
-  if (name.length > 100) return c.json({ error: "name must be 100 characters or fewer" }, 400);
+  if (!name) return fail(c, 400, "VALIDATION", "name is required");
+  if (name.length > 100) {
+    return fail(c, 400, "VALIDATION", "name must be 100 characters or fewer");
+  }
 
   let scopes: string[];
   if (body.scopes !== undefined) {
     if (!Array.isArray(body.scopes)) {
-      return c.json({ error: "scopes must be an array" }, 400);
+      return fail(c, 400, "VALIDATION", "scopes must be an array");
     }
     const requested = body.scopes as unknown[];
     for (const s of requested) {
       if (typeof s !== "string" || !ALLOWED_SCOPES.has(s)) {
-        return c.json({
-          error: `Invalid scope "${String(s)}". Allowed: capture:read, capture:write`,
-        }, 400);
+        return fail(
+          c,
+          400,
+          "VALIDATION",
+          `Invalid scope "${String(s)}"`,
+          "Allowed: capture:read, capture:write"
+        );
       }
     }
     scopes = requested as string[];
@@ -434,32 +450,29 @@ app.post("/tokens", requireSession, async (c: Context<AuthEnv>) => {
 
     if (error) {
       console.error("Token create error:", error.message);
-      return c.json({ error: "Failed to create token" }, 500);
+      return fail(c, 500, "INTERNAL", "Failed to create token");
     }
 
-    return c.json(
-      { token: plaintext, id: (data as { id: string }).id, name: (data as { name: string }).name },
+    return ok(
+      c,
+      {
+        token: plaintext,
+        id: (data as { id: string }).id,
+        name: (data as { name: string }).name,
+      },
       201
     );
   } catch (err) {
     console.error("Token create unexpected error:", err);
-    return c.json({ error: "Internal server error" }, 500);
+    return fail(c, 500, "INTERNAL", "Internal server error");
   }
 });
 
-// ── DELETE /api/tokens — revoke PAT ───────────────────────────────────────────
+// ── DELETE /api/tokens/:id — revoke PAT ────────────────────────────────────────
 
-app.delete("/tokens", requireSession, async (c: Context<AuthEnv>) => {
+app.delete("/tokens/:id", async (c: Context<AuthEnv>) => {
   const principal = c.get("principal");
-  let body: { id?: unknown };
-  try {
-    body = (await c.req.json()) as { id?: unknown };
-  } catch {
-    body = {};
-  }
-
-  const id = typeof body.id === "string" ? body.id.trim() : "";
-  if (!id) return c.json({ error: "id is required" }, 400);
+  const id = c.req.param("id");
 
   try {
     const supabase = getServiceClient();
@@ -474,13 +487,13 @@ app.delete("/tokens", requireSession, async (c: Context<AuthEnv>) => {
 
     if (error) {
       console.error("Token revoke error:", error.message);
-      return c.json({ error: "Failed to revoke token" }, 500);
+      return fail(c, 500, "INTERNAL", "Failed to revoke token");
     }
-    if (!data) return c.json({ error: "Token not found" }, 404);
+    if (!data) return fail(c, 404, "NOT_FOUND", "Token not found");
 
-    return c.json({ ok: true });
+    return ok(c, { id });
   } catch (err) {
     console.error("Token revoke unexpected error:", err);
-    return c.json({ error: "Internal server error" }, 500);
+    return fail(c, 500, "INTERNAL", "Internal server error");
   }
 });

@@ -1,6 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import { randomBytes, createHash } from "crypto";
-import type { VercelRequest } from "@vercel/node";
+import { waitUntil } from "@vercel/functions";
 
 /**
  * Personal Access Token (PAT) helpers — the single place that owns token format,
@@ -34,19 +34,25 @@ export function generateToken(): { plaintext: string; hash: string } {
   return { plaintext, hash: hashToken(plaintext) };
 }
 
-export function bearerToken(req: VercelRequest): string | undefined {
-  return req.headers.authorization?.replace("Bearer ", "");
+/** Extract the bearer token from an Authorization header value (case-insensitive). */
+export function bearerToken(authHeader: string | undefined | null): string | undefined {
+  if (typeof authHeader !== "string") return undefined;
+  const stripped = authHeader.replace(/^Bearer\s+/i, "");
+  return stripped === authHeader ? undefined : stripped;
 }
 
 export type ResolvedToken = { userId: string; scopes: string[]; tokenId: string };
 
 /**
- * Resolve a `Bearer fb_pat_...` request to its user + scopes, or null.
+ * Resolve an `Authorization: Bearer fb_pat_...` header to its user + scopes, or null.
  * Returns null for non-PAT tokens (so callers can fall back to session auth).
- * Updates last_used_at fire-and-forget. Uses the service-role key (bypasses RLS).
+ * Stamps last_used_at via waitUntil (survives the response being sent; never blocks it).
+ * Uses the service-role key (bypasses RLS).
  */
-export async function resolveApiToken(req: VercelRequest): Promise<ResolvedToken | null> {
-  const token = bearerToken(req);
+export async function resolveApiToken(
+  authHeader: string | undefined | null
+): Promise<ResolvedToken | null> {
+  const token = bearerToken(authHeader);
   if (!isPat(token)) return null;
 
   const supabaseUrl = process.env.SUPABASE_URL;
@@ -68,15 +74,17 @@ export async function resolveApiToken(req: VercelRequest): Promise<ResolvedToken
 
   if (error || !data) return null;
 
-  // Best-effort usage stamp — never block the request on it.
-  void supabase
-    .from("api_tokens")
-    .update({ last_used_at: new Date().toISOString() })
-    .eq("id", data.id)
-    .then(
+  waitUntil(
+    Promise.resolve(
+      supabase
+        .from("api_tokens")
+        .update({ last_used_at: new Date().toISOString() })
+        .eq("id", data.id)
+    ).then(
       () => {},
-      () => {},
-    );
+      () => {}
+    )
+  );
 
   return { userId: data.user_id, scopes: data.scopes ?? [], tokenId: data.id };
 }

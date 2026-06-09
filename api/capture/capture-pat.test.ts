@@ -1,15 +1,15 @@
 /**
  * Tests for the Hono router (api/_lib/hono-app.ts).
  *
- * Covers:
- *   - POST /api/capture (no action / action='capture'): PAT accept/reject,
- *     scope enforcement, idempotency, rate limiting, auto_add=false for PAT
- *   - POST /api/capture action='snooze': PAT auth, scope, sets snoozed_until,
+ * Covers (all responses in the { ok, data } / { ok, error: { code, … } } envelope):
+ *   - POST /api/capture: PAT accept/reject, scope enforcement, idempotency,
+ *     rate limiting, auto_add=false for PAT, legacy action field rejected
+ *   - POST /api/capture/:id/snooze: auth, scope, sets snoozed_until,
  *     404 on missing row, clamp bounds
- *   - POST /api/capture action='dismiss': PAT auth, scope, sets status=dismissed,
+ *   - POST /api/capture/:id/dismiss: auth, scope, sets status=dismissed,
  *     404 on missing row
- *   - GET /api/capture (inbox): PAT auth, scope (capture:read),
- *     snooze-visibility filter, { items, total } shape, 500 on Supabase error
+ *   - GET /api/capture (inbox): auth, scope (capture:read),
+ *     snooze-visibility filter, items/total shape, 500 on Supabase error
  *
  * All Supabase calls and the token resolver are mocked — no network calls made.
  */
@@ -52,8 +52,8 @@ vi.mock("../_lib/token.js", () => ({
   ),
   generateToken: vi.fn(() => ({ plaintext: "fb_pat_generated", hash: "hashed" })),
   hashToken: vi.fn((t: string) => t + "_hashed"),
-  bearerToken: vi.fn((req: { headers: Record<string, string> }) =>
-    req.headers.authorization?.replace("Bearer ", "")
+  bearerToken: vi.fn((authHeader: string | undefined | null) =>
+    typeof authHeader === "string" ? authHeader.replace(/^Bearer\s+/i, "") : undefined
   ),
 }));
 
@@ -128,7 +128,10 @@ vi.mock("@supabase/supabase-js", () => ({
   }),
 }));
 
-// ─── Helpers ──────────────────────────────────────────────────────────────────
+// ─── Envelope types + helpers ─────────────────────────────────────────────────
+
+type OkBody<T> = { ok: true; data: T };
+type ErrBody = { ok: false; error: { code: string; message: string; hint?: string } };
 
 const PAT_TOKEN = "Bearer fb_pat_testtokenvalue";
 
@@ -141,6 +144,21 @@ async function postCapture(body: Record<string, unknown>, extraHeaders: Record<s
       ...extraHeaders,
     },
     body: JSON.stringify(body),
+  });
+}
+
+async function postSnooze(id: string, body: Record<string, unknown>, headers: Record<string, string> = { Authorization: PAT_TOKEN }) {
+  return app.request(`/api/capture/${id}/snooze`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...headers },
+    body: JSON.stringify(body),
+  });
+}
+
+async function postDismiss(id: string, headers: Record<string, string> = { Authorization: PAT_TOKEN }) {
+  return app.request(`/api/capture/${id}/dismiss`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json", ...headers },
   });
 }
 
@@ -178,7 +196,7 @@ function resetState() {
 
 // ─── POST capture tests ───────────────────────────────────────────────────────
 
-describe("Hono /api/capture — POST capture (no action / PAT auth path)", () => {
+describe("Hono /api/capture — POST capture (PAT auth path)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetState();
@@ -187,12 +205,12 @@ describe("Hono /api/capture — POST capture (no action / PAT auth path)", () =>
   it("accepts a valid PAT with capture:write scope and returns captureId", async () => {
     const res = await postCapture({ content: "Hello world" });
     expect(res.status).toBe(200);
-    const body = await res.json() as { success: boolean; captureId: string };
-    expect(body.success).toBe(true);
-    expect(body.captureId).toBe("capture-123");
+    const body = await res.json() as OkBody<{ captureId: string }>;
+    expect(body.ok).toBe(true);
+    expect(body.data.captureId).toBe("capture-123");
   });
 
-  it("rejects requests with no token (401)", async () => {
+  it("rejects requests with no token (401 NOT_AUTHENTICATED)", async () => {
     mockResolvedToken = null;
     const res = await app.request("/api/capture", {
       method: "POST",
@@ -200,32 +218,39 @@ describe("Hono /api/capture — POST capture (no action / PAT auth path)", () =>
       body: JSON.stringify({ content: "test" }),
     });
     expect(res.status).toBe(401);
-    const body = await res.json() as { error: string };
-    expect(body.error).toBe("Unauthorized");
+    const body = await res.json() as ErrBody;
+    expect(body.ok).toBe(false);
+    expect(body.error.code).toBe("NOT_AUTHENTICATED");
   });
 
-  it("returns 403 when PAT lacks capture:write scope", async () => {
+  it("returns 403 INSUFFICIENT_SCOPE when PAT lacks capture:write", async () => {
     mockResolvedToken = { userId: "user-abc", scopes: ["capture:read"], tokenId: "token-1" };
     const res = await postCapture({ content: "test" });
     expect(res.status).toBe(403);
-    const body = await res.json() as { error: string };
-    expect(body.error).toBe("Insufficient scope");
+    const body = await res.json() as ErrBody;
+    expect(body.error.code).toBe("INSUFFICIENT_SCOPE");
   });
 
-  it("returns 429 when rate limit exceeded (> 30 in last 60s)", async () => {
+  it("rejects the legacy action field with 400 VALIDATION and a hint", async () => {
+    const res = await postCapture({ action: "snooze", captureId: "cap-1", minutes: 30 });
+    expect(res.status).toBe(400);
+    const body = await res.json() as ErrBody;
+    expect(body.error.code).toBe("VALIDATION");
+    expect(body.error.hint).toContain("/snooze");
+  });
+
+  it("returns 429 RATE_LIMITED when rate limit exceeded (> 30 in last 60s)", async () => {
     mockSelectCount = 31;
     const res = await postCapture({ content: "test" });
     expect(res.status).toBe(429);
-    const body = await res.json() as { error: string };
-    expect(body.error).toBe("Rate limit exceeded");
+    const body = await res.json() as ErrBody;
+    expect(body.error.code).toBe("RATE_LIMITED");
   });
 
   it("returns 429 when count is exactly at the limit (30)", async () => {
     mockSelectCount = 30;
     const res = await postCapture({ content: "test" });
     expect(res.status).toBe(429);
-    const body = await res.json() as { error: string };
-    expect(body.error).toBe("Rate limit exceeded");
   });
 
   it("idempotency: returns existing captureId without re-inserting on duplicate key", async () => {
@@ -235,8 +260,9 @@ describe("Hono /api/capture — POST capture (no action / PAT auth path)", () =>
       { "Idempotency-Key": "my-unique-key-123" }
     );
     expect(res.status).toBe(200);
-    const body = await res.json() as { captureId: string };
-    expect(body.captureId).toBe("existing-capture-456");
+    const body = await res.json() as OkBody<{ captureId: string; duplicate?: boolean }>;
+    expect(body.data.captureId).toBe("existing-capture-456");
+    expect(body.data.duplicate).toBe(true);
     expect(lastInsertPayload).toBeNull();
   });
 
@@ -250,8 +276,9 @@ describe("Hono /api/capture — POST capture (no action / PAT auth path)", () =>
       { "Idempotency-Key": "race-condition-key" }
     );
     expect(res.status).toBe(200);
-    const body = await res.json() as { captureId: string };
-    expect(body.captureId).toBe("raced-capture-789");
+    const body = await res.json() as OkBody<{ captureId: string; duplicate?: boolean }>;
+    expect(body.data.captureId).toBe("raced-capture-789");
+    expect(body.data.duplicate).toBe(true);
   });
 
   it("passes auto_add: false to process endpoint for PAT captures", async () => {
@@ -280,9 +307,9 @@ describe("Hono /api/capture — POST capture (no action / PAT auth path)", () =>
   });
 });
 
-// ─── POST action='snooze' tests ───────────────────────────────────────────────
+// ─── POST /:id/snooze tests ───────────────────────────────────────────────────
 
-describe("Hono /api/capture — POST action='snooze'", () => {
+describe("Hono /api/capture/:id/snooze", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetState();
@@ -290,68 +317,64 @@ describe("Hono /api/capture — POST action='snooze'", () => {
 
   it("returns 401 when no PAT is provided", async () => {
     mockResolvedToken = null;
-    const res = await app.request("/api/capture", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "snooze", captureId: "cap-1", minutes: 30 }),
-    });
+    const res = await postSnooze("cap-1", { minutes: 30 }, {});
     expect(res.status).toBe(401);
-    const body = await res.json() as { error: string };
-    expect(body.error).toBe("Unauthorized");
+    const body = await res.json() as ErrBody;
+    expect(body.error.code).toBe("NOT_AUTHENTICATED");
   });
 
   it("returns 403 when PAT lacks capture:write scope", async () => {
     mockResolvedToken = { userId: "user-abc", scopes: ["capture:read"], tokenId: "token-1" };
-    const res = await postCapture({ action: "snooze", captureId: "cap-1", minutes: 30 });
+    const res = await postSnooze("cap-1", { minutes: 30 });
     expect(res.status).toBe(403);
-    const body = await res.json() as { error: string };
-    expect(body.error).toBe("Insufficient scope");
+    const body = await res.json() as ErrBody;
+    expect(body.error.code).toBe("INSUFFICIENT_SCOPE");
   });
 
-  it("sets snoozed_until and returns ok + snoozedUntil", async () => {
+  it("sets snoozed_until and returns captureId + snoozedUntil", async () => {
     const before = Date.now();
-    const res = await postCapture({ action: "snooze", captureId: "cap-1", minutes: 60 });
+    const res = await postSnooze("cap-1", { minutes: 60 });
     expect(res.status).toBe(200);
-    const body = await res.json() as { ok: boolean; snoozedUntil: string };
+    const body = await res.json() as OkBody<{ captureId: string; snoozedUntil: string }>;
     expect(body.ok).toBe(true);
-    expect(body.snoozedUntil).toBeDefined();
-    const snoozedMs = new Date(body.snoozedUntil).getTime();
+    expect(body.data.captureId).toBe("cap-1");
+    const snoozedMs = new Date(body.data.snoozedUntil).getTime();
     expect(snoozedMs).toBeGreaterThan(before + 59 * 60 * 1000);
     expect(snoozedMs).toBeLessThan(before + 61 * 60 * 1000);
   });
 
   it("clamps minutes below minimum to 1", async () => {
     const before = Date.now();
-    const res = await postCapture({ action: "snooze", captureId: "cap-1", minutes: -5 });
+    const res = await postSnooze("cap-1", { minutes: -5 });
     expect(res.status).toBe(200);
-    const body = await res.json() as { ok: boolean; snoozedUntil: string };
-    const snoozedMs = new Date(body.snoozedUntil).getTime();
+    const body = await res.json() as OkBody<{ snoozedUntil: string }>;
+    const snoozedMs = new Date(body.data.snoozedUntil).getTime();
     expect(snoozedMs).toBeGreaterThan(before);
     expect(snoozedMs).toBeLessThan(before + 2 * 60 * 1000);
   });
 
   it("clamps minutes above maximum to 43200", async () => {
     const before = Date.now();
-    const res = await postCapture({ action: "snooze", captureId: "cap-1", minutes: 99999 });
+    const res = await postSnooze("cap-1", { minutes: 99999 });
     expect(res.status).toBe(200);
-    const body = await res.json() as { ok: boolean; snoozedUntil: string };
-    const snoozedMs = new Date(body.snoozedUntil).getTime();
+    const body = await res.json() as OkBody<{ snoozedUntil: string }>;
+    const snoozedMs = new Date(body.data.snoozedUntil).getTime();
     const maxMs = before + 43200 * 60 * 1000;
     expect(snoozedMs).toBeLessThanOrEqual(maxMs + 1000);
   });
 
-  it("returns 404 when capture row not found (wrong user or id)", async () => {
+  it("returns 404 NOT_FOUND when capture row not found (wrong user or id)", async () => {
     mockUpdateData = null;
-    const res = await postCapture({ action: "snooze", captureId: "nonexistent", minutes: 30 });
+    const res = await postSnooze("nonexistent", { minutes: 30 });
     expect(res.status).toBe(404);
-    const body = await res.json() as { error: string };
-    expect(body.error).toBe("Capture not found");
+    const body = await res.json() as ErrBody;
+    expect(body.error.code).toBe("NOT_FOUND");
   });
 });
 
-// ─── POST action='dismiss' tests ──────────────────────────────────────────────
+// ─── POST /:id/dismiss tests ──────────────────────────────────────────────────
 
-describe("Hono /api/capture — POST action='dismiss'", () => {
+describe("Hono /api/capture/:id/dismiss", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetState();
@@ -359,37 +382,34 @@ describe("Hono /api/capture — POST action='dismiss'", () => {
 
   it("returns 401 when no PAT is provided", async () => {
     mockResolvedToken = null;
-    const res = await app.request("/api/capture", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ action: "dismiss", captureId: "cap-1" }),
-    });
+    const res = await postDismiss("cap-1", {});
     expect(res.status).toBe(401);
-    const body = await res.json() as { error: string };
-    expect(body.error).toBe("Unauthorized");
+    const body = await res.json() as ErrBody;
+    expect(body.error.code).toBe("NOT_AUTHENTICATED");
   });
 
   it("returns 403 when PAT lacks capture:write scope", async () => {
     mockResolvedToken = { userId: "user-abc", scopes: ["capture:read"], tokenId: "token-1" };
-    const res = await postCapture({ action: "dismiss", captureId: "cap-1" });
+    const res = await postDismiss("cap-1");
     expect(res.status).toBe(403);
-    const body = await res.json() as { error: string };
-    expect(body.error).toBe("Insufficient scope");
+    const body = await res.json() as ErrBody;
+    expect(body.error.code).toBe("INSUFFICIENT_SCOPE");
   });
 
-  it("sets status=dismissed and returns ok:true", async () => {
-    const res = await postCapture({ action: "dismiss", captureId: "cap-1" });
+  it("sets status=dismissed and returns the captureId", async () => {
+    const res = await postDismiss("cap-1");
     expect(res.status).toBe(200);
-    const body = await res.json() as { ok: boolean };
+    const body = await res.json() as OkBody<{ captureId: string }>;
     expect(body.ok).toBe(true);
+    expect(body.data.captureId).toBe("cap-1");
   });
 
   it("returns 404 when capture row not found", async () => {
     mockUpdateData = null;
-    const res = await postCapture({ action: "dismiss", captureId: "nonexistent" });
+    const res = await postDismiss("nonexistent");
     expect(res.status).toBe(404);
-    const body = await res.json() as { error: string };
-    expect(body.error).toBe("Capture not found");
+    const body = await res.json() as ErrBody;
+    expect(body.error.code).toBe("NOT_FOUND");
   });
 });
 
@@ -406,36 +426,39 @@ describe("Hono /api/capture — GET inbox", () => {
     };
   });
 
-  it("returns 405 for unsupported methods (e.g. PUT)", async () => {
+  it("returns 405 METHOD_NOT_ALLOWED for unsupported methods (e.g. PUT)", async () => {
     const res = await app.request("/api/capture", {
       method: "PUT",
       headers: { Authorization: PAT_TOKEN },
     });
     expect(res.status).toBe(405);
+    const body = await res.json() as ErrBody;
+    expect(body.error.code).toBe("METHOD_NOT_ALLOWED");
   });
 
   it("returns 401 when no PAT token", async () => {
     mockResolvedToken = null;
     const res = await app.request("/api/capture", { method: "GET" });
     expect(res.status).toBe(401);
-    const body = await res.json() as { error: string };
-    expect(body.error).toBe("Unauthorized");
+    const body = await res.json() as ErrBody;
+    expect(body.error.code).toBe("NOT_AUTHENTICATED");
   });
 
   it("returns 403 when PAT lacks capture:read scope", async () => {
     mockResolvedToken = { userId: "user-abc", scopes: ["capture:write"], tokenId: "token-1" };
     const res = await getInbox();
     expect(res.status).toBe(403);
-    const body = await res.json() as { error: string };
-    expect(body.error).toBe("Insufficient scope");
+    const body = await res.json() as ErrBody;
+    expect(body.error.code).toBe("INSUFFICIENT_SCOPE");
   });
 
-  it("returns { items: [], total: 0 } when no captures exist", async () => {
+  it("returns items: [], total: 0 when no captures exist", async () => {
     mockQueryResult = { data: [], error: null };
     const res = await getInbox();
     expect(res.status).toBe(200);
-    const body = await res.json() as { items: unknown[]; total: number };
-    expect(body).toEqual({ items: [], total: 0 });
+    const body = await res.json() as OkBody<{ items: unknown[]; total: number }>;
+    expect(body.ok).toBe(true);
+    expect(body.data).toEqual({ items: [], total: 0 });
   });
 
   it("returns pending captures and a correct total", async () => {
@@ -452,9 +475,9 @@ describe("Hono /api/capture — GET inbox", () => {
 
     const res = await getInbox();
     expect(res.status).toBe(200);
-    const body = await res.json() as { items: unknown[]; total: number };
-    expect(body.items).toHaveLength(2);
-    expect(body.total).toBe(2);
+    const body = await res.json() as OkBody<{ items: unknown[]; total: number }>;
+    expect(body.data.items).toHaveLength(2);
+    expect(body.data.total).toBe(2);
   });
 
   it("snooze-visibility: query uses .or() with snoozed_until IS NULL and lte conditions", async () => {
@@ -463,11 +486,11 @@ describe("Hono /api/capture — GET inbox", () => {
     expect(orCallArg).toContain("snoozed_until.lte.");
   });
 
-  it("returns 500 on Supabase query error", async () => {
+  it("returns 500 INTERNAL on Supabase query error", async () => {
     mockQueryResult = { data: null, error: { message: "Connection refused" } };
     const res = await getInbox();
     expect(res.status).toBe(500);
-    const body = await res.json() as { error: string };
-    expect(body.error).toBe("Failed to fetch inbox");
+    const body = await res.json() as ErrBody;
+    expect(body.error.code).toBe("INTERNAL");
   });
 });

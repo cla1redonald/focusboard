@@ -11,6 +11,21 @@ const ALLOWED_ORIGINS = [
   "http://localhost:3000",
 ];
 
+// Hostname-parsed, not substring-matched — a substring check admits
+// https://focusboard.vercel.app.evil.com.
+function isFocusboardVercelOrigin(origin: string): boolean {
+  try {
+    const { protocol, hostname } = new URL(origin);
+    return (
+      protocol === "https:" &&
+      hostname.startsWith("focusboard") &&
+      hostname.endsWith(".vercel.app")
+    );
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Set CORS headers with proper origin validation
  * Only allows requests from known origins
@@ -19,10 +34,7 @@ export function setCorsHeaders(req: VercelRequest, res: VercelResponse): void {
   const origin = req.headers.origin as string | undefined;
 
   // Check if origin is allowed (exact match or Vercel preview deploy)
-  const isAllowed = origin && (
-    ALLOWED_ORIGINS.includes(origin) ||
-    origin.includes("focusboard") && origin.includes("vercel.app")
-  );
+  const isAllowed = origin && (ALLOWED_ORIGINS.includes(origin) || isFocusboardVercelOrigin(origin));
 
   if (isAllowed) {
     res.setHeader("Access-Control-Allow-Origin", origin);
