@@ -17,7 +17,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   }
 
   try {
-    const { capture_id, user_id, internal_secret } = req.body || {};
+    const { capture_id, user_id, internal_secret, auto_add = true } = req.body || {};
 
     // Authenticate: only callable by internal trigger with shared secret
     const expectedSecret = process.env.CAPTURE_INTERNAL_SECRET;
@@ -167,8 +167,10 @@ Example: [{"title":"Review Q3 budget","notes":"From finance team email","tags":[
     // Calculate overall confidence (average)
     const avgConfidence = parsedCards.reduce((sum: number, c: { confidence?: number }) => sum + (c.confidence ?? 0.5), 0) / parsedCards.length;
 
-    // Determine status based on confidence
-    const status = avgConfidence >= CONFIDENCE_THRESHOLD ? "auto_added" : "ready";
+    // Determine status based on confidence.
+    // PAT/external captures (auto_add === false) must never become auto_added — they
+    // always land in the inbox as "ready" so the user reviews them.
+    const status = (avgConfidence >= CONFIDENCE_THRESHOLD && auto_add !== false) ? "auto_added" : "ready";
 
     // Update capture_queue with results
     await supabase
@@ -181,8 +183,8 @@ Example: [{"title":"Review Q3 budget","notes":"From finance team email","tags":[
       })
       .eq("id", capture_id);
 
-    // If high confidence, auto-add cards to board
-    if (status === "auto_added" && appState) {
+    // If high confidence, auto-add cards to board — but never for PAT/external captures
+    if (status === "auto_added" && appState && auto_add !== false) {
       const { nanoid } = await import("nanoid");
       const now = new Date().toISOString();
 

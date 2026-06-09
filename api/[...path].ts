@@ -1,0 +1,51 @@
+/**
+ * api/[...path].ts — Hono catch-all Vercel entry point (Node runtime).
+ *
+ * All route logic lives in api/_lib/hono-app.ts (importable by tests via app.fetch).
+ * This file bridges Vercel's Node (req, res) model ↔ Hono's Web Request/Response:
+ * `hono/vercel`'s handle() returns a WEB handler, which Vercel's Node runtime never
+ * invokes correctly (it calls (req, res)) → the response is never sent → 504 timeout.
+ * We stay on the Node runtime deliberately because PAT hashing uses node:crypto
+ * (createHash / timingSafeEqual), which the Edge runtime does not provide.
+ *
+ * Legacy functions (api/capture/process.ts, api/ai/*, api/feedback/submit.ts,
+ * api/webhook/add-card.ts) remain untouched — Vercel routes specific function files
+ * BEFORE this catch-all, so they keep working unchanged.
+ */
+
+import type { VercelRequest, VercelResponse } from "@vercel/node";
+import { app } from "./_lib/hono-app.js";
+
+export { app };
+
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+  const proto = (req.headers["x-forwarded-proto"] as string | undefined) ?? "https";
+  const host = req.headers.host ?? "localhost";
+  const url = `${proto}://${host}${req.url ?? "/"}`;
+
+  const headers = new Headers();
+  for (const [key, value] of Object.entries(req.headers)) {
+    if (Array.isArray(value)) headers.set(key, value.join(", "));
+    else if (typeof value === "string") headers.set(key, value);
+  }
+
+  const method = (req.method ?? "GET").toUpperCase();
+  let body: string | undefined;
+  if (method !== "GET" && method !== "HEAD" && req.body != null) {
+    // Vercel's Node runtime pre-parses JSON bodies into req.body (an object).
+    // Re-serialize so the Hono handlers can read them via c.req.json().
+    body = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
+    if (typeof req.body !== "string" && !headers.has("content-type")) {
+      headers.set("content-type", "application/json");
+    }
+  }
+
+  const response = await app.fetch(new Request(url, { method, headers, body }));
+
+  res.status(response.status);
+  response.headers.forEach((value, key) => {
+    if (key.toLowerCase() === "content-length") return; // let Vercel set it
+    res.setHeader(key, value);
+  });
+  res.send(await response.text());
+}

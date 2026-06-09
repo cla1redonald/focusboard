@@ -12,7 +12,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:security": "vitest run --reporter=verbose src/test/security.test.tsx"
+    "test:security": "vitest run --reporter=verbose src/test/security.test.tsx",
+    "test:api": "vitest run --config vitest.api.config.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
@@ -25,6 +26,7 @@
     "@vercel/functions": "^3.4.1",
     "@vercel/speed-insights": "^2.0.0",
     "framer-motion": "^12.23.26",
+    "hono": "^4.12.25",
     "html2canvas": "^1.4.1",
     "lucide-react": "^1.16.0",
     "nanoid": "^5.1.6",
