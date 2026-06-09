@@ -40,6 +40,16 @@ describe("ROUTE_SCOPES coverage", () => {
   });
 });
 
+describe("GET /api/health/deep — multi-segment liveness route", () => {
+  it("returns 200 with the envelope, no auth required", async () => {
+    const res = await app.request("/api/health/deep");
+    expect(res.status).toBe(200);
+    const body = await res.json() as { ok: boolean; data: { deep: boolean } };
+    expect(body.ok).toBe(true);
+    expect(body.data.deep).toBe(true);
+  });
+});
+
 describe("enforceRouteScopes — fail-closed", () => {
   it("denies a matched route that has no ROUTE_SCOPES entry (403, not open)", async () => {
     const testApp = new Hono<AuthEnv>().basePath("/api");

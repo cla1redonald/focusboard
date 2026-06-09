@@ -11,7 +11,7 @@
 
 ## Done (live in prod)
 - **PAT auth model** — `api_tokens` table (SHA-256-hashed tokens, per-token scopes, revocable). **Migration applied to prod** via the Supabase Management API + verified (8 cols, RLS, 4 own-row policies; `capture_queue.idempotency_key` added).
-- **Single Hono router** at `api/[...path].ts` (Node-runtime adapter → `app.fetch()`). All CLI/MCP endpoints live here as routes; legacy `api/` functions (ai/*, process, feedback, webhook) untouched. **9 serverless functions total** (under Vercel Hobby's 12 cap; stays stable because new endpoints are *routes*, not files).
+- **Single Hono router** at `api/index.ts`, reached via the `vercel.json` rewrite `/api/(.*) → /api` (Node-runtime adapter → `app.fetch()`; was `[...path].ts`, which Vercel only matched for single-segment paths — multi-segment routes platform-404'd). All CLI/MCP endpoints live here as routes; legacy `api/` functions (ai/*, process, feedback, webhook) untouched. **9 serverless functions total** (under Vercel Hobby's 12 cap; stays stable because new endpoints are *routes*, not files).
   - `api/_lib/token.ts` — token generate/hash/resolve/scopes.
   - `api/_lib/auth-middleware.ts` — unified `authenticate()` (**PAT > webhook > session**) + **route→required-scope table** (deny-by-default) + `requireScope`/`requireSession`.
   - `api/_lib/hono-app.ts` — the routes (importable by tests via `app.fetch`).
@@ -47,7 +47,8 @@
 - **Deploy = merge to `main`.** **ALWAYS runtime-verify the deployed artifact** — `curl` the route / Playwright the UI. Green CI is NOT proof (the Hono catch-all passed build + 661 tests + deploy + cross-model review and still **504'd every route** until a live `curl` caught a Web-handler-on-Node-runtime bug). **Preview deploys are SSO-protected** → verify on prod.
 
 ## Gotchas (cost real time — don't relearn)
-- `hono/vercel` `handle()` returns a **Web handler that 504s on Vercel's Node runtime** → the `(req,res)→app.fetch()` adapter in `api/[...path].ts` is required. Keep the **Node** runtime (PAT hashing uses `node:crypto`; Edge lacks it).
+- `hono/vercel` `handle()` returns a **Web handler that 504s on Vercel's Node runtime** → the `(req,res)→app.fetch()` adapter in `api/index.ts` is required. Keep the **Node** runtime (PAT hashing uses `node:crypto`; Edge lacks it).
+- A `[...path].ts` catch-all in `api/` only matches **one** path segment on Vercel (multi-segment paths → platform 404, function never invoked). Use `api/index.ts` + the `/api/(.*) → /api` rewrite; `req.url` keeps the original path. The smoke gate pins `/api/health/deep=200` to catch regressions.
 - Vercel **Hobby = 12 functions/deploy** (Fluid Compute doesn't change the count). We're at 9.
 
 ## Still pending (your hands, ~1 min)

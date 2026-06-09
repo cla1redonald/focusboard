@@ -38,16 +38,25 @@ fi
 fail=0
 
 # ── 1. HTTP smoke: every path must answer non-5xx, non-timeout ────────────────
+# A path may pin an EXACT expected status with "=NNN" (e.g. /api/health/deep=200,
+# /api/capture=401). Without "=", any non-5xx passes. Exact pins catch routing
+# regressions that hide behind "not a 5xx" — e.g. Vercel platform-404ing a path
+# that should reach the router (the multi-segment [...path].ts bug).
 PATHS="${SHIPIT_SMOKE_PATHS:-/}"
 IFS=',' read -ra ARR <<< "$PATHS"
-for p in "${ARR[@]}"; do
-  [ -n "$p" ] || continue
+for spec in "${ARR[@]}"; do
+  [ -n "$spec" ] || continue
+  p="${spec%%=*}"
+  want=""
+  [ "$spec" != "$p" ] && want="${spec#*=}"
   full="${URL%/}${p}"
   code="$(curl -s -o /dev/null --max-time 25 -w '%{http_code}' "$full" 2>/dev/null)"
   # curl prints "000" on connect failure/timeout; normalise anything not a 3-digit code.
   printf '%s' "$code" | grep -qE '^[0-9]{3}$' || code="000"
   if [ "$code" = "000" ]; then
     echo "::error::runtime-smoke: $full TIMED OUT / unreachable (the exact FocusBoard failure mode)"; fail=1
+  elif [ -n "$want" ] && [ "$code" != "$want" ]; then
+    echo "::error::runtime-smoke: $full → HTTP $code, expected $want — routing/auth regression on the deployed artifact"; fail=1
   elif [ "$code" -ge 500 ]; then
     echo "::error::runtime-smoke: $full → HTTP $code (5xx) — deployed artifact is broken"; fail=1
   else
