@@ -11,7 +11,7 @@ import { isSupabaseConfigured } from "./supabase";
 import { isDemoMode } from "./demoMode";
 import { DemoBanner } from "../components/DemoBanner";
 import { cleanupCardAttachments } from "./attachmentCleanup";
-import { debouncedSaveMetricsToSupabase } from "./sync";
+import { debouncedSaveMetricsToSupabase, appendFocusSessionToSupabase } from "./sync";
 import { useCaptureQueue } from "./useCaptureQueue";
 import type { ParsedCaptureCard } from "./captureTypes";
 import { dateKey } from "./today";
@@ -152,23 +152,26 @@ function AppContent() {
         ? crypto.randomUUID()
         : `${details.card.id}-${details.endedAt}`;
 
+      const session = {
+        id: sessionId,
+        cardId: details.card.id,
+        cardTitle: details.card.title,
+        plannedMinutes: details.plannedMinutes,
+        startedAt: details.startedAt,
+        endedAt: details.endedAt,
+        outcome: details.outcome,
+        note: details.note,
+      };
+
       setMetrics((current) => {
-        const updated = recordFocusSession(
-          {
-            id: sessionId,
-            cardId: details.card.id,
-            cardTitle: details.card.title,
-            plannedMinutes: details.plannedMinutes,
-            startedAt: details.startedAt,
-            endedAt: details.endedAt,
-            outcome: details.outcome,
-            note: details.note,
-          },
-          current
-        );
+        const updated = recordFocusSession(session, current);
         saveMetrics(updated);
         return updated;
       });
+
+      // Phase 3: focus_sessions table is the system of record — append there too
+      // (fire-and-forget; the blob copy above keeps the dashboards working).
+      void appendFocusSessionToSupabase(session);
 
       const latestCard = stateRef.current.cards.find((card) => card.id === details.card.id) ?? details.card;
       if (details.outcome === "completed") {

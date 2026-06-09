@@ -1,5 +1,5 @@
 import { supabase } from "./supabase";
-import type { AppState, MetricsState } from "./types";
+import type { AppState, FocusSession, MetricsState } from "./types";
 
 // Load app state from Supabase
 export async function loadStateFromSupabase(): Promise<AppState | null> {
@@ -100,6 +100,39 @@ export async function saveMetricsToSupabase(metrics: MetricsState): Promise<bool
     return false;
   }
 
+  return true;
+}
+
+// Append a completed focus session to the focus_sessions table (Phase 3).
+//
+// The table is the system of record for focus sessions — the CLI/MCP/API read
+// and write it exclusively. The web still keeps its metrics-blob copy for the
+// dashboards (flipping those readers to the table is a follow-up); this append
+// is fire-and-forget so a failure can never break the focus-mode UX. RLS scopes
+// the insert to the signed-in user; demo mode (no session) is a silent no-op.
+export async function appendFocusSessionToSupabase(session: FocusSession): Promise<boolean> {
+  if (!supabase) return false;
+
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return false;
+
+  const { error } = await supabase.from("focus_sessions").insert({
+    id: session.id,
+    user_id: user.id,
+    card_id: session.cardId,
+    card_title: session.cardTitle,
+    planned_minutes: session.plannedMinutes,
+    started_at: session.startedAt,
+    ended_at: session.endedAt,
+    outcome: session.outcome,
+    note: session.note ?? null,
+    source: "web",
+  });
+
+  if (error) {
+    console.error("Failed to append focus session to Supabase:", error);
+    return false;
+  }
   return true;
 }
 

@@ -6,6 +6,7 @@ import { inboxCommand, dismissCommand } from "./commands/inbox.js";
 import { snoozeCommand } from "./commands/snooze.js";
 import { loginCommand, statusCommand, logoutCommand } from "./commands/auth.js";
 import { todayCommand, listCommand, searchCommand, wipCommand } from "./commands/board.js";
+import { focusStartCommand, focusStopCommand, focusStatusCommand } from "./commands/focus.js";
 import { mcpCommand } from "./commands/mcp.js";
 
 /**
@@ -92,6 +93,27 @@ program
   .command("wip")
   .description("work-in-progress per column vs limits")
   .action(run(wipCommand));
+
+const focus = program.command("focus").description("focus sessions — protect attention, log outcomes");
+
+focus
+  .command("start")
+  .description("start a focus session (one active at a time, persisted)")
+  .argument("[card]", "card id or c-N alias from fb list (optional)")
+  .option("--for <duration>", "planned length: 25, 50m, 1h (default 25m)")
+  .action(run(focusStartCommand));
+
+focus
+  .command("stop")
+  .description("stop the active session and log the outcome")
+  .option("-o, --outcome <outcome>", "progressed | blocked | completed | abandoned", "progressed")
+  .option("--note <note>", "what happened")
+  .action(run(focusStopCommand));
+
+focus
+  .command("status")
+  .description("the active session + today's focus totals")
+  .action(run(focusStatusCommand));
 
 const auth = program.command("auth").description("manage CLI authentication");
 

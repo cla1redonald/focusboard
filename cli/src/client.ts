@@ -82,6 +82,28 @@ export type CardsData = {
   columns: { id: string; title: string; wipLimit: number | null; isTerminal: boolean }[];
 };
 
+export type FocusOutcome = "progressed" | "blocked" | "completed" | "abandoned";
+
+export type ActiveFocusSession = {
+  id: string;
+  cardId: string | null;
+  cardTitle: string | null;
+  plannedMinutes: number;
+  startedAt: string;
+  source?: string;
+};
+
+export type FocusStatusData = {
+  active: ActiveFocusSession | null;
+  today: { sessions: number; focusedMinutes: number };
+};
+
+export type StoppedFocusSession = ActiveFocusSession & {
+  actualMinutes: number;
+  endedAt: string;
+  outcome: FocusOutcome;
+};
+
 export type WipData = {
   columns: {
     id: string;
@@ -226,6 +248,24 @@ export class FocusboardClient {
 
   wip(): Promise<WipData> {
     return this.request("GET", "/api/wip");
+  }
+
+  focusStatus(): Promise<FocusStatusData> {
+    return this.request("GET", "/api/focus/status");
+  }
+
+  focusStart(opts: { cardId?: string; plannedMinutes?: number } = {}): Promise<ActiveFocusSession> {
+    return this.request("POST", "/api/focus/start", {
+      ...(opts.cardId ? { cardId: opts.cardId } : {}),
+      ...(opts.plannedMinutes ? { plannedMinutes: opts.plannedMinutes } : {}),
+    });
+  }
+
+  focusStop(opts: { outcome?: FocusOutcome; note?: string } = {}): Promise<StoppedFocusSession> {
+    return this.request("POST", "/api/focus/stop", {
+      outcome: opts.outcome ?? "progressed",
+      ...(opts.note ? { note: opts.note } : {}),
+    });
   }
 
   snooze(captureId: string, minutes: number): Promise<{ captureId: string; snoozedUntil: string }> {
