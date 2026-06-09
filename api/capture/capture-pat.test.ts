@@ -34,6 +34,7 @@ let mockQueryResult: { data: Record<string, unknown>[] | null; error: { message:
   error: null,
 };
 let orCallArg = "";
+let inCallArg: string[] = [];
 
 // ─── Module mocks ──────────────────────────────────────────────────────────────
 
@@ -93,6 +94,10 @@ vi.mock("@supabase/supabase-js", () => ({
 
     const merged = {
       eq: vi.fn().mockReturnThis(),
+      in: vi.fn((_col: string, values: string[]) => {
+        inCallArg = values;
+        return merged;
+      }),
       or: vi.fn((arg: string) => {
         orCallArg = arg;
         return merged;
@@ -182,6 +187,7 @@ function resetState() {
   mockRacedRow = null;
   idempKeyCallCount = 0;
   orCallArg = "";
+  inCallArg = [];
   mockQueryResult = { data: [], error: null };
   mockResolvedToken = {
     userId: "user-abc",
@@ -509,6 +515,11 @@ describe("Hono /api/capture — GET inbox", () => {
     await getInbox();
     expect(orCallArg).toContain("snoozed_until.is.null");
     expect(orCallArg).toContain("snoozed_until.lte.");
+  });
+
+  it("includes the full triage status set — pending alone hid captures the moment AI parsed them", async () => {
+    await getInbox();
+    expect(inCallArg).toEqual(["pending", "processing", "ready"]);
   });
 
   it("returns 500 INTERNAL on Supabase query error", async () => {
