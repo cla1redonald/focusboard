@@ -1,4 +1,4 @@
-# Focusboard Handoff - 2026-06-08
+# Focusboard Handoff - 2026-06-09
 
 ## Current State
 
@@ -57,7 +57,24 @@
 
 ## Sensible Next Steps
 
+- New plan captured: [Focusboard CLI and MCP Operating Layer Plan](docs/plans/2026-06-09-cli-mcp-operating-layer.md).
+- Recommended next build slice: Phase 1 capture-first CLI/MCP support (`fb capture`, `fb inbox`, `fb snooze`, plus matching MCP tools).
 - Re-check the live app manually with real Focusboard usage: capture, snooze, rank, start/end a focus session, and review metrics history.
 - Consider adding Playwright e2e coverage for the highest-value workflows.
 - Review env variable duplication in Vercel later; production is working, but there are legacy Supabase/Postgres names that may be cleanable.
 - Decide whether Claude workflow should stay installed if GitHub review is now the preferred review route.
+
+## 2026-06-09 Planning Note
+
+Claire wants to explore using Focusboard more like Todoist: fast CLI access plus MCP tools for agents.
+
+Planning recommendation:
+
+- Build an API boundary first.
+- Make CLI and MCP call the same API.
+- Do not let CLI or MCP write directly to Supabase.
+- Start with capture/inbox/snooze because `capture_queue` is already structured and Supabase-backed.
+- Add read-only board access before direct board mutation.
+- Add controlled card mutation only after state validation/versioning is in place.
+
+The next implementation should use `/shipit` as a single coherent feature slice unless Claire chooses a larger `/orchestrate` programme.
