@@ -148,8 +148,8 @@ export function SettingsPanel({
   const handleRevokeToken = async (id: string) => {
     setRevokingId(id);
     try {
-      const r = await apiFetch("/api/tokens/revoke", {
-        method: "POST",
+      const r = await apiFetch("/api/tokens", {
+        method: "DELETE",
         body: JSON.stringify({ id }),
       });
       if (!r.ok) {

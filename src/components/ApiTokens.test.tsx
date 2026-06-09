@@ -251,7 +251,7 @@ describe("SettingsPanel — API Tokens section", () => {
   });
 
   describe("revoke token", () => {
-    it("calls /api/tokens/revoke and marks token as revoked", async () => {
+    it("calls DELETE /api/tokens and marks token as revoked", async () => {
       const user = userEvent.setup();
       const token = {
         id: "tok-rev",
@@ -278,9 +278,9 @@ describe("SettingsPanel — API Tokens section", () => {
         expect(screen.getByText("revoked")).toBeInTheDocument();
       });
 
-      // Verify the revoke endpoint was called with correct id
+      // Verify DELETE /api/tokens was called with correct id
       const calls = fetchMock.mock.calls as [string, RequestInit][];
-      const revokeCall = calls.find(([url]) => url === "/api/tokens/revoke");
+      const revokeCall = calls.find(([url, opts]) => url === "/api/tokens" && opts?.method === "DELETE");
       expect(revokeCall).toBeDefined();
       expect(JSON.parse(revokeCall![1].body as string)).toEqual({ id: "tok-rev" });
     });

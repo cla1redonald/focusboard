@@ -1,10 +1,13 @@
 /**
- * Tests for the PAT (Personal Access Token) auth path on the capture API endpoints.
+ * Tests for the consolidated capture API handler (api/capture/index.ts).
  *
- * These tests cover:
- *   - capture/index.ts: PAT accept/reject, scope enforcement, idempotency, rate limiting
- *   - capture/snooze.ts: PAT auth, scope, sets snoozed_until, 404 on missing row
- *   - capture/dismiss.ts: PAT auth, scope, sets status=dismissed, 404 on missing row
+ * Covers:
+ *   - POST (no action / action='capture'): PAT accept/reject, scope enforcement,
+ *     idempotency, rate limiting, auto_add=false for PAT captures
+ *   - POST action='snooze': PAT auth, scope, sets snoozed_until, 404 on missing row
+ *   - POST action='dismiss': PAT auth, scope, sets status=dismissed, 404 on missing row
+ *   - GET (inbox): PAT auth, scope (capture:read), snooze-visibility filter,
+ *     { items, total } shape, 500 on Supabase error
  *
  * Supabase client and the token resolver are mocked — no network calls made.
  */
@@ -25,6 +28,13 @@ let mockInsertErrorCode: string | null = null;       // e.g. "23505" to simulate
 let mockUpdateData: { id: string } | null = { id: "capture-123" }; // null → 404
 // For the post-23505 race lookup:
 let mockRacedRow: { id: string } | null = null;
+
+// For inbox GET tests
+let mockQueryResult: { data: Record<string, unknown>[] | null; error: { message: string } | null } = {
+  data: [],
+  error: null,
+};
+let orCallArg = "";
 
 // ─── Module mocks ──────────────────────────────────────────────────────────────
 
@@ -57,13 +67,15 @@ let idempKeyCallCount = 0;
 
 vi.mock("@supabase/supabase-js", () => ({
   createClient: vi.fn(() => {
-    // update() chain: supports .eq().eq().select().maybeSingle()
+    // update() chain: supports .eq().eq().eq().is().select().maybeSingle()
     const updateChain = {
       eq: vi.fn(),
+      is: vi.fn(),
       select: vi.fn(),
       maybeSingle: vi.fn(async () => ({ data: mockUpdateData, error: null })),
     };
     updateChain.eq.mockReturnValue(updateChain);
+    updateChain.is.mockReturnValue(updateChain);
     updateChain.select.mockReturnValue(updateChain);
 
     // insert() chain
@@ -83,31 +95,57 @@ vi.mock("@supabase/supabase-js", () => ({
       gte: vi.fn(async () => ({ count: mockSelectCount, error: null })),
     };
 
-    // Idempotency lookup chain: .select(col).eq().eq().maybeSingle()
-    // First call = pre-insert check, second = post-23505 recovery lookup
-    const idempChain = {
+    // Inbox query chain: .select().eq().eq().or().order().limit()
+    const inboxChain = {
+      select: vi.fn().mockReturnThis(),
       eq: vi.fn().mockReturnThis(),
-      maybeSingle: vi.fn(async () => {
-        idempKeyCallCount++;
-        if (idempKeyCallCount <= 1) {
-          return { data: mockExistingRow, error: null };
-        }
-        return { data: mockRacedRow, error: null };
+      or: vi.fn((arg: string) => {
+        orCallArg = arg;
+        return inboxChain;
       }),
+      order: vi.fn().mockReturnThis(),
+      limit: vi.fn(async () => mockQueryResult),
     };
 
     return {
-      from: vi.fn(() => ({
-        select: vi.fn((_cols?: string, opts?: { count?: string; head?: boolean }) => {
-          if (opts?.head) return countChain;
-          return idempChain;
-        }),
-        insert: vi.fn((payload: Record<string, unknown>) => {
-          lastInsertPayload = payload;
-          return insertChain;
-        }),
-        update: vi.fn(() => updateChain),
-      })),
+      from: vi.fn((table: string) => {
+        // Return inbox chain for capture_queue GET reads (no head option)
+        // Distinguished by context — we check if we need inbox-style chaining
+        return {
+          select: vi.fn((_cols?: string, opts?: { count?: string; head?: boolean }) => {
+            if (opts?.head) return countChain;
+            // For inbox queries (multi-row results), return inboxChain
+            // For idempotency (single-row), return idempChain
+            // We differentiate by the fact that inbox chain has .or() but idempChain doesn't
+            // Both are used for capture_queue reads — return inboxChain for GET context,
+            // idempChain for idempotency context.
+            // Since we can't know the method here, we return a merged chain that covers both.
+            const merged = {
+              eq: vi.fn().mockReturnThis(),
+              or: vi.fn((arg: string) => {
+                orCallArg = arg;
+                return merged;
+              }),
+              order: vi.fn().mockReturnThis(),
+              limit: vi.fn(async () => mockQueryResult),
+              maybeSingle: vi.fn(async () => {
+                idempKeyCallCount++;
+                if (idempKeyCallCount <= 1) {
+                  return { data: mockExistingRow, error: null };
+                }
+                return { data: mockRacedRow, error: null };
+              }),
+            };
+            return merged;
+          }),
+          insert: vi.fn((payload: Record<string, unknown>) => {
+            lastInsertPayload = payload;
+            return insertChain;
+          }),
+          update: vi.fn(() => updateChain),
+        };
+        void table;
+      }),
       auth: { getUser: vi.fn() },
     };
   }),
@@ -115,11 +153,20 @@ vi.mock("@supabase/supabase-js", () => ({
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function makeReq(overrides: Partial<VercelRequest> = {}): VercelRequest {
+function makePostReq(overrides: Partial<VercelRequest> = {}): VercelRequest {
   return {
     method: "POST",
     headers: { authorization: "Bearer fb_pat_testtokenvalue", "content-type": "application/json" },
     body: { content: "Hello world" },
+    ...overrides,
+  } as unknown as VercelRequest;
+}
+
+function makeGetReq(overrides: Partial<VercelRequest> = {}): VercelRequest {
+  return {
+    method: "GET",
+    headers: { authorization: "Bearer fb_pat_testtokenvalue" },
+    body: null,
     ...overrides,
   } as unknown as VercelRequest;
 }
@@ -140,6 +187,8 @@ function resetState() {
   mockUpdateData = { id: "capture-123" };
   mockRacedRow = null;
   idempKeyCallCount = 0;
+  orCallArg = "";
+  mockQueryResult = { data: [], error: null };
   mockResolvedToken = {
     userId: "user-abc",
     scopes: ["capture:write"],
@@ -149,9 +198,9 @@ function resetState() {
   process.env.SUPABASE_SERVICE_ROLE_KEY = "service-key";
 }
 
-// ─── capture/index.ts tests ───────────────────────────────────────────────────
+// ─── capture POST (no action) tests ──────────────────────────────────────────
 
-describe("capture/index.ts — PAT auth path", () => {
+describe("capture/index.ts — POST capture (no action / PAT auth path)", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetState();
@@ -159,7 +208,7 @@ describe("capture/index.ts — PAT auth path", () => {
 
   it("accepts a valid PAT with capture:write scope and returns captureId", async () => {
     const { default: handler } = await import("./index.js");
-    const req = makeReq();
+    const req = makePostReq();
     const { res, status, json } = makeRes();
 
     await handler(req, res);
@@ -173,7 +222,7 @@ describe("capture/index.ts — PAT auth path", () => {
   it("rejects requests with no token (401)", async () => {
     mockResolvedToken = null;
     const { default: handler } = await import("./index.js");
-    const req = makeReq({ headers: {}, body: { content: "test" } });
+    const req = makePostReq({ headers: {}, body: { content: "test" } });
     const { res, status, json } = makeRes();
 
     await handler(req, res);
@@ -185,7 +234,7 @@ describe("capture/index.ts — PAT auth path", () => {
   it("returns 403 when PAT lacks capture:write scope", async () => {
     mockResolvedToken = { userId: "user-abc", scopes: ["capture:read"], tokenId: "token-1" };
     const { default: handler } = await import("./index.js");
-    const req = makeReq();
+    const req = makePostReq();
     const { res, status, json } = makeRes();
 
     await handler(req, res);
@@ -197,7 +246,7 @@ describe("capture/index.ts — PAT auth path", () => {
   it("returns 429 when rate limit exceeded (> 30 in last 60s)", async () => {
     mockSelectCount = 31;
     const { default: handler } = await import("./index.js");
-    const req = makeReq();
+    const req = makePostReq();
     const { res, status, json } = makeRes();
 
     await handler(req, res);
@@ -209,7 +258,7 @@ describe("capture/index.ts — PAT auth path", () => {
   it("allows capture when count is exactly at the limit (30) — boundary is > 30", async () => {
     mockSelectCount = 30;
     const { default: handler } = await import("./index.js");
-    const req = makeReq();
+    const req = makePostReq();
     const { res, status, json } = makeRes();
 
     await handler(req, res);
@@ -222,7 +271,7 @@ describe("capture/index.ts — PAT auth path", () => {
   it("idempotency: returns existing captureId without re-inserting on duplicate key", async () => {
     mockExistingRow = { id: "existing-capture-456" };
     const { default: handler } = await import("./index.js");
-    const req = makeReq({
+    const req = makePostReq({
       headers: {
         authorization: "Bearer fb_pat_testtokenvalue",
         "idempotency-key": "my-unique-key-123",
@@ -247,7 +296,7 @@ describe("capture/index.ts — PAT auth path", () => {
     mockRacedRow = { id: "raced-capture-789" };
 
     const { default: handler } = await import("./index.js");
-    const req = makeReq({
+    const req = makePostReq({
       headers: {
         authorization: "Bearer fb_pat_testtokenvalue",
         "idempotency-key": "race-condition-key",
@@ -272,7 +321,7 @@ describe("capture/index.ts — PAT auth path", () => {
     const waitUntilSpy = vi.mocked(waitUntil);
 
     const { default: handler } = await import("./index.js");
-    const req = makeReq();
+    const req = makePostReq();
     const { res } = makeRes();
 
     await handler(req, res);
@@ -294,9 +343,9 @@ describe("capture/index.ts — PAT auth path", () => {
   });
 });
 
-// ─── capture/snooze.ts tests ──────────────────────────────────────────────────
+// ─── capture POST action='snooze' tests ───────────────────────────────────────
 
-describe("capture/snooze.ts", () => {
+describe("capture/index.ts — POST action='snooze'", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetState();
@@ -304,8 +353,8 @@ describe("capture/snooze.ts", () => {
 
   it("returns 401 when no PAT is provided", async () => {
     mockResolvedToken = null;
-    const { default: handler } = await import("./snooze.js");
-    const req = makeReq({ body: { captureId: "cap-1", minutes: 30 } });
+    const { default: handler } = await import("./index.js");
+    const req = makePostReq({ body: { action: "snooze", captureId: "cap-1", minutes: 30 } });
     const { res, status, json } = makeRes();
 
     await handler(req, res);
@@ -316,8 +365,8 @@ describe("capture/snooze.ts", () => {
 
   it("returns 403 when PAT lacks capture:write scope", async () => {
     mockResolvedToken = { userId: "user-abc", scopes: ["capture:read"], tokenId: "token-1" };
-    const { default: handler } = await import("./snooze.js");
-    const req = makeReq({ body: { captureId: "cap-1", minutes: 30 } });
+    const { default: handler } = await import("./index.js");
+    const req = makePostReq({ body: { action: "snooze", captureId: "cap-1", minutes: 30 } });
     const { res, status, json } = makeRes();
 
     await handler(req, res);
@@ -328,8 +377,8 @@ describe("capture/snooze.ts", () => {
 
   it("sets snoozed_until and returns ok + snoozedUntil", async () => {
     const before = Date.now();
-    const { default: handler } = await import("./snooze.js");
-    const req = makeReq({ body: { captureId: "cap-1", minutes: 60 } });
+    const { default: handler } = await import("./index.js");
+    const req = makePostReq({ body: { action: "snooze", captureId: "cap-1", minutes: 60 } });
     const { res, status, json } = makeRes();
 
     await handler(req, res);
@@ -346,8 +395,8 @@ describe("capture/snooze.ts", () => {
 
   it("clamps minutes below minimum to 1", async () => {
     const before = Date.now();
-    const { default: handler } = await import("./snooze.js");
-    const req = makeReq({ body: { captureId: "cap-1", minutes: -5 } });
+    const { default: handler } = await import("./index.js");
+    const req = makePostReq({ body: { action: "snooze", captureId: "cap-1", minutes: -5 } });
     const { res, status, json } = makeRes();
 
     await handler(req, res);
@@ -362,8 +411,8 @@ describe("capture/snooze.ts", () => {
 
   it("clamps minutes above maximum to 43200", async () => {
     const before = Date.now();
-    const { default: handler } = await import("./snooze.js");
-    const req = makeReq({ body: { captureId: "cap-1", minutes: 99999 } });
+    const { default: handler } = await import("./index.js");
+    const req = makePostReq({ body: { action: "snooze", captureId: "cap-1", minutes: 99999 } });
     const { res, status, json } = makeRes();
 
     await handler(req, res);
@@ -377,8 +426,8 @@ describe("capture/snooze.ts", () => {
 
   it("returns 404 when capture row not found (wrong user or id)", async () => {
     mockUpdateData = null;
-    const { default: handler } = await import("./snooze.js");
-    const req = makeReq({ body: { captureId: "nonexistent", minutes: 30 } });
+    const { default: handler } = await import("./index.js");
+    const req = makePostReq({ body: { action: "snooze", captureId: "nonexistent", minutes: 30 } });
     const { res, status, json } = makeRes();
 
     await handler(req, res);
@@ -388,9 +437,9 @@ describe("capture/snooze.ts", () => {
   });
 });
 
-// ─── capture/dismiss.ts tests ─────────────────────────────────────────────────
+// ─── capture POST action='dismiss' tests ──────────────────────────────────────
 
-describe("capture/dismiss.ts", () => {
+describe("capture/index.ts — POST action='dismiss'", () => {
   beforeEach(() => {
     vi.clearAllMocks();
     resetState();
@@ -398,8 +447,8 @@ describe("capture/dismiss.ts", () => {
 
   it("returns 401 when no PAT is provided", async () => {
     mockResolvedToken = null;
-    const { default: handler } = await import("./dismiss.js");
-    const req = makeReq({ body: { captureId: "cap-1" } });
+    const { default: handler } = await import("./index.js");
+    const req = makePostReq({ body: { action: "dismiss", captureId: "cap-1" } });
     const { res, status, json } = makeRes();
 
     await handler(req, res);
@@ -410,8 +459,8 @@ describe("capture/dismiss.ts", () => {
 
   it("returns 403 when PAT lacks capture:write scope", async () => {
     mockResolvedToken = { userId: "user-abc", scopes: ["capture:read"], tokenId: "token-1" };
-    const { default: handler } = await import("./dismiss.js");
-    const req = makeReq({ body: { captureId: "cap-1" } });
+    const { default: handler } = await import("./index.js");
+    const req = makePostReq({ body: { action: "dismiss", captureId: "cap-1" } });
     const { res, status, json } = makeRes();
 
     await handler(req, res);
@@ -421,8 +470,8 @@ describe("capture/dismiss.ts", () => {
   });
 
   it("sets status=dismissed and returns ok:true", async () => {
-    const { default: handler } = await import("./dismiss.js");
-    const req = makeReq({ body: { captureId: "cap-1" } });
+    const { default: handler } = await import("./index.js");
+    const req = makePostReq({ body: { action: "dismiss", captureId: "cap-1" } });
     const { res, status, json } = makeRes();
 
     await handler(req, res);
@@ -433,13 +482,141 @@ describe("capture/dismiss.ts", () => {
 
   it("returns 404 when capture row not found", async () => {
     mockUpdateData = null;
-    const { default: handler } = await import("./dismiss.js");
-    const req = makeReq({ body: { captureId: "nonexistent" } });
+    const { default: handler } = await import("./index.js");
+    const req = makePostReq({ body: { action: "dismiss", captureId: "nonexistent" } });
     const { res, status, json } = makeRes();
 
     await handler(req, res);
 
     expect(status).toHaveBeenCalledWith(404);
     expect(json).toHaveBeenCalledWith(expect.objectContaining({ error: "Capture not found" }));
+  });
+});
+
+// ─── capture GET (inbox) tests ────────────────────────────────────────────────
+
+describe("capture/index.ts — GET inbox", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetState();
+    // Inbox tests need capture:read scope
+    mockResolvedToken = {
+      userId: "user-abc",
+      scopes: ["capture:read"],
+      tokenId: "token-1",
+    };
+  });
+
+  it("returns 405 for unsupported methods (e.g. PUT)", async () => {
+    const { default: handler } = await import("./index.js");
+    const req = { method: "PUT", headers: {}, body: null } as unknown as VercelRequest;
+    const { res, status, json } = makeRes();
+
+    await handler(req, res);
+
+    expect(status).toHaveBeenCalledWith(405);
+    expect(json).toHaveBeenCalledWith(expect.objectContaining({ error: "Method not allowed" }));
+  });
+
+  it("returns 401 when no PAT token", async () => {
+    mockResolvedToken = null;
+    const { default: handler } = await import("./index.js");
+    const req = makeGetReq({ headers: {} });
+    const { res, status, json } = makeRes();
+
+    await handler(req, res);
+
+    expect(status).toHaveBeenCalledWith(401);
+    expect(json).toHaveBeenCalledWith(expect.objectContaining({ error: "Unauthorized" }));
+  });
+
+  it("returns 403 when PAT lacks capture:read scope", async () => {
+    mockResolvedToken = { userId: "user-abc", scopes: ["capture:write"], tokenId: "token-1" };
+    const { default: handler } = await import("./index.js");
+    const req = makeGetReq();
+    const { res, status, json } = makeRes();
+
+    await handler(req, res);
+
+    expect(status).toHaveBeenCalledWith(403);
+    expect(json).toHaveBeenCalledWith(expect.objectContaining({ error: "Insufficient scope" }));
+  });
+
+  it("returns { items: [], total: 0 } when no captures exist", async () => {
+    mockQueryResult = { data: [], error: null };
+    const { default: handler } = await import("./index.js");
+    const req = makeGetReq();
+    const { res, status, json } = makeRes();
+
+    await handler(req, res);
+
+    expect(status).toHaveBeenCalledWith(200);
+    expect(json).toHaveBeenCalledWith({ items: [], total: 0 });
+  });
+
+  it("returns pending captures and a correct total", async () => {
+    const now = new Date().toISOString();
+    mockQueryResult = {
+      data: [
+        {
+          id: "cap-1",
+          raw_content: "Build the feature",
+          source: "in_app",
+          status: "pending",
+          created_at: now,
+          snoozed_until: null,
+          confidence: null,
+          parsed_cards: null,
+          processed_at: null,
+        },
+        {
+          id: "cap-2",
+          raw_content: "Fix the bug",
+          source: "in_app",
+          status: "pending",
+          created_at: now,
+          snoozed_until: null,
+          confidence: null,
+          parsed_cards: null,
+          processed_at: null,
+        },
+      ],
+      error: null,
+    };
+
+    const { default: handler } = await import("./index.js");
+    const req = makeGetReq();
+    const { res, status, json } = makeRes();
+
+    await handler(req, res);
+
+    expect(status).toHaveBeenCalledWith(200);
+    const result = json.mock.calls[0][0] as { items: unknown[]; total: number };
+    expect(result.items).toHaveLength(2);
+    expect(result.total).toBe(2);
+  });
+
+  it("snooze-visibility: query uses .or() with snoozed_until IS NULL and lte conditions", async () => {
+    const { default: handler } = await import("./index.js");
+    const req = makeGetReq();
+    const { res } = makeRes();
+
+    await handler(req, res);
+
+    // The handler passes the snooze filter to Postgres via .or() — verify both conditions present
+    expect(orCallArg).toContain("snoozed_until.is.null");
+    expect(orCallArg).toContain("snoozed_until.lte.");
+  });
+
+  it("returns 500 on Supabase query error", async () => {
+    mockQueryResult = { data: null, error: { message: "Connection refused" } };
+    const { default: handler } = await import("./index.js");
+    const req = makeGetReq();
+    const { res, status, json } = makeRes();
+
+    await handler(req, res);
+
+    expect(status).toHaveBeenCalledWith(500);
+    expect(json).toHaveBeenCalledWith(expect.objectContaining({ error: "Failed to fetch inbox" }));
   });
 });

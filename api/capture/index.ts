@@ -8,14 +8,184 @@ import { resolveApiToken, hasScope, SCOPES } from "../_lib/token.js";
 const RATE_LIMIT_MAX = 30;
 const RATE_LIMIT_WINDOW_SECONDS = 60;
 
+const MIN_MINUTES = 1;
+const MAX_MINUTES = 43200; // 30 days
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   setCorsHeaders(req, res);
   if (handlePreflight(req, res)) return;
 
-  if (req.method !== "POST") {
-    return res.status(405).json({ error: "Method not allowed" });
+  // ── GET /api/capture → inbox listing ──────────────────────────────────────
+  if (req.method === "GET") {
+    return handleInbox(req, res);
   }
 
+  if (req.method === "POST") {
+    const action = (req.body as Record<string, unknown> | undefined)?.action;
+
+    if (action === "snooze") {
+      return handleSnooze(req, res);
+    }
+
+    if (action === "dismiss") {
+      return handleDismiss(req, res);
+    }
+
+    // No action (or action === 'capture') → existing capture behaviour
+    return handleCapture(req, res);
+  }
+
+  return res.status(405).json({ error: "Method not allowed" });
+}
+
+// ── GET handler: inbox listing (was api/inbox/index.ts) ─────────────────────
+
+async function handleInbox(req: VercelRequest, res: VercelResponse) {
+  try {
+    const resolved = await resolveApiToken(req);
+    if (!resolved) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    if (!hasScope(resolved, SCOPES.CAPTURE_READ)) {
+      return res.status(403).json({ error: "Insufficient scope" });
+    }
+
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    // Return pending captures visible right now:
+    // status = 'pending' AND (snoozed_until IS NULL OR snoozed_until <= now)
+    const now = new Date().toISOString();
+
+    const { data, error } = await supabase
+      .from("capture_queue")
+      .select(
+        "id, raw_content, source, status, created_at, snoozed_until, confidence, parsed_cards, processed_at"
+      )
+      .eq("user_id", resolved.userId)
+      .eq("status", "pending")
+      .or(`snoozed_until.is.null,snoozed_until.lte.${now}`)
+      .order("created_at", { ascending: false })
+      .limit(50);
+
+    if (error) {
+      console.error("Inbox fetch error:", error.message);
+      return res.status(500).json({ error: "Failed to fetch inbox" });
+    }
+
+    return res.status(200).json({
+      items: data ?? [],
+      total: (data ?? []).length,
+    });
+  } catch (err) {
+    console.error("Inbox unexpected error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+// ── POST action=snooze (was api/capture/snooze.ts) ───────────────────────────
+
+async function handleSnooze(req: VercelRequest, res: VercelResponse) {
+  try {
+    const resolved = await resolveApiToken(req);
+    if (!resolved) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    if (!hasScope(resolved, SCOPES.CAPTURE_WRITE)) {
+      return res.status(403).json({ error: "Insufficient scope" });
+    }
+
+    const { captureId, minutes: rawMinutes = 60 } = (req.body as Record<string, unknown>) || {};
+
+    if (!captureId || typeof captureId !== "string") {
+      return res.status(400).json({ error: "captureId is required" });
+    }
+
+    // Clamp minutes to valid range
+    const minutes = Math.max(MIN_MINUTES, Math.min(MAX_MINUTES, Number(rawMinutes) || 60));
+    const snoozedUntil = new Date(Date.now() + minutes * 60_000).toISOString();
+
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const { data, error } = await supabase
+      .from("capture_queue")
+      .update({ snoozed_until: snoozedUntil })
+      .eq("id", captureId)
+      .eq("user_id", resolved.userId)
+      .select("id")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Snooze update error:", error.message);
+      return res.status(500).json({ error: "Failed to snooze capture" });
+    }
+
+    if (!data) {
+      return res.status(404).json({ error: "Capture not found" });
+    }
+
+    return res.status(200).json({ ok: true, snoozedUntil });
+  } catch (err) {
+    console.error("Snooze unexpected error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+// ── POST action=dismiss (was api/capture/dismiss.ts) ────────────────────────
+
+async function handleDismiss(req: VercelRequest, res: VercelResponse) {
+  try {
+    const resolved = await resolveApiToken(req);
+    if (!resolved) {
+      return res.status(401).json({ error: "Unauthorized" });
+    }
+    if (!hasScope(resolved, SCOPES.CAPTURE_WRITE)) {
+      return res.status(403).json({ error: "Insufficient scope" });
+    }
+
+    const { captureId } = (req.body as Record<string, unknown>) || {};
+
+    if (!captureId || typeof captureId !== "string") {
+      return res.status(400).json({ error: "captureId is required" });
+    }
+
+    const supabase = createClient(
+      process.env.SUPABASE_URL!,
+      process.env.SUPABASE_SERVICE_ROLE_KEY!
+    );
+
+    const { data, error } = await supabase
+      .from("capture_queue")
+      .update({ status: "dismissed" })
+      .eq("id", captureId)
+      .eq("user_id", resolved.userId)
+      .select("id")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Dismiss update error:", error.message);
+      return res.status(500).json({ error: "Failed to dismiss capture" });
+    }
+
+    if (!data) {
+      return res.status(404).json({ error: "Capture not found" });
+    }
+
+    return res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error("Dismiss unexpected error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+// ── POST (no action / action=capture): original capture behaviour ────────────
+
+async function handleCapture(req: VercelRequest, res: VercelResponse) {
   try {
     const { content, source = "in_app", metadata = {}, secret } = req.body || {};
 

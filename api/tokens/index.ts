@@ -32,6 +32,11 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     return handleCreate(user.id, req, res);
   }
 
+  // DELETE /api/tokens with body { id } → revoke (was api/tokens/revoke.ts)
+  if (req.method === "DELETE") {
+    return handleRevoke(user.id, req, res);
+  }
+
   return res.status(405).json({ error: "Method not allowed" });
 }
 
@@ -114,6 +119,42 @@ async function handleCreate(userId: string, req: VercelRequest, res: VercelRespo
     });
   } catch (err) {
     console.error("Token create unexpected error:", err);
+    return res.status(500).json({ error: "Internal server error" });
+  }
+}
+
+// DELETE /api/tokens — revoke a token by id (session-auth, own-only)
+async function handleRevoke(userId: string, req: VercelRequest, res: VercelResponse) {
+  try {
+    const body = req.body as { id?: unknown } | undefined;
+    const id = typeof body?.id === "string" ? body.id.trim() : "";
+    if (!id) {
+      return res.status(400).json({ error: "id is required" });
+    }
+
+    const supabase = getServiceClient();
+
+    const { data, error } = await supabase
+      .from("api_tokens")
+      .update({ revoked_at: new Date().toISOString() })
+      .eq("id", id)
+      .eq("user_id", userId)
+      .is("revoked_at", null)
+      .select("id")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Token revoke error:", error.message);
+      return res.status(500).json({ error: "Failed to revoke token" });
+    }
+
+    if (!data) {
+      return res.status(404).json({ error: "Token not found" });
+    }
+
+    return res.status(200).json({ ok: true });
+  } catch (err) {
+    console.error("Token revoke unexpected error:", err);
     return res.status(500).json({ error: "Internal server error" });
   }
 }
