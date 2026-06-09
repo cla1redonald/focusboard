@@ -1,7 +1,11 @@
 #!/usr/bin/env bash
 # Docs-sync check (zero-cost, no LLM). Fails if code changed without docs.
 #
-# "Code" = scripts/ agents/ commands/ hooks/ gates/  (the parts the README/CLAUDE/AGENTS/HISTORY/docs describe).
+# "Code" = common SOURCE dirs across both ShipIt's own layout (scripts/ agents/ commands/
+#   hooks/ gates/) AND app repos (src/ app/ web/ api/ lib/ server/ packages/ components/
+#   pages/). The original default only listed ShipIt's own dirs, so on an app repo with code
+#   under src/ the gate matched nothing and silently PASSED every PR — a false-confidence
+#   no-op (worse than no gate). Set SHIPIT_CODE_RE to tailor it to an unusual layout.
 # "Docs" = README.md CLAUDE.md AGENTS.md HISTORY.md docs/
 # Override: put [no-docs] in any commit message in the range when a change genuinely
 # needs no doc update (e.g. a bugfix). Then this passes.
@@ -16,7 +20,7 @@
 
 set -uo pipefail
 
-CODE_RE="${SHIPIT_CODE_RE:-^(scripts/|agents/|commands/|hooks/|gates/)}"
+CODE_RE="${SHIPIT_CODE_RE:-^(scripts/|agents/|commands/|hooks/|gates/|src/|app/|web/|api/|lib/|server/|packages/|components/|pages/)}"
 DOCS_RE="${SHIPIT_DOCS_RE:-^(README\.md|CLAUDE\.md|AGENTS\.md|HISTORY\.md|docs/)}"
 
 if [ "${1:-}" = "--staged" ]; then
