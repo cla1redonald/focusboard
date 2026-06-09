@@ -87,3 +87,13 @@ Compose the smaller tools (capture meeting actions, show stale WIP, prepare dail
 1. **Phase-4 concurrency:** extract a `cards` table (recommended — fixes a latent web data-loss bug) vs. `version` column + conflict-aware web saves. Affects whether Phase-2 reads return a version/etag — decide before Phase 2.
 2. **Token issuance UX:** a settings page in the web app vs. a one-off admin script for now.
 3. **MCP confirmation gate:** ship it from Phase 3 (first mutation), or Tier-1/2 only until Phase 4.
+
+## Architecture decisions (2026-06-09, post architecture re-review)
+
+Triggered by Phase 0 hitting Vercel's **Hobby cap of 12 serverless functions per deployment** (still current, 2026; Fluid Compute does NOT change the function *count*). Reviewed by the architect; decided:
+
+- **Do NOT upgrade to Vercel Pro for this.** Consolidating endpoints into resource-functions is a treadmill — even disciplined, the API breaches 12 again at Phase 4 (the 5 `ai/*` functions alone eat ~half the budget). Pro (~$20/mo) would just pay to preserve the sprawl pattern across the whole portfolio.
+- **Standing API shape: ONE router function per app.** Migrate the entire `api/` to a single **Hono** app at `api/[...path].ts` (`hono/vercel`), with per-route handlers. All endpoints collapse to 1 function; the 12-cap stops being a design constraint, free, forever — on every project. Bonus: better cold-starts, cleaner tests (`app.request()`), and *less* lock-in (web-standard `Request`/`Response` vs Vercel-specific signatures). Done as its own refactor **before Phase 2** so later phases add routes (one line) not files (one function).
+- **Auth: a route → required-scope table in `_lib`** (deny-by-default, fails closed), enforced by one middleware before handlers run. Unify the three auth ladders (PAT > webhook secret > session) into one `authenticate(req)` → `{ userId, scopes, authKind }`. Folds the webhook secret into the PAT model as just another principal. Set this convention NOW (cheap at 3 actions; load-bearing by Phase 4's ~17).
+- **Buy Vercel Pro only on a Pro-shaped trigger, per project, deliberately:** a route needing `maxDuration > 60s` (heavy AI/render), real concurrency, team seats, or protected previews. Keep a one-line note in each repo of which trigger would justify it. FocusBoard has none today.
+- **Portfolio rule:** "one Hono router function per Vite/SPA-on-Vercel app" is the default for all projects.
