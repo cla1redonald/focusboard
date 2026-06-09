@@ -12,7 +12,8 @@
     "test": "vitest",
     "test:run": "vitest run",
     "test:coverage": "vitest run --coverage",
-    "test:security": "vitest run --reporter=verbose src/test/security.test.tsx"
+    "test:security": "vitest run --reporter=verbose src/test/security.test.tsx",
+    "test:api": "vitest run --config vitest.api.config.ts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",

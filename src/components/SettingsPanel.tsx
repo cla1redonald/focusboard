@@ -1,10 +1,45 @@
 import React from "react";
-import { X, Sun, Moon, Monitor, type LucideIcon } from "lucide-react";
+import { X, Sun, Moon, Monitor, Copy, Check, type LucideIcon } from "lucide-react";
 import type { AppState, Column, Settings, Tag, TagCategory, ThemeMode } from "../app/types";
 import { COLUMN_COLORS, DEFAULT_COLUMN_ICONS, ICON_MAP, TAG_COLOR_PALETTE } from "../app/constants";
 import { ExportImportPanel } from "./ExportImportPanel";
 import type { ImportMode } from "../app/exportImport";
-import { isSupabaseConfigured } from "../app/supabase";
+import { supabase, isSupabaseConfigured } from "../app/supabase";
+
+// --- API token types ---
+type ApiToken = {
+  id: string;
+  name: string;
+  scopes: string[];
+  last_used_at: string | null;
+  created_at: string;
+  revoked_at: string | null;
+};
+
+type NewTokenResult = {
+  token: string; // plaintext — shown once
+  id: string;
+  name: string;
+};
+
+// --- Token fetch helpers ---
+async function fetchSessionToken(): Promise<string | null> {
+  if (!supabase) return null;
+  const { data: { session } } = await supabase.auth.getSession();
+  return session?.access_token ?? null;
+}
+
+async function apiFetch(path: string, opts: RequestInit): Promise<Response> {
+  const token = await fetchSessionToken();
+  return fetch(path, {
+    ...opts,
+    headers: {
+      "Content-Type": "application/json",
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      ...(opts.headers ?? {}),
+    },
+  });
+}
 
 export function SettingsPanel({
   open,
@@ -49,6 +84,97 @@ export function SettingsPanel({
   const [deleteConfirm, setDeleteConfirm] = React.useState<{ column: Column; migrateToId: string } | null>(null);
   const [editingTag, setEditingTag] = React.useState<Tag | null>(null);
   const [editingCategory, setEditingCategory] = React.useState<TagCategory | null>(null);
+
+  // API tokens state
+  const [tokens, setTokens] = React.useState<ApiToken[]>([]);
+  const [tokensLoading, setTokensLoading] = React.useState(false);
+  const [tokensError, setTokensError] = React.useState<string | null>(null);
+  const [newTokenName, setNewTokenName] = React.useState("");
+  const [creatingToken, setCreatingToken] = React.useState(false);
+  const [createError, setCreateError] = React.useState<string | null>(null);
+  const [revealedToken, setRevealedToken] = React.useState<NewTokenResult | null>(null);
+  const [copied, setCopied] = React.useState(false);
+  const [revokingId, setRevokingId] = React.useState<string | null>(null);
+
+  // Load tokens when panel opens (only when Supabase is configured)
+  React.useEffect(() => {
+    if (!open || !isSupabaseConfigured()) return;
+    setTokensError(null);
+    setTokensLoading(true);
+    void apiFetch("/api/tokens", { method: "GET" })
+      .then(async (r) => {
+        const body = await r.json() as { tokens?: ApiToken[]; error?: string };
+        if (!r.ok) throw new Error(body.error ?? "Failed to load tokens");
+        setTokens(body.tokens ?? []);
+      })
+      .catch((err: unknown) => {
+        setTokensError(err instanceof Error ? err.message : "Failed to load tokens");
+      })
+      .finally(() => setTokensLoading(false));
+  }, [open]);
+
+  const handleCreateToken = async () => {
+    if (!newTokenName.trim()) return;
+    setCreatingToken(true);
+    setCreateError(null);
+    try {
+      const r = await apiFetch("/api/tokens", {
+        method: "POST",
+        body: JSON.stringify({ name: newTokenName.trim() }),
+      });
+      const body = await r.json() as NewTokenResult & { error?: string };
+      if (!r.ok) throw new Error(body.error ?? "Failed to create token");
+      setRevealedToken({ token: body.token, id: body.id, name: body.name });
+      setNewTokenName("");
+      // Refresh list — token shows as active but without the plaintext
+      setTokens((prev) => [
+        {
+          id: body.id,
+          name: body.name,
+          scopes: ["capture:read", "capture:write"],
+          last_used_at: null,
+          created_at: new Date().toISOString(),
+          revoked_at: null,
+        },
+        ...prev,
+      ]);
+    } catch (err) {
+      setCreateError(err instanceof Error ? err.message : "Failed to create token");
+    } finally {
+      setCreatingToken(false);
+    }
+  };
+
+  const handleRevokeToken = async (id: string) => {
+    setRevokingId(id);
+    try {
+      const r = await apiFetch("/api/tokens/revoke", {
+        method: "POST",
+        body: JSON.stringify({ id }),
+      });
+      if (!r.ok) {
+        const body = await r.json() as { error?: string };
+        throw new Error(body.error ?? "Failed to revoke token");
+      }
+      setTokens((prev) =>
+        prev.map((t) => (t.id === id ? { ...t, revoked_at: new Date().toISOString() } : t))
+      );
+    } catch {
+      // Silently ignore — user can retry
+    } finally {
+      setRevokingId(null);
+    }
+  };
+
+  const handleCopyToken = async (plaintext: string) => {
+    try {
+      await navigator.clipboard.writeText(plaintext);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    } catch {
+      // Fallback: select the text — clipboard denied
+    }
+  };
 
   if (!open) return null;
 
@@ -508,6 +634,128 @@ export function SettingsPanel({
             <div className="mb-3 text-sm font-semibold text-gray-900 dark:text-white">Data Management</div>
             <ExportImportPanel state={state} onImport={onImport} />
           </div>
+
+          {/* API Tokens Section - only show when Supabase is configured */}
+          {isSupabaseConfigured() && (
+            <div className="rounded-xl border border-gray-200 dark:border-gray-700 bg-gray-50/50 dark:bg-gray-700/50 p-4">
+              <div className="mb-1 text-sm font-semibold text-gray-900 dark:text-white">API Tokens (CLI &amp; MCP)</div>
+              <div className="mb-3 text-xs text-gray-500 dark:text-gray-400">
+                Personal access tokens let CLI tools and MCP integrations act on your behalf.
+              </div>
+
+              {/* One-time token reveal box */}
+              {revealedToken && (
+                <div className="mb-4 rounded-lg border border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/30 p-3">
+                  <div className="mb-1 flex items-center gap-2">
+                    <span className="text-xs font-semibold text-amber-800 dark:text-amber-300">
+                      Token created — copy it now. You won&apos;t see it again.
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-2">
+                    <code
+                      className="flex-1 rounded border border-amber-200 dark:border-amber-700 bg-white dark:bg-gray-800 px-2 py-1.5 text-xs font-mono text-gray-800 dark:text-gray-200 break-all select-all"
+                      aria-label="New API token value"
+                    >
+                      {revealedToken.token}
+                    </code>
+                    <button
+                      type="button"
+                      onClick={() => void handleCopyToken(revealedToken.token)}
+                      aria-label="Copy token"
+                      className="shrink-0 rounded-lg border border-amber-300 dark:border-amber-600 bg-white dark:bg-gray-800 p-1.5 text-amber-700 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/50"
+                    >
+                      {copied ? <Check size={14} /> : <Copy size={14} />}
+                    </button>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => { setRevealedToken(null); setCopied(false); }}
+                    className="mt-2 text-xs text-amber-700 dark:text-amber-400 underline hover:no-underline"
+                  >
+                    I&apos;ve copied it — dismiss
+                  </button>
+                </div>
+              )}
+
+              {/* Create token */}
+              <div className="mb-4 flex gap-2">
+                <input
+                  type="text"
+                  value={newTokenName}
+                  onChange={(e) => setNewTokenName(e.target.value)}
+                  onKeyDown={(e) => { if (e.key === "Enter") void handleCreateToken(); }}
+                  placeholder="Token name (e.g. My CLI)"
+                  maxLength={100}
+                  className="flex-1 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-1.5 text-sm text-gray-900 dark:text-white outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 placeholder:text-gray-400 dark:placeholder:text-gray-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => void handleCreateToken()}
+                  disabled={creatingToken || !newTokenName.trim()}
+                  className="rounded-lg border border-emerald-200 dark:border-emerald-800 bg-emerald-50 dark:bg-emerald-900/30 px-3 py-1.5 text-xs text-emerald-700 dark:text-emerald-400 hover:border-emerald-300 dark:hover:border-emerald-700 hover:bg-emerald-100 dark:hover:bg-emerald-900/50 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {creatingToken ? "Creating…" : "Create token"}
+                </button>
+              </div>
+              {createError && (
+                <div className="mb-3 rounded-md bg-red-50 dark:bg-red-900/30 px-3 py-2 text-xs text-red-600 dark:text-red-400">
+                  {createError}
+                </div>
+              )}
+
+              {/* Token list */}
+              {tokensLoading && (
+                <div className="text-xs text-gray-400 dark:text-gray-500">Loading tokens…</div>
+              )}
+              {tokensError && !tokensLoading && (
+                <div className="rounded-md bg-red-50 dark:bg-red-900/30 px-3 py-2 text-xs text-red-600 dark:text-red-400">
+                  {tokensError}
+                </div>
+              )}
+              {!tokensLoading && !tokensError && tokens.length === 0 && (
+                <div className="text-xs text-gray-400 dark:text-gray-500 italic">No tokens yet.</div>
+              )}
+              {!tokensLoading && tokens.length > 0 && (
+                <div className="space-y-2">
+                  {tokens.map((t) => (
+                    <div
+                      key={t.id}
+                      className="flex items-start gap-3 rounded-lg border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-700 px-3 py-2"
+                    >
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2">
+                          <span className="text-sm font-medium text-gray-900 dark:text-white truncate">{t.name}</span>
+                          {t.revoked_at && (
+                            <span className="shrink-0 rounded-full bg-red-100 dark:bg-red-900/40 px-1.5 py-0.5 text-[10px] font-medium text-red-600 dark:text-red-400">
+                              revoked
+                            </span>
+                          )}
+                        </div>
+                        <div className="mt-0.5 flex flex-wrap gap-x-3 gap-y-0.5 text-[11px] text-gray-500 dark:text-gray-400">
+                          <span>{t.scopes.join(", ")}</span>
+                          <span>created {new Date(t.created_at).toLocaleDateString()}</span>
+                          {t.last_used_at && (
+                            <span>last used {new Date(t.last_used_at).toLocaleDateString()}</span>
+                          )}
+                        </div>
+                      </div>
+                      {!t.revoked_at && (
+                        <button
+                          type="button"
+                          onClick={() => void handleRevokeToken(t.id)}
+                          disabled={revokingId === t.id}
+                          aria-label={`Revoke token ${t.name}`}
+                          className="shrink-0 rounded-lg px-2 py-1 text-xs text-red-500 hover:bg-red-50 dark:hover:bg-red-900/30 hover:text-red-600 dark:hover:text-red-400 disabled:opacity-50"
+                        >
+                          {revokingId === t.id ? "Revoking…" : "Revoke"}
+                        </button>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Account Section - only show when Supabase is configured */}
           {isSupabaseConfigured() && onSignOut && (
