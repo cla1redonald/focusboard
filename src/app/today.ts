@@ -1,4 +1,4 @@
-import type { Card, Column, ColumnId, DailyPlan } from "./types";
+import type { Card, Column, ColumnId, DailyPlan } from "./types.js";
 
 export type TodayReasonKind =
   | "doing"

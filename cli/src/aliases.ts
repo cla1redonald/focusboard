@@ -58,8 +58,10 @@ export function loadAliases(): Record<string, string> {
  * Resolve a user-supplied ID: a cap-N / c-N alias from the last listing, or a
  * full ID passed through unchanged. Unknown aliases throw with a next-action hint.
  */
+const ALIAS_RE = new RegExp(`^(${PREFIXES.join("|")})-\\d+$`, "i");
+
 export function resolveId(input: string): string {
-  const match = /^(cap|c)-\d+$/i.exec(input);
+  const match = ALIAS_RE.exec(input);
   if (match) {
     const map = readAll();
     const id = map[input.toLowerCase()];
