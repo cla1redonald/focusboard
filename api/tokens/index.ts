@@ -4,7 +4,7 @@ import { setCorsHeaders, handlePreflight } from "../_lib/cors.js";
 import { verifySession } from "../_lib/auth.js";
 import { generateToken, SCOPES } from "../_lib/token.js";
 
-const ALLOWED_SCOPES = new Set([SCOPES.CAPTURE_READ, SCOPES.CAPTURE_WRITE]);
+const ALLOWED_SCOPES = new Set<string>([SCOPES.CAPTURE_READ, SCOPES.CAPTURE_WRITE]);
 
 function getServiceClient() {
   const supabaseUrl = process.env.SUPABASE_URL;
@@ -76,7 +76,7 @@ async function handleCreate(userId: string, req: VercelRequest, res: VercelRespo
       }
       const requested = body.scopes as unknown[];
       for (const s of requested) {
-        if (typeof s !== "string" || !ALLOWED_SCOPES.has(s as (typeof SCOPES)[keyof typeof SCOPES])) {
+        if (typeof s !== "string" || !ALLOWED_SCOPES.has(s)) {
           return res.status(400).json({
             error: `Invalid scope "${String(s)}". Allowed: capture:read, capture:write`,
           });
