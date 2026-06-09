@@ -1,0 +1,4 @@
+# Tests live next to the code they cover, but Vercel treats every file in api/ as a
+# serverless function — so test files must be excluded from the deployment build.
+api/**/*.test.ts
+api/**/*.spec.ts
