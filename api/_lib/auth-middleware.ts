@@ -32,6 +32,7 @@ export type Principal = {
 
 export const ROUTE_SCOPES: Record<string, string> = {
   "GET /api/health/deep": "PUBLIC",
+  "GET /api/me": SCOPES.CAPTURE_READ,
   "GET /api/capture": SCOPES.CAPTURE_READ,
   "POST /api/capture": "INLINE_AUTH",
   "PUT /api/capture": "PUBLIC",

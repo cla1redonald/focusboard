@@ -98,6 +98,31 @@ curl -X POST https://your-app.vercel.app/api/webhook/add-card \
 
 Full reference: [docs/API.md](docs/API.md).
 
+## CLI + MCP (`fb`)
+
+Focusboard is operable from the terminal and from AI agents. The `cli/` package
+ships both: the `fb` CLI and a stdio MCP server, sharing one API client — everything
+goes through the Focusboard API, never straight to the database.
+
+```bash
+cd cli && npm ci && npm run build && npm link   # installs `fb`
+
+fb auth login            # paste a token from Settings → API Tokens (stored 0600, ~/.config/focusboard)
+fb capture "Follow up with ENSEK about next steps"
+fb inbox                 # pending captures with cap-N aliases + AI-parsed titles
+fb snooze cap-2 --for 2h
+fb inbox dismiss cap-3
+```
+
+Flags: `--json` (full IDs, machine-readable), `--quiet`, `--no-color` (NO_COLOR respected).
+
+**MCP for agents** — Tier 1 capture-safe tools (`focusboard_capture`, `focusboard_inbox`,
+`focusboard_snooze_capture`):
+
+```bash
+claude mcp add focusboard -- fb mcp   # or any MCP client; auth via `fb auth login` or FOCUSBOARD_TOKEN
+```
+
 ## Keyboard shortcuts
 
 | Shortcut | Action |

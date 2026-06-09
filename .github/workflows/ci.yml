@@ -18,4 +18,11 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run test:run
+      - run: npm run test:api
       - run: npm run build
+      - name: CLI — install, test, build
+        working-directory: cli
+        run: |
+          npm ci
+          npm test
+          npm run build

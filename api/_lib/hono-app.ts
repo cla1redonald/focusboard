@@ -97,6 +97,17 @@ app.use("*", enforceRouteScopes);
 
 app.get("/health/deep", (c: Context<AuthEnv>) => ok(c, { deep: true }));
 
+// ── GET /api/me — who am I (token validation for fb auth status/login) ────────
+
+app.get("/me", (c: Context<AuthEnv>) => {
+  const principal = c.get("principal");
+  return ok(c, {
+    userId: principal.userId,
+    kind: principal.kind,
+    scopes: principal.scopes === "ALL" ? ["*"] : principal.scopes,
+  });
+});
+
 // ── GET /api/capture — inbox listing ──────────────────────────────────────────
 
 app.get("/capture", async (c: Context<AuthEnv>) => {
