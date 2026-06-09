@@ -64,6 +64,50 @@ for spec in "${ARR[@]}"; do
   fi
 done
 
+# ── 1b. Authenticated round-trip (optional): data correctness, not just liveness ──
+# The unauth tier proves liveness/routing/auth — it CANNOT see wrong-rows-to-an-
+# authed-caller (the inbox status-filter bug passed every unauth gate). When a
+# low-privilege test PAT is present (SHIPIT_SMOKE_AUTH_TOKEN, from a CI secret),
+# drive one idempotent capture → inbox-shows-it → dismiss → inbox-hides-it loop.
+# No token → the rung skips with a note (mirrors [no-smoke] conditionality).
+if [ -n "${SHIPIT_SMOKE_AUTH_TOKEN:-}" ]; then
+  authed_get() { curl -s --max-time 25 -H "Authorization: Bearer $SHIPIT_SMOKE_AUTH_TOKEN" "$1"; }
+  idem="shipit-smoke-${GITHUB_SHA:-$(date +%Y%m%d%H%M%S)}"
+
+  cap_resp="$(curl -s --max-time 25 -X POST "${URL%/}/api/capture" \
+    -H "Authorization: Bearer $SHIPIT_SMOKE_AUTH_TOKEN" \
+    -H "Content-Type: application/json" \
+    -H "Idempotency-Key: $idem" \
+    -d '{"content":"shipit-smoke (auto-dismissed by the deploy gate)"}' 2>/dev/null)"
+  cap_id="$(printf '%s' "$cap_resp" | sed -n 's/.*"captureId":"\([^"]*\)".*/\1/p')"
+
+  if [ -z "$cap_id" ]; then
+    echo "::error::runtime-smoke[authed]: capture failed — response: ${cap_resp:-<empty>}"; fail=1
+  else
+    inbox_resp="$(authed_get "${URL%/}/api/capture")"
+    if printf '%s' "$inbox_resp" | grep -q "$cap_id"; then
+      echo "runtime-smoke[authed]: capture → inbox round-trip ✓ ($cap_id)"
+    else
+      echo "::error::runtime-smoke[authed]: capture $cap_id NOT in inbox — wrong rows to an authed caller (the status-filter bug class)"; fail=1
+    fi
+
+    dis_resp="$(curl -s --max-time 25 -X POST "${URL%/}/api/capture/$cap_id/dismiss" \
+      -H "Authorization: Bearer $SHIPIT_SMOKE_AUTH_TOKEN" 2>/dev/null)"
+    if printf '%s' "$dis_resp" | grep -q '"ok":true'; then
+      after_resp="$(authed_get "${URL%/}/api/capture")"
+      if printf '%s' "$after_resp" | grep -q "$cap_id"; then
+        echo "::error::runtime-smoke[authed]: dismissed capture $cap_id still in inbox"; fail=1
+      else
+        echo "runtime-smoke[authed]: dismiss hides it ✓"
+      fi
+    else
+      echo "::error::runtime-smoke[authed]: dismiss failed — response: ${dis_resp:-<empty>}"; fail=1
+    fi
+  fi
+else
+  echo "runtime-smoke: no SHIPIT_SMOKE_AUTH_TOKEN — authed round-trip skipped (liveness only; this tier cannot see data correctness)."
+fi
+
 # ── 2. UI smoke: the real rendered page (Playwright) ──────────────────────────
 if [ "${SHIPIT_SMOKE_UI:-0}" = "1" ]; then
   here="$(cd "$(dirname "$0")" && pwd)"

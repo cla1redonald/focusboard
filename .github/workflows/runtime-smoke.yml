@@ -54,6 +54,10 @@ jobs:
         if: steps.conf.outputs.skip == '0'
         env:
           SHIPIT_DEPLOY_URL: ${{ github.event.deployment_status.environment_url }}
+          # Optional authenticated round-trip (capture -> inbox shows it -> dismiss).
+          # Liveness checks can't see data correctness (the inbox status-filter bug
+          # passed every unauth gate) -- this rung can. Absent secret -> rung skips.
+          SHIPIT_SMOKE_AUTH_TOKEN: ${{ secrets.FOCUSBOARD_SMOKE_TOKEN }}
         run: |
           set -a; . .shipit-gates/smoke.conf; set +a
           bash .shipit-gates/runtime-smoke-test.sh
