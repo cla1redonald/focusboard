@@ -529,6 +529,189 @@ app.get("/wip", async (c: Context<AuthEnv>) => {
   }
 });
 
+// ── Focus sessions (Phase 3, scopes focus:read / focus:write) ─────────────────
+//
+// Append-only rows in focus_sessions — never blob mutation. One active session
+// per user is enforced by a partial unique index, so a concurrent double-start
+// loses at the database, not in application code.
+
+const FOCUS_OUTCOMES = ["progressed", "blocked", "completed", "abandoned"] as const;
+
+app.get("/focus/status", async (c: Context<AuthEnv>) => {
+  const principal = c.get("principal");
+  try {
+    const supabase = getServiceClient();
+
+    const { data: active, error } = await supabase
+      .from("focus_sessions")
+      .select("id, card_id, card_title, planned_minutes, started_at, source")
+      .eq("user_id", principal.userId)
+      .is("ended_at", null)
+      .maybeSingle();
+
+    if (error) {
+      console.error("Focus status error:", error.message);
+      return fail(c, 500, "INTERNAL", "Failed to read focus status");
+    }
+
+    // Today's closed sessions (UTC day) for the status summary.
+    const dayStart = `${new Date().toISOString().slice(0, 10)}T00:00:00.000Z`;
+    const { data: todays } = await supabase
+      .from("focus_sessions")
+      .select("planned_minutes, started_at, ended_at, outcome")
+      .eq("user_id", principal.userId)
+      .not("ended_at", "is", null)
+      .gte("started_at", dayStart);
+
+    const sessions = todays ?? [];
+    const focusedMinutes = sessions.reduce((sum, s) => {
+      const ms = new Date(s.ended_at as string).getTime() - new Date(s.started_at as string).getTime();
+      return sum + Math.max(0, Math.round(ms / 60_000));
+    }, 0);
+
+    return ok(c, {
+      active: active
+        ? {
+            id: active.id,
+            cardId: active.card_id,
+            cardTitle: active.card_title,
+            plannedMinutes: active.planned_minutes,
+            startedAt: active.started_at,
+            source: active.source,
+          }
+        : null,
+      today: { sessions: sessions.length, focusedMinutes },
+    });
+  } catch (err) {
+    console.error("Focus status unexpected error:", err);
+    return fail(c, 500, "INTERNAL", "Internal server error");
+  }
+});
+
+app.post("/focus/start", async (c: Context<AuthEnv>) => {
+  const principal = c.get("principal");
+  let body: { cardId?: unknown; plannedMinutes?: unknown; source?: unknown };
+  try {
+    body = (await c.req.json()) as typeof body;
+  } catch {
+    body = {};
+  }
+
+  const plannedMinutes = Math.max(1, Math.min(480, Number(body.plannedMinutes) || 25));
+  const cardId = typeof body.cardId === "string" && body.cardId.trim() ? body.cardId.trim() : null;
+
+  try {
+    const supabase = getServiceClient();
+
+    // Denormalise the card title at start time (the board may change later).
+    let cardTitle: string | null = null;
+    if (cardId) {
+      const board = await loadBoard(principal.userId);
+      const card = board?.cards.find((cd) => cd.id === cardId && !cd.archivedAt);
+      if (!card) {
+        return fail(c, 404, "NOT_FOUND", `Card "${cardId}" not found on the board`, "Use an id from fb list / focusboard_cards");
+      }
+      cardTitle = card.title;
+    }
+
+    const { data, error } = await supabase
+      .from("focus_sessions")
+      .insert({
+        user_id: principal.userId,
+        card_id: cardId,
+        card_title: cardTitle,
+        planned_minutes: plannedMinutes,
+        source: principal.kind === "pat" ? "cli" : "web",
+      })
+      .select("id, started_at")
+      .single();
+
+    if (error) {
+      // 23505 = the partial unique index: a session is already running.
+      if (error.code === "23505") {
+        return fail(
+          c, 409, "ALREADY_ACTIVE", "A focus session is already running",
+          "Stop it first (fb focus stop) or check fb focus status"
+        );
+      }
+      console.error("Focus start error:", error.message);
+      return fail(c, 500, "INTERNAL", "Failed to start focus session");
+    }
+
+    return ok(c, {
+      id: (data as { id: string }).id,
+      cardId,
+      cardTitle,
+      plannedMinutes,
+      startedAt: (data as { started_at: string }).started_at,
+    });
+  } catch (err) {
+    console.error("Focus start unexpected error:", err);
+    return fail(c, 500, "INTERNAL", "Internal server error");
+  }
+});
+
+app.post("/focus/stop", async (c: Context<AuthEnv>) => {
+  const principal = c.get("principal");
+  let body: { outcome?: unknown; note?: unknown };
+  try {
+    body = (await c.req.json()) as typeof body;
+  } catch {
+    body = {};
+  }
+
+  const outcome = typeof body.outcome === "string" ? body.outcome : "progressed";
+  if (!(FOCUS_OUTCOMES as readonly string[]).includes(outcome)) {
+    return fail(
+      c, 400, "VALIDATION", `Invalid outcome "${outcome}"`,
+      `Allowed: ${FOCUS_OUTCOMES.join(", ")}`
+    );
+  }
+  const note = typeof body.note === "string" && body.note.trim() ? body.note.trim().slice(0, 1000) : null;
+
+  try {
+    const supabase = getServiceClient();
+    const { data, error } = await supabase
+      .from("focus_sessions")
+      .update({ ended_at: new Date().toISOString(), outcome, note })
+      .eq("user_id", principal.userId)
+      .is("ended_at", null)
+      .select("id, card_id, card_title, planned_minutes, started_at, ended_at, outcome")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Focus stop error:", error.message);
+      return fail(c, 500, "INTERNAL", "Failed to stop focus session");
+    }
+    if (!data) {
+      return fail(c, 404, "NOT_FOUND", "No active focus session", "Start one with fb focus start");
+    }
+
+    const row = data as {
+      id: string; card_id: string | null; card_title: string | null;
+      planned_minutes: number; started_at: string; ended_at: string; outcome: string;
+    };
+    const actualMinutes = Math.max(
+      0,
+      Math.round((new Date(row.ended_at).getTime() - new Date(row.started_at).getTime()) / 60_000)
+    );
+
+    return ok(c, {
+      id: row.id,
+      cardId: row.card_id,
+      cardTitle: row.card_title,
+      plannedMinutes: row.planned_minutes,
+      actualMinutes,
+      startedAt: row.started_at,
+      endedAt: row.ended_at,
+      outcome: row.outcome,
+    });
+  } catch (err) {
+    console.error("Focus stop unexpected error:", err);
+    return fail(c, 500, "INTERNAL", "Internal server error");
+  }
+});
+
 // ── GET /api/tokens — list PATs ────────────────────────────────────────────────
 
 app.get("/tokens", async (c: Context<AuthEnv>) => {
@@ -555,7 +738,7 @@ app.get("/tokens", async (c: Context<AuthEnv>) => {
 
 // ── POST /api/tokens — create PAT ─────────────────────────────────────────────
 
-const ALLOWED_SCOPES = new Set<string>([SCOPES.CAPTURE_READ, SCOPES.CAPTURE_WRITE, SCOPES.BOARD_READ]);
+const ALLOWED_SCOPES = new Set<string>([SCOPES.CAPTURE_READ, SCOPES.CAPTURE_WRITE, SCOPES.BOARD_READ, SCOPES.FOCUS_READ, SCOPES.FOCUS_WRITE]);
 
 app.post("/tokens", async (c: Context<AuthEnv>) => {
   const principal = c.get("principal");
@@ -585,13 +768,13 @@ app.post("/tokens", async (c: Context<AuthEnv>) => {
           400,
           "VALIDATION",
           `Invalid scope "${String(s)}"`,
-          "Allowed: capture:read, capture:write, board:read"
+          "Allowed: capture:read, capture:write, board:read, focus:read, focus:write"
         );
       }
     }
     scopes = requested as string[];
   } else {
-    scopes = [SCOPES.CAPTURE_READ, SCOPES.CAPTURE_WRITE, SCOPES.BOARD_READ];
+    scopes = [SCOPES.CAPTURE_READ, SCOPES.CAPTURE_WRITE, SCOPES.BOARD_READ, SCOPES.FOCUS_READ, SCOPES.FOCUS_WRITE];
   }
 
   const { plaintext, hash } = generateToken();

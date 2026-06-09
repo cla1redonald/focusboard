@@ -17,6 +17,8 @@ export const SCOPES = {
   CAPTURE_READ: "capture:read",
   CAPTURE_WRITE: "capture:write",
   BOARD_READ: "board:read", // Phase 2 — read-only board access (today/cards/wip)
+  FOCUS_READ: "focus:read", // Phase 3 — focus session status/history
+  FOCUS_WRITE: "focus:write", // Phase 3 — start/stop focus sessions (append-only table)
   CARD_WRITE: "card:write", // reserved for Phase 4
 } as const;
 

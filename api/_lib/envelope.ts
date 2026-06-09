@@ -23,6 +23,7 @@ export const ERROR_CODES = {
   NOT_FOUND: "NOT_FOUND", // 404
   METHOD_NOT_ALLOWED: "METHOD_NOT_ALLOWED", // 405
   RATE_LIMITED: "RATE_LIMITED", // 429
+  ALREADY_ACTIVE: "ALREADY_ACTIVE", // 409 — a focus session is already running
   STALE_STATE: "STALE_STATE", // 409 — reserved for Phase 4
   INTERNAL: "INTERNAL", // 500
 } as const;

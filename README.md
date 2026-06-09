@@ -117,13 +117,18 @@ fb today                 # daily plan, rule-ranked focus recommendations, attent
 fb list --status doing   # active cards with c-N aliases
 fb search "invoice"      # matches title, notes, tags, checklist text
 fb wip                   # per-column WIP vs limits
+
+fb focus start c-2 --for 50m   # one active session, persisted server-side
+fb focus status                # elapsed vs planned + today's totals
+fb focus stop -o completed --note "shipped it"
 ```
 
 Flags: `--json` (full IDs, machine-readable), `--quiet`, `--no-color` (NO_COLOR respected).
 
 **MCP for agents** — Tier 1 capture-safe (`focusboard_capture`, `focusboard_inbox`,
 `focusboard_snooze_capture`) + Tier 2 read-board (`focusboard_today`, `focusboard_cards`,
-`focusboard_wip`):
+`focusboard_wip`) + Tier 3 focus sessions (`focusboard_start_focus_session`,
+`focusboard_stop_focus_session`, `focusboard_focus_status`):
 
 ```bash
 claude mcp add focusboard -- fb mcp   # or any MCP client; auth via `fb auth login` or FOCUSBOARD_TOKEN

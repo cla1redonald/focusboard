@@ -175,6 +175,77 @@ export async function mcpCommand() {
     }
   );
 
+  // ── Tier 3 — focus sessions (mutation, but append-only rows) ────────────────
+  //
+  // Decision (2026-06-09): NO confirmation-token gate for focus start/stop —
+  // they are low-risk, self-reversing operations on an append-only table, and a
+  // confirm round-trip would wreck agent UX for a benign action. The gate
+  // arrives with Phase 4 card mutation, where the operations destroy state.
+
+  server.registerTool(
+    "focusboard_start_focus_session",
+    {
+      title: "Start a focus session",
+      description:
+        "Start a focus session, optionally tied to a board card (id from focusboard_cards). " +
+        "Only one session can be active; if one is already running this returns ALREADY_ACTIVE " +
+        "with a hint. Append-only and self-reversing (stop it with focusboard_stop_focus_session).",
+      inputSchema: {
+        card_id: z.string().optional().describe("Board card id to focus on (from focusboard_cards)"),
+        planned_minutes: z.number().int().min(1).max(480).default(25).describe("Planned length in minutes"),
+      },
+    },
+    async ({ card_id, planned_minutes }) => {
+      try {
+        return okResult(await client.focusStart({ cardId: card_id, plannedMinutes: planned_minutes }));
+      } catch (err) {
+        return errResult(err);
+      }
+    }
+  );
+
+  server.registerTool(
+    "focusboard_stop_focus_session",
+    {
+      title: "Stop the active focus session",
+      description:
+        "Stop the active focus session and log its outcome. Returns the actual focused minutes. " +
+        "NOT_FOUND if no session is running.",
+      inputSchema: {
+        outcome: z
+          .enum(["progressed", "blocked", "completed", "abandoned"])
+          .default("progressed")
+          .describe("What happened during the session"),
+        note: z.string().max(1000).optional().describe("Optional note about the session"),
+      },
+    },
+    async ({ outcome, note }) => {
+      try {
+        return okResult(await client.focusStop({ outcome, note }));
+      } catch (err) {
+        return errResult(err);
+      }
+    }
+  );
+
+  server.registerTool(
+    "focusboard_focus_status",
+    {
+      title: "Focus session status",
+      description:
+        "Read the active focus session (if any) plus today's session count and focused minutes. " +
+        "Read-only. Check this before suggesting Claire start something new.",
+      inputSchema: {},
+    },
+    async () => {
+      try {
+        return okResult(await client.focusStatus());
+      } catch (err) {
+        return errResult(err);
+      }
+    }
+  );
+
   const transport = new StdioServerTransport();
   await server.connect(transport);
   // stdio server runs until the client disconnects — keep the process alive.
