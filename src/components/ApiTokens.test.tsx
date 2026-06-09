@@ -48,6 +48,14 @@ const defaultProps = {
   onImport: vi.fn(),
 };
 
+// API envelope helpers — mirror api/_lib/envelope.ts
+function okBody(data: unknown) {
+  return { ok: true, data };
+}
+function errBody(message: string, code = "VALIDATION") {
+  return { ok: false, error: { code, message } };
+}
+
 function mockFetch(responses: { ok: boolean; body: unknown }[]) {
   let callCount = 0;
   return vi.fn().mockImplementation(() => {
@@ -75,7 +83,7 @@ describe("SettingsPanel — API Tokens section", () => {
     it("renders the section heading", async () => {
       vi.stubGlobal(
         "fetch",
-        mockFetch([{ ok: true, body: { tokens: [] } }])
+        mockFetch([{ ok: true, body: okBody({ tokens: [] }) }])
       );
 
       render(<SettingsPanel {...defaultProps} />);
@@ -86,7 +94,7 @@ describe("SettingsPanel — API Tokens section", () => {
     it("shows 'No tokens yet' when list is empty", async () => {
       vi.stubGlobal(
         "fetch",
-        mockFetch([{ ok: true, body: { tokens: [] } }])
+        mockFetch([{ ok: true, body: okBody({ tokens: [] }) }])
       );
 
       render(<SettingsPanel {...defaultProps} />);
@@ -107,7 +115,7 @@ describe("SettingsPanel — API Tokens section", () => {
       };
       vi.stubGlobal(
         "fetch",
-        mockFetch([{ ok: true, body: { tokens: [token] } }])
+        mockFetch([{ ok: true, body: okBody({ tokens: [token] }) }])
       );
 
       render(<SettingsPanel {...defaultProps} />);
@@ -129,7 +137,7 @@ describe("SettingsPanel — API Tokens section", () => {
       };
       vi.stubGlobal(
         "fetch",
-        mockFetch([{ ok: true, body: { tokens: [token] } }])
+        mockFetch([{ ok: true, body: okBody({ tokens: [token] }) }])
       );
 
       render(<SettingsPanel {...defaultProps} />);
@@ -142,7 +150,7 @@ describe("SettingsPanel — API Tokens section", () => {
     it("shows an error message when the list fetch fails", async () => {
       vi.stubGlobal(
         "fetch",
-        mockFetch([{ ok: false, body: { error: "Unauthorized" } }])
+        mockFetch([{ ok: false, body: errBody("Unauthorized", "NOT_AUTHENTICATED") }])
       );
 
       render(<SettingsPanel {...defaultProps} />);
@@ -160,10 +168,10 @@ describe("SettingsPanel — API Tokens section", () => {
       vi.stubGlobal(
         "fetch",
         mockFetch([
-          { ok: true, body: { tokens: [] } },
+          { ok: true, body: okBody({ tokens: [] }) },
           {
             ok: true,
-            body: { token: "fb_pat_supersecret", id: "tok-new", name: "Test token" },
+            body: okBody({ token: "fb_pat_supersecret", id: "tok-new", name: "Test token" }),
           },
         ])
       );
@@ -190,8 +198,8 @@ describe("SettingsPanel — API Tokens section", () => {
       vi.stubGlobal(
         "fetch",
         mockFetch([
-          { ok: true, body: { tokens: [] } },
-          { ok: true, body: { token: "fb_pat_abc", id: "tok-3", name: "CLI" } },
+          { ok: true, body: okBody({ tokens: [] }) },
+          { ok: true, body: okBody({ token: "fb_pat_abc", id: "tok-3", name: "CLI" }) },
         ])
       );
 
@@ -211,8 +219,8 @@ describe("SettingsPanel — API Tokens section", () => {
       vi.stubGlobal(
         "fetch",
         mockFetch([
-          { ok: true, body: { tokens: [] } },
-          { ok: true, body: { token: "fb_pat_abc", id: "tok-3", name: "CLI" } },
+          { ok: true, body: okBody({ tokens: [] }) },
+          { ok: true, body: okBody({ token: "fb_pat_abc", id: "tok-3", name: "CLI" }) },
         ])
       );
 
@@ -233,8 +241,8 @@ describe("SettingsPanel — API Tokens section", () => {
       vi.stubGlobal(
         "fetch",
         mockFetch([
-          { ok: true, body: { tokens: [] } },
-          { ok: false, body: { error: "name is required" } },
+          { ok: true, body: okBody({ tokens: [] }) },
+          { ok: false, body: errBody("name is required") },
         ])
       );
 
@@ -251,7 +259,7 @@ describe("SettingsPanel — API Tokens section", () => {
   });
 
   describe("revoke token", () => {
-    it("calls DELETE /api/tokens and marks token as revoked", async () => {
+    it("calls DELETE /api/tokens/:id and marks token as revoked", async () => {
       const user = userEvent.setup();
       const token = {
         id: "tok-rev",
@@ -262,8 +270,8 @@ describe("SettingsPanel — API Tokens section", () => {
         revoked_at: null,
       };
       const fetchMock = mockFetch([
-        { ok: true, body: { tokens: [token] } },
-        { ok: true, body: { ok: true } },
+        { ok: true, body: okBody({ tokens: [token] }) },
+        { ok: true, body: okBody({ id: "tok-rev" }) },
       ]);
       vi.stubGlobal("fetch", fetchMock);
 
@@ -278,11 +286,10 @@ describe("SettingsPanel — API Tokens section", () => {
         expect(screen.getByText("revoked")).toBeInTheDocument();
       });
 
-      // Verify DELETE /api/tokens was called with correct id
+      // Verify DELETE /api/tokens/:id was called for the right token
       const calls = fetchMock.mock.calls as [string, RequestInit][];
-      const revokeCall = calls.find(([url, opts]) => url === "/api/tokens" && opts?.method === "DELETE");
+      const revokeCall = calls.find(([url, opts]) => url === "/api/tokens/tok-rev" && opts?.method === "DELETE");
       expect(revokeCall).toBeDefined();
-      expect(JSON.parse(revokeCall![1].body as string)).toEqual({ id: "tok-rev" });
     });
 
     it("does not show Revoke button for already-revoked tokens", async () => {
@@ -296,7 +303,7 @@ describe("SettingsPanel — API Tokens section", () => {
       };
       vi.stubGlobal(
         "fetch",
-        mockFetch([{ ok: true, body: { tokens: [token] } }])
+        mockFetch([{ ok: true, body: okBody({ tokens: [token] }) }])
       );
 
       render(<SettingsPanel {...defaultProps} />);

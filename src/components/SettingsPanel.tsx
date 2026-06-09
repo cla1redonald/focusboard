@@ -22,6 +22,15 @@ type NewTokenResult = {
   name: string;
 };
 
+// The API envelope (api/_lib/envelope.ts): { ok: true, data } | { ok: false, error }
+type ApiEnvelope<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: { code: string; message: string; hint?: string } };
+
+function apiErrorMessage(body: ApiEnvelope<unknown>, fallback: string): string {
+  return !body.ok && body.error?.message ? body.error.message : fallback;
+}
+
 // --- Token fetch helpers ---
 async function fetchSessionToken(): Promise<string | null> {
   if (!supabase) return null;
@@ -117,9 +126,9 @@ export function SettingsPanel({
       setNoSession(false);
       try {
         const r = await apiFetch("/api/tokens", { method: "GET" });
-        const body = await r.json() as { tokens?: ApiToken[]; error?: string };
-        if (!r.ok) throw new Error(body.error ?? "Failed to load tokens");
-        if (!cancelled) setTokens(body.tokens ?? []);
+        const body = await r.json() as ApiEnvelope<{ tokens: ApiToken[] }>;
+        if (!r.ok || !body.ok) throw new Error(apiErrorMessage(body, "Failed to load tokens"));
+        if (!cancelled) setTokens(body.data.tokens ?? []);
       } catch (err) {
         if (!cancelled) setTokensError(err instanceof Error ? err.message : "Failed to load tokens");
       } finally {
@@ -138,15 +147,15 @@ export function SettingsPanel({
         method: "POST",
         body: JSON.stringify({ name: newTokenName.trim() }),
       });
-      const body = await r.json() as NewTokenResult & { error?: string };
-      if (!r.ok) throw new Error(body.error ?? "Failed to create token");
-      setRevealedToken({ token: body.token, id: body.id, name: body.name });
+      const body = await r.json() as ApiEnvelope<NewTokenResult>;
+      if (!r.ok || !body.ok) throw new Error(apiErrorMessage(body, "Failed to create token"));
+      setRevealedToken({ token: body.data.token, id: body.data.id, name: body.data.name });
       setNewTokenName("");
       // Refresh list — token shows as active but without the plaintext
       setTokens((prev) => [
         {
-          id: body.id,
-          name: body.name,
+          id: body.data.id,
+          name: body.data.name,
           scopes: ["capture:read", "capture:write"],
           last_used_at: null,
           created_at: new Date().toISOString(),
@@ -164,13 +173,10 @@ export function SettingsPanel({
   const handleRevokeToken = async (id: string) => {
     setRevokingId(id);
     try {
-      const r = await apiFetch("/api/tokens", {
-        method: "DELETE",
-        body: JSON.stringify({ id }),
-      });
+      const r = await apiFetch(`/api/tokens/${id}`, { method: "DELETE" });
       if (!r.ok) {
-        const body = await r.json() as { error?: string };
-        throw new Error(body.error ?? "Failed to revoke token");
+        const body = await r.json() as ApiEnvelope<unknown>;
+        throw new Error(apiErrorMessage(body, "Failed to revoke token"));
       }
       setTokens((prev) =>
         prev.map((t) => (t.id === id ? { ...t, revoked_at: new Date().toISOString() } : t))

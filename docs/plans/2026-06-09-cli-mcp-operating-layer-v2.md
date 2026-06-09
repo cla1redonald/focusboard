@@ -83,9 +83,50 @@ Compose the smaller tools (capture meeting actions, show stale WIP, prepare dail
 
 **Acceptance (revised):** CLI captures into prod; web Capture Inbox shows it live; MCP captures identically; snooze hides until due (persisted); **no direct Supabase from CLI/MCP** (now actually true, because the read API + PAT exist); PAT stored `0600` outside git; idempotent capture; rate-limited; CI green; prod smoke-tested. This is a `/ship`-sized slice (V4 — not `/orchestrate`).
 
+## Phase 0.5 — hardening (added 2026-06-09, post-Phase-0 code review)
+
+A code review of the shipped Phase 0 against this plan found three gaps worth fixing
+BEFORE the CLI/MCP clients freeze the API contract. Shipped as the `phase0.5-hardening` PR:
+
+1. **The route→scope table is now actually enforced.** Phase 0 shipped `ROUTE_SCOPES` as
+   documentation — nothing consumed it; each route attached middleware by hand, so a
+   forgotten middleware shipped an OPEN route. Now a single app-wide `enforceRouteScopes`
+   middleware drives all header auth from the table, a matched route with no entry is
+   denied (403 — fails closed), and a test asserts every registered route has an entry
+   (so a miss fails CI before it fails a request). `POST /api/capture` is the one
+   declared `INLINE_AUTH` exception (webhook secret lives in the body).
+2. **CORS origin check is hostname-parsed.** The substring check
+   (`includes("focusboard") && includes("vercel.app")`) admitted
+   `https://focusboard.vercel.app.evil.com`. Now: parsed hostname must start with
+   `focusboard` and end with `.vercel.app` over https. Fixed in both the Hono app and
+   the legacy `api/_lib/cors.ts`. (Severity was moderate — auth is header-based, not
+   cookie-based — but with `credentials: true` it was wrong.)
+3. **The API contract is frozen in its final shape, pre-CLI.** REST routes
+   (`POST /api/capture/:id/snooze`, `POST /api/capture/:id/dismiss`,
+   `DELETE /api/tokens/:id`) replace the Phase-0 `action`-multiplex and body-id forms
+   (artifacts of the pre-Hono 12-function squeeze; zero external clients existed, so
+   zero migration cost). Every response now uses the formal envelope —
+   `{ ok: true, data }` / `{ ok: false, error: { code, message, hint? } }` with stable
+   codes (`NOT_AUTHENTICATED, INSUFFICIENT_SCOPE, SESSION_REQUIRED, FORBIDDEN,
+   VALIDATION, NOT_FOUND, METHOD_NOT_ALLOWED, RATE_LIMITED, INTERNAL`; `STALE_STATE`/409
+   reserved for Phase 4) — in `api/_lib/envelope.ts`. This was planned as an MCP-layer
+   concern; it is an API-layer concern, owned server-side.
+4. Smaller fixes: `last_used_at` stamped via `waitUntil` (fire-and-forget writes can be
+   frozen mid-flight after the response on Vercel); `resolveApiToken` takes the auth
+   header string (no more `VercelRequest` shims); anchored case-insensitive Bearer strip.
+
+Deliberately NOT in 0.5 (would need a prod migration; do alongside a later phase):
+token display prefix (show `fb_pat_…x7Kq` in Settings) and optional `expires_at`.
+Rate limiting remains per-user, not per-token — fine single-user; revisit at multi-device.
+
 ## Open decisions to confirm
-1. **Phase-4 concurrency:** extract a `cards` table (recommended — fixes a latent web data-loss bug) vs. `version` column + conflict-aware web saves. Affects whether Phase-2 reads return a version/etag — decide before Phase 2.
+1. **Phase-4 concurrency — DECIDED (2026-06-09): extract a normalized `cards` table.**
+   Per-card rows give natural per-card optimistic locking and fix the latent
+   last-writer-wins data-loss path in web saves. Consequence: **Phase-2 reads do NOT
+   need version/etag plumbing** (the lock unit is the card row, not the board blob) —
+   Phase 2 gets simpler. The extraction itself still lands with Phase 4.
 2. **Token issuance UX:** a settings page in the web app vs. a one-off admin script for now.
+   *(Resolved in practice: the Settings → API Tokens page shipped with Phase 0.)*
 3. **MCP confirmation gate:** ship it from Phase 3 (first mutation), or Tier-1/2 only until Phase 4.
 
 ## Architecture decisions (2026-06-09, post architecture re-review)

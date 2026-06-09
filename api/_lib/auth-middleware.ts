@@ -1,7 +1,9 @@
 import { createMiddleware } from "hono/factory";
+import { matchedRoutes } from "hono/route";
 import { createClient } from "@supabase/supabase-js";
 import { timingSafeEqual } from "crypto";
-import { resolveApiToken, hasScope, isPat, SCOPES } from "./token.js";
+import { resolveApiToken, hasScope, isPat, bearerToken, SCOPES } from "./token.js";
+import { fail } from "./envelope.js";
 
 // ── Principal types ────────────────────────────────────────────────────────────
 
@@ -13,20 +15,32 @@ export type Principal = {
   kind: PrincipalKind;
 };
 
-// ── Route → required scope table (single source of truth for API policy) ──────
+// ── Route → required policy table (single source of truth for API policy) ─────
 //
-// "ALL" means any authenticated principal passes (session-only routes use
-// requireSession instead, which enforces kind === "session").
+// ENFORCED by enforceRouteScopes (registered app-wide in hono-app.ts), not just
+// documentation: a route that matches a handler but has no entry here is DENIED
+// (403 FORBIDDEN) — deny-by-default, fails closed. A test in route-scopes.test.ts
+// additionally asserts every registered route has an entry, so a miss fails CI
+// before it fails a request.
 //
-// Deny-by-default: any route not listed here requires auth and fails closed
-// (the requireScope middleware returns 403 if the scope is not in the table).
+// Values:
+//   a scope string  → any principal holding that scope passes
+//   "SESSION_ONLY"  → only a web-session principal passes (PATs must not manage PATs)
+//   "INLINE_AUTH"   → the handler authenticates itself (POST /api/capture only —
+//                     webhook auth reads the body, which middleware must not consume)
+//   "PUBLIC"        → no auth (405 method stubs only)
 
 export const ROUTE_SCOPES: Record<string, string> = {
-  "GET /capture":    SCOPES.CAPTURE_READ,
-  "POST /capture":   SCOPES.CAPTURE_WRITE,
-  "GET /tokens":     "SESSION_ONLY",
-  "POST /tokens":    "SESSION_ONLY",
-  "DELETE /tokens":  "SESSION_ONLY",
+  "GET /api/capture": SCOPES.CAPTURE_READ,
+  "POST /api/capture": "INLINE_AUTH",
+  "PUT /api/capture": "PUBLIC",
+  "PATCH /api/capture": "PUBLIC",
+  "HEAD /api/capture": "PUBLIC",
+  "POST /api/capture/:id/snooze": SCOPES.CAPTURE_WRITE,
+  "POST /api/capture/:id/dismiss": SCOPES.CAPTURE_WRITE,
+  "GET /api/tokens": "SESSION_ONLY",
+  "POST /api/tokens": "SESSION_ONLY",
+  "DELETE /api/tokens/:id": "SESSION_ONLY",
 };
 
 // ── Core authenticate function ─────────────────────────────────────────────────
@@ -37,16 +51,12 @@ export const ROUTE_SCOPES: Record<string, string> = {
  * Returns null if none of the three methods succeed.
  */
 export async function authenticate(headers: Headers): Promise<Principal | null> {
-  const authHeader = headers.get("authorization") ?? undefined;
-  const bearerToken = authHeader?.replace("Bearer ", "");
+  const authHeader = headers.get("authorization");
+  const token = bearerToken(authHeader);
 
   // 1. PAT — fb_pat_... prefix
-  if (isPat(bearerToken)) {
-    // resolveApiToken needs a VercelRequest-like object; we supply a minimal shim.
-    const shimReq = { headers: { authorization: authHeader ?? "" } };
-    const resolved = await resolveApiToken(
-      shimReq as Parameters<typeof resolveApiToken>[0]
-    );
+  if (isPat(token)) {
+    const resolved = await resolveApiToken(authHeader);
     if (resolved) {
       return { userId: resolved.userId, scopes: resolved.scopes, kind: "pat" };
     }
@@ -54,18 +64,18 @@ export async function authenticate(headers: Headers): Promise<Principal | null> 
     return null;
   }
 
-  // 2. Webhook secret (passed as JSON body field; we receive it separately via context)
-  // Webhook auth is handled inline in the capture route because it reads the body.
-  // This function returns null here; the route calls authenticateWebhook() explicitly.
+  // 2. Webhook secret (passed as JSON body field; the capture route calls
+  //    authenticateWebhook() explicitly because reading the body here would
+  //    consume it before the handler runs).
 
   // 3. Session JWT (Supabase access token)
-  if (bearerToken) {
+  if (token) {
     const supabaseUrl = process.env.SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
     if (!supabaseUrl || !serviceKey) return null;
     try {
       const supabase = createClient(supabaseUrl, serviceKey);
-      const { data: { user }, error } = await supabase.auth.getUser(bearerToken);
+      const { data: { user }, error } = await supabase.auth.getUser(token);
       if (!error && user) {
         return { userId: user.id, scopes: "ALL", kind: "session" };
       }
@@ -123,39 +133,53 @@ export type AuthEnv = {
   };
 };
 
-// ── Hono middlewares ───────────────────────────────────────────────────────────
+// ── App-wide enforcement middleware ────────────────────────────────────────────
 
 /**
- * requireScope(scope) — Hono middleware.
- * Authenticates the request (PAT or session); attaches the principal to context.
- * Returns 401 if no valid principal, 403 if the principal lacks the required scope.
+ * enforceRouteScopes — registered once with app.use("*").
+ *
+ * Looks up the matched route in ROUTE_SCOPES and enforces its policy BEFORE any
+ * handler runs. Handlers never do their own header auth (POST /api/capture's
+ * body-secret webhook path is the single, explicit exception). A matched route
+ * with no table entry is denied — adding a route without declaring its policy
+ * fails closed, not open.
  */
-export function requireScope(scope: string) {
-  return createMiddleware<AuthEnv>(async (c, next) => {
-    const principal = await authenticate(c.req.raw.headers);
-    if (!principal) {
-      return c.json({ error: "Unauthorized" }, 401);
-    }
-    if (!principalHasScope(principal, scope)) {
-      return c.json({ error: "Insufficient scope" }, 403);
-    }
-    c.set("principal", principal);
-    await next();
-  });
-}
+export const enforceRouteScopes = createMiddleware<AuthEnv>(async (c, next) => {
+  if (c.req.method === "OPTIONS") {
+    return next(); // CORS preflight — handled by the cors middleware
+  }
 
-/**
- * requireSession — Hono middleware for token-management routes.
- * Only session principals may manage tokens — PATs must NOT create/revoke tokens.
- */
-export const requireSession = createMiddleware<AuthEnv>(async (c, next) => {
+  // The concrete (non-middleware) route this request matched, if any.
+  const concrete = matchedRoutes(c).filter(
+    (r) => r.method !== "ALL" && !r.path.includes("*")
+  );
+  if (concrete.length === 0) {
+    return next(); // no handler matched — Hono returns its 404
+  }
+
+  const route = concrete[concrete.length - 1];
+  const policy = ROUTE_SCOPES[`${route.method} ${route.path}`];
+
+  if (!policy) {
+    console.error(`Route ${route.method} ${route.path} missing from ROUTE_SCOPES`);
+    return fail(c, 403, "FORBIDDEN", "Route is not registered in the scope table");
+  }
+  if (policy === "PUBLIC" || policy === "INLINE_AUTH") {
+    return next();
+  }
+
   const principal = await authenticate(c.req.raw.headers);
   if (!principal) {
-    return c.json({ error: "Unauthorized" }, 401);
+    return fail(c, 401, "NOT_AUTHENTICATED", "Missing or invalid credentials");
   }
-  if (principal.kind !== "session") {
-    return c.json({ error: "Forbidden: session required" }, 403);
+  if (policy === "SESSION_ONLY") {
+    if (principal.kind !== "session") {
+      return fail(c, 403, "SESSION_REQUIRED", "Only a signed-in session may manage tokens");
+    }
+  } else if (!principalHasScope(principal, policy)) {
+    return fail(c, 403, "INSUFFICIENT_SCOPE", `Requires scope ${policy}`);
   }
+
   c.set("principal", principal);
   await next();
 });
