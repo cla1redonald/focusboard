@@ -28,6 +28,7 @@ import {
 } from "./auth-middleware.js";
 import { resolveApiToken, SCOPES, generateToken } from "./token.js";
 import { ok, fail } from "./envelope.js";
+import { TRIAGE_STATUSES } from "../../src/app/captureTypes.js";
 
 // ── Allowed origins ────────────────────────────────────────────────────────────
 
@@ -122,7 +123,7 @@ app.get("/capture", async (c: Context<AuthEnv>) => {
         "id, raw_content, source, status, created_at, snoozed_until, confidence, parsed_cards, processed_at"
       )
       .eq("user_id", principal.userId)
-      .eq("status", "pending")
+      .in("status", [...TRIAGE_STATUSES])
       .or(`snoozed_until.is.null,snoozed_until.lte.${now}`)
       .order("created_at", { ascending: false })
       .limit(50);

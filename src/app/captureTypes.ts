@@ -4,6 +4,13 @@ export type CaptureSource = 'email' | 'slack' | 'shortcut' | 'browser' | 'whatsa
 
 export type CaptureStatus = 'pending' | 'processing' | 'ready' | 'auto_added' | 'dismissed';
 
+// The triage set — statuses that mean "awaiting triage" on EVERY inbox surface
+// (web Capture Inbox and the API/CLI inbox). One definition so the surfaces cannot
+// drift: the API filtering on 'pending' alone while the pipeline promoted captures
+// to 'ready' is exactly the bug this prevents. 'auto_added' is deliberately not
+// here — those are already on the board.
+export const TRIAGE_STATUSES = ['pending', 'processing', 'ready'] as const satisfies readonly CaptureStatus[];
+
 export type ParsedCaptureCard = {
   title: string;
   notes?: string;

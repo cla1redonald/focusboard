@@ -1,6 +1,6 @@
 import React from "react";
 import { supabase } from "./supabase";
-import type { CaptureQueueItem, CaptureStatus } from "./captureTypes";
+import { TRIAGE_STATUSES, type CaptureQueueItem, type CaptureStatus } from "./captureTypes";
 
 const STALE_THRESHOLD_MS = 30_000; // 30 seconds
 
@@ -34,7 +34,9 @@ export function useCaptureQueue(userId: string | null) {
         .from("capture_queue")
         .select("*")
         .eq("user_id", userId)
-        .in("status", ["pending", "processing", "ready", "auto_added"])
+        // Triage set is shared with the API inbox (captureTypes.ts) — keep in sync
+        // by construction. The web additionally shows recent auto_added items.
+        .in("status", [...TRIAGE_STATUSES, "auto_added"])
         .order("created_at", { ascending: false })
         .limit(50);
 
