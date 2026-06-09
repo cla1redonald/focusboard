@@ -248,7 +248,7 @@ async function handleCapture(req: VercelRequest, res: VercelResponse) {
         .eq("user_id", userId)
         .gte("created_at", windowStart);
 
-      if ((count ?? 0) > RATE_LIMIT_MAX) {
+      if ((count ?? 0) >= RATE_LIMIT_MAX) {
         return res.status(429).json({ error: "Rate limit exceeded" });
       }
 

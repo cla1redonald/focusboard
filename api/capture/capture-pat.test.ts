@@ -255,7 +255,7 @@ describe("capture/index.ts — POST capture (no action / PAT auth path)", () => 
     expect(json).toHaveBeenCalledWith(expect.objectContaining({ error: "Rate limit exceeded" }));
   });
 
-  it("allows capture when count is exactly at the limit (30) — boundary is > 30", async () => {
+  it("returns 429 when count is exactly at the limit (30)", async () => {
     mockSelectCount = 30;
     const { default: handler } = await import("./index.js");
     const req = makePostReq();
@@ -263,9 +263,8 @@ describe("capture/index.ts — POST capture (no action / PAT auth path)", () => 
 
     await handler(req, res);
 
-    // Count of 30 is not > 30 so it should succeed
-    expect(status).toHaveBeenCalledWith(200);
-    expect(json).toHaveBeenCalledWith(expect.objectContaining({ success: true }));
+    expect(status).toHaveBeenCalledWith(429);
+    expect(json).toHaveBeenCalledWith(expect.objectContaining({ error: "Rate limit exceeded" }));
   });
 
   it("idempotency: returns existing captureId without re-inserting on duplicate key", async () => {
