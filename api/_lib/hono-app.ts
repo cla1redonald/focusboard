@@ -29,6 +29,9 @@ import {
 import { resolveApiToken, SCOPES, generateToken } from "./token.js";
 import { ok, fail } from "./envelope.js";
 import { TRIAGE_STATUSES } from "../../src/app/captureTypes.js";
+import { loadBoard, slimCard, tagNameResolver } from "./board.js";
+import { buildTodayPlan, buildTodayDailyPlan, getActiveCards } from "../../src/app/today.js";
+import { filterCards, DEFAULT_FILTER } from "../../src/app/filters.js";
 
 // ── Allowed origins ────────────────────────────────────────────────────────────
 
@@ -395,6 +398,137 @@ app.post("/capture", async (c: Context<AuthEnv>) => {
   }
 });
 
+// ── Read-only board (Phase 2, scope board:read) ───────────────────────────────
+//
+// Semantics are IMPORTED from src/app (today.ts, filters.ts) — the same functions
+// the web app renders from — so the API cannot drift from the web (the inbox
+// status-filter lesson). All three routes 404 with a hint when no board exists.
+
+async function boardFor(c: Context<AuthEnv>) {
+  const principal = c.get("principal");
+  const board = await loadBoard(principal.userId);
+  if (!board) {
+    return { board: null, response: fail(c, 404, "NOT_FOUND", "No board found for this user", "Open the web app once to create your board") };
+  }
+  return { board, response: null };
+}
+
+app.get("/today", async (c: Context<AuthEnv>) => {
+  try {
+    const { board, response } = await boardFor(c);
+    if (!board) return response!;
+    const resolveTags = tagNameResolver(board.state.tags);
+    const plan = buildTodayPlan(board.cards, board.columns);
+    const daily = buildTodayDailyPlan(board.state.dailyPlan, board.cards, board.columns);
+    return ok(c, {
+      date: daily.date,
+      activeCount: plan.activeCount,
+      dailyPlan: {
+        main: daily.main ? slimCard(daily.main, resolveTags) : null,
+        support: daily.support.map((card) => slimCard(card, resolveTags)),
+        completedCount: daily.completedCount,
+        plannedCount: daily.plannedCount,
+      },
+      recommendations: plan.recommendations.map((r) => ({
+        card: slimCard(r.card, resolveTags),
+        reasons: r.reasons.map((reason) => reason.label),
+        score: r.score,
+      })),
+      attention: {
+        overdue: plan.attention.overdue.map((card) => slimCard(card, resolveTags)),
+        dueToday: plan.attention.dueToday.map((card) => slimCard(card, resolveTags)),
+        blocked: plan.attention.blocked.map((card) => slimCard(card, resolveTags)),
+        stale: plan.attention.stale.map((card) => slimCard(card, resolveTags)),
+      },
+      wipPressure: plan.wipPressure.map((p) => ({
+        column: p.column.id,
+        columnTitle: p.column.title,
+        count: p.count,
+        limit: p.limit,
+      })),
+    });
+  } catch (err) {
+    console.error("Today unexpected error:", err);
+    return fail(c, 500, "INTERNAL", "Internal server error");
+  }
+});
+
+app.get("/cards", async (c: Context<AuthEnv>) => {
+  try {
+    const { board, response } = await boardFor(c);
+    if (!board) return response!;
+
+    const column = c.req.query("column") ?? "";
+    const q = c.req.query("q") ?? "";
+    const swimlane = c.req.query("swimlane") ?? "";
+    const limitRaw = Number(c.req.query("limit") ?? 100);
+    const limit = Math.max(1, Math.min(200, Number.isFinite(limitRaw) ? limitRaw : 100));
+
+    if (column && !board.columns.some((col) => col.id === column)) {
+      return fail(
+        c, 400, "VALIDATION", `Unknown column "${column}"`,
+        `Valid columns: ${board.columns.map((col) => col.id).join(", ")}`
+      );
+    }
+
+    // Same matcher the web app's search/filter uses (filters.ts).
+    let cards = filterCards(getActiveCards(board.cards, board.columns), {
+      ...DEFAULT_FILTER,
+      search: q,
+      columns: column ? [column] : [],
+    });
+    if (swimlane) {
+      cards = cards.filter((card) => (card.swimlane ?? "work") === swimlane);
+    }
+    cards.sort((a, b) =>
+      a.column === b.column ? (a.order ?? 0) - (b.order ?? 0) : a.column.localeCompare(b.column)
+    );
+
+    const resolveTags = tagNameResolver(board.state.tags);
+    return ok(c, {
+      total: cards.length,
+      items: cards.slice(0, limit).map((card) => slimCard(card, resolveTags)),
+      columns: board.columns
+        .sort((a, b) => a.order - b.order)
+        .map((col) => ({ id: col.id, title: col.title, wipLimit: col.wipLimit, isTerminal: col.isTerminal })),
+    });
+  } catch (err) {
+    console.error("Cards unexpected error:", err);
+    return fail(c, 500, "INTERNAL", "Internal server error");
+  }
+});
+
+app.get("/wip", async (c: Context<AuthEnv>) => {
+  try {
+    const { board, response } = await boardFor(c);
+    if (!board) return response!;
+
+    const active = getActiveCards(board.cards, board.columns);
+    const counts = new Map<string, number>();
+    for (const card of active) counts.set(card.column, (counts.get(card.column) ?? 0) + 1);
+
+    return ok(c, {
+      columns: board.columns
+        .sort((a, b) => a.order - b.order)
+        .map((col) => {
+          const count = counts.get(col.id) ?? 0;
+          return {
+            id: col.id,
+            title: col.title,
+            count,
+            limit: col.wipLimit,
+            atLimit: col.wipLimit !== null && col.wipLimit > 0 && count >= col.wipLimit,
+            isTerminal: col.isTerminal,
+          };
+        }),
+      activeCount: active.length,
+    });
+  } catch (err) {
+    console.error("WIP unexpected error:", err);
+    return fail(c, 500, "INTERNAL", "Internal server error");
+  }
+});
+
 // ── GET /api/tokens — list PATs ────────────────────────────────────────────────
 
 app.get("/tokens", async (c: Context<AuthEnv>) => {
@@ -421,7 +555,7 @@ app.get("/tokens", async (c: Context<AuthEnv>) => {
 
 // ── POST /api/tokens — create PAT ─────────────────────────────────────────────
 
-const ALLOWED_SCOPES = new Set<string>([SCOPES.CAPTURE_READ, SCOPES.CAPTURE_WRITE]);
+const ALLOWED_SCOPES = new Set<string>([SCOPES.CAPTURE_READ, SCOPES.CAPTURE_WRITE, SCOPES.BOARD_READ]);
 
 app.post("/tokens", async (c: Context<AuthEnv>) => {
   const principal = c.get("principal");
@@ -451,13 +585,13 @@ app.post("/tokens", async (c: Context<AuthEnv>) => {
           400,
           "VALIDATION",
           `Invalid scope "${String(s)}"`,
-          "Allowed: capture:read, capture:write"
+          "Allowed: capture:read, capture:write, board:read"
         );
       }
     }
     scopes = requested as string[];
   } else {
-    scopes = [SCOPES.CAPTURE_READ, SCOPES.CAPTURE_WRITE];
+    scopes = [SCOPES.CAPTURE_READ, SCOPES.CAPTURE_WRITE, SCOPES.BOARD_READ];
   }
 
   const { plaintext, hash } = generateToken();

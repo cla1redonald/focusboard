@@ -112,6 +112,69 @@ export async function mcpCommand() {
     }
   );
 
+  // ── Tier 2 — read-only board ─────────────────────────────────────────────────
+
+  server.registerTool(
+    "focusboard_today",
+    {
+      title: "Focusboard Today plan",
+      description:
+        "Read today's plan: the daily plan (main + support cards), rule-ranked focus " +
+        "recommendations with reasons, attention lists (overdue, due today, blocked, stale), " +
+        "and WIP pressure. Read-only. Use this to answer 'what should Claire focus on?'",
+      inputSchema: {},
+    },
+    async () => {
+      try {
+        return okResult(await client.today());
+      } catch (err) {
+        return errResult(err);
+      }
+    }
+  );
+
+  server.registerTool(
+    "focusboard_cards",
+    {
+      title: "List or search Focusboard cards",
+      description:
+        "List active board cards, optionally filtered by column id (e.g. doing, backlog, " +
+        "blocked), swimlane (work | personal), or a search query matching title, notes, tags, " +
+        "and checklist text. Read-only.",
+      inputSchema: {
+        column: z.string().optional().describe("Filter by column id"),
+        swimlane: z.enum(["work", "personal"]).optional().describe("Filter by swimlane"),
+        q: z.string().optional().describe("Search query"),
+        limit: z.number().int().min(1).max(200).optional().describe("Max cards to return"),
+      },
+    },
+    async (args) => {
+      try {
+        return okResult(await client.cards(args));
+      } catch (err) {
+        return errResult(err);
+      }
+    }
+  );
+
+  server.registerTool(
+    "focusboard_wip",
+    {
+      title: "Focusboard WIP status",
+      description:
+        "Read work-in-progress per column versus its WIP limit (atLimit flags columns at or " +
+        "over their limit). Read-only. Use before suggesting Claire start something new.",
+      inputSchema: {},
+    },
+    async () => {
+      try {
+        return okResult(await client.wip());
+      } catch (err) {
+        return errResult(err);
+      }
+    }
+  );
+
   const transport = new StdioServerTransport();
   await server.connect(transport);
   // stdio server runs until the client disconnects — keep the process alive.

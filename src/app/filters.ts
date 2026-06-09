@@ -1,5 +1,5 @@
-import type { Card, FilterState, DueDateFilter } from "./types";
-import { parseLocalDate } from "./utils";
+import type { Card, FilterState, DueDateFilter } from "./types.js";
+import { parseLocalDate } from "./utils.js";
 
 export const DEFAULT_FILTER: FilterState = {
   search: "",

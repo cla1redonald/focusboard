@@ -5,6 +5,7 @@ import { captureCommand } from "./commands/capture.js";
 import { inboxCommand, dismissCommand } from "./commands/inbox.js";
 import { snoozeCommand } from "./commands/snooze.js";
 import { loginCommand, statusCommand, logoutCommand } from "./commands/auth.js";
+import { todayCommand, listCommand, searchCommand, wipCommand } from "./commands/board.js";
 import { mcpCommand } from "./commands/mcp.js";
 
 /**
@@ -64,6 +65,33 @@ program
   .option("--for <duration>", "how long: 90, 90m, 2h, 3d (default 60m)")
   .option("--minutes <minutes>", "alias for --for, in minutes")
   .action(run(snoozeCommand));
+
+program
+  .command("today")
+  .description("today's plan: daily plan, recommended focus, attention, WIP pressure")
+  .action(run(todayCommand));
+
+program
+  .command("list")
+  .description("list active cards (c-N aliases for later commands)")
+  .option("--status <column>", "filter by column id (e.g. doing, backlog, blocked)")
+  .option("--swimlane <lane>", "filter by swimlane (work | personal)")
+  .option("-q, --q <query>", "search within the listing")
+  .option("--limit <n>", "max cards to show")
+  .action(run(listCommand));
+
+program
+  .command("search")
+  .description("search cards by title, notes, tags, or checklist text")
+  .argument("<query...>", "what to look for")
+  .option("--status <column>", "filter by column id")
+  .option("--swimlane <lane>", "filter by swimlane (work | personal)")
+  .action(run(searchCommand));
+
+program
+  .command("wip")
+  .description("work-in-progress per column vs limits")
+  .action(run(wipCommand));
 
 const auth = program.command("auth").description("manage CLI authentication");
 

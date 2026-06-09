@@ -110,6 +110,28 @@ describe("FocusboardClient", () => {
     expect(JSON.parse(init.body as string)).toEqual({ minutes: 90 });
   });
 
+  it("cards() builds query params for column, q, swimlane and limit", async () => {
+    const fetchMock = mockFetchOnce(200, { ok: true, data: { total: 0, items: [], columns: [] } });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = new FocusboardClient({ token: "fb_pat_test" }, BASE);
+    await client.cards({ column: "doing", q: "invoice x", swimlane: "work", limit: 5 });
+
+    const [url] = fetchMock.mock.calls[0] as [string];
+    expect(url).toBe(`${BASE}/api/cards?column=doing&q=invoice+x&swimlane=work&limit=5`);
+  });
+
+  it("today() and wip() hit their endpoints", async () => {
+    const fetchMock = mockFetchOnce(200, { ok: true, data: { columns: [], activeCount: 0 } });
+    vi.stubGlobal("fetch", fetchMock);
+
+    const client = new FocusboardClient({ token: "fb_pat_test" }, BASE);
+    await client.wip();
+    await client.today();
+    const urls = fetchMock.mock.calls.map((call: [string]) => call[0]);
+    expect(urls).toEqual([`${BASE}/api/wip`, `${BASE}/api/today`]);
+  });
+
   it("surfaces a BAD_RESPONSE error on non-JSON bodies", async () => {
     vi.stubGlobal(
       "fetch",

@@ -1,4 +1,4 @@
-import type { Card, Column, ColumnId, SwimlaneId } from "./types";
+import type { Card, Column, ColumnId, SwimlaneId } from "./types.js";
 
 export const nowIso = () => new Date().toISOString();
 
