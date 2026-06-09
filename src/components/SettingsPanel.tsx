@@ -95,22 +95,38 @@ export function SettingsPanel({
   const [revealedToken, setRevealedToken] = React.useState<NewTokenResult | null>(null);
   const [copied, setCopied] = React.useState(false);
   const [revokingId, setRevokingId] = React.useState<string | null>(null);
+  const [noSession, setNoSession] = React.useState(false);
 
-  // Load tokens when panel opens (only when Supabase is configured)
+  // Load tokens when the panel opens — but only if actually signed in. In demo mode
+  // (or any no-session state) there is no session token, so calling /api/tokens would
+  // 401 and log a console error. Gate on the session first and show a friendly prompt.
   React.useEffect(() => {
     if (!open || !isSupabaseConfigured()) return;
+    let cancelled = false;
     setTokensError(null);
     setTokensLoading(true);
-    void apiFetch("/api/tokens", { method: "GET" })
-      .then(async (r) => {
+    void (async () => {
+      const sessionToken = await fetchSessionToken();
+      if (cancelled) return;
+      if (!sessionToken) {
+        setNoSession(true);
+        setTokens([]);
+        setTokensLoading(false);
+        return;
+      }
+      setNoSession(false);
+      try {
+        const r = await apiFetch("/api/tokens", { method: "GET" });
         const body = await r.json() as { tokens?: ApiToken[]; error?: string };
         if (!r.ok) throw new Error(body.error ?? "Failed to load tokens");
-        setTokens(body.tokens ?? []);
-      })
-      .catch((err: unknown) => {
-        setTokensError(err instanceof Error ? err.message : "Failed to load tokens");
-      })
-      .finally(() => setTokensLoading(false));
+        if (!cancelled) setTokens(body.tokens ?? []);
+      } catch (err) {
+        if (!cancelled) setTokensError(err instanceof Error ? err.message : "Failed to load tokens");
+      } finally {
+        if (!cancelled) setTokensLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
   }, [open]);
 
   const handleCreateToken = async () => {
@@ -643,6 +659,12 @@ export function SettingsPanel({
                 Personal access tokens let CLI tools and MCP integrations act on your behalf.
               </div>
 
+              {noSession ? (
+                <div className="text-xs text-gray-500 dark:text-gray-400 italic">
+                  Sign in to create and manage API tokens.
+                </div>
+              ) : (
+                <>
               {/* One-time token reveal box */}
               {revealedToken && (
                 <div className="mb-4 rounded-lg border border-amber-300 dark:border-amber-600 bg-amber-50 dark:bg-amber-900/30 p-3">
@@ -753,6 +775,8 @@ export function SettingsPanel({
                     </div>
                   ))}
                 </div>
+              )}
+                </>
               )}
             </div>
           )}
