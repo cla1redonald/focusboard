@@ -2,3 +2,6 @@
 # serverless function — so test files must be excluded from the deployment build.
 api/**/*.test.ts
 api/**/*.spec.ts
+
+# The fb CLI + MCP package — never part of the web deployment.
+cli

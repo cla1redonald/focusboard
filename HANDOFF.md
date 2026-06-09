@@ -5,7 +5,7 @@
 **Prod:** https://focusboard-claire-donalds-projects.vercel.app · **Supabase project ref:** `pqjzwyrhcqczplrubfqs`
 
 ## TL;DR
-**Phase 0 — the server foundation for the CLI + MCP — is BUILT, MERGED, DEPLOYED TO PROD, and runtime-verified.** Next is **Phase 1: the actual `fb` CLI + the MCP server** on top of this API. No code-level work is blocked.
+**Phases 0, 0.5 AND 1 are shipped.** Phase 0 (PAT auth + API) was hardened in Phase 0.5 (enforced scope table, CORS hostname fix, frozen `{ ok, data }`/`{ ok, error }` envelope + REST routes, the Vercel multi-segment routing fix) and **Phase 1 — the `fb` CLI + stdio MCP server (`cli/` package) — is built and merged.** Next is **Phase 2: read-only board access** (`/api/today`, `/api/cards`, `/api/cards/search`, `/api/wip` + `fb today|list|search|wip` + Tier-2 MCP tools). Phase-4 concurrency is DECIDED (normalized `cards` table) so Phase-2 reads need NO version/etag plumbing.
 
 ---
 
@@ -26,7 +26,18 @@
 
 ---
 
-## NEXT — Phase 1: the `fb` CLI + MCP server (build on the live API)
+## Phase 1 — SHIPPED (the `fb` CLI + MCP server)
+
+One in-repo package, `cli/` (own package-lock; excluded from the Vercel deploy via `.vercelignore`; CI builds+tests it). `npm link` in `cli/` installs `fb`.
+
+- **Shared API client** (`cli/src/client.ts`) — the ONE place that knows endpoints, the Bearer header, the envelope, error mapping, and capture idempotency (UUID key, one retry on network failure with the SAME key). CLI commands and MCP tools both call through it; nothing touches Supabase.
+- **Commands:** `fb capture` · `fb inbox` (cap-N aliases + AI-parsed titles) · `fb inbox dismiss` · `fb snooze <id> --for 2h` · `fb auth login/status/logout` (hidden paste, validates via `GET /api/me`, stores 0600 at `~/.config/focusboard/credentials.json`, never prints the token) · `fb mcp`.
+- **Flags:** `--json` (full IDs) / `--quiet` / `--no-color` (+ NO_COLOR + non-TTY). Errors = `Error:` + a next-action hint; never stack traces.
+- **MCP (stdio, Tier 1):** `focusboard_capture`, `focusboard_inbox`, `focusboard_snooze_capture` via `fb mcp` — e.g. `claude mcp add focusboard -- fb mcp`; auth from the credentials file or `FOCUSBOARD_TOKEN`.
+- **New API route:** `GET /api/me` (scope capture:read) for token validation.
+- Verified: 17 CLI unit tests; binary + MCP server exercised against PROD (envelope + hint round-trip confirmed). Full happy-path needs Claire's real token (1 min): `fb auth login` → `fb capture "smoke"` → appears in web Capture Inbox.
+
+## Phase 1 original spec (for reference)
 1. **`cli/` workspace package (in-repo):** a shared API-client module + commands `fb capture | inbox | inbox dismiss | snooze | auth`. Design (from the UX review): **session-scoped short aliases** (`cap-1`) not UUIDs; table output + `--json`/`--quiet`/`--no-color`; errors carry a next-action hint; **AI-absent = a warning, not an error**. Auth: device-flow or `--token` paste; store at `~/.config/focusboard/credentials.json` (`0600`, never in a repo).
 2. **MCP server (local stdio):** `focusboard_capture | inbox | snooze_capture` (Tier 1), sharing the **same API-client module** as the CLI. Naming: `focusboard_<noun>` = read, `focusboard_<verb>_<noun>` = write. Three permission tiers; a Tier-3 confirmation-token gate comes with mutation (Phase 4).
 3. To get a token for the CLI today: **Settings → API Tokens → Create** (UI is live).

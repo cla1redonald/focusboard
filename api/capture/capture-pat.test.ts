@@ -194,6 +194,31 @@ function resetState() {
   process.env.FOCUSBOARD_USER_ID = "webhook-user-id";
 }
 
+// ─── GET /api/me tests ────────────────────────────────────────────────────────
+
+describe("Hono /api/me", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetState();
+    mockResolvedToken = { userId: "user-abc", scopes: ["capture:read"], tokenId: "token-1" };
+  });
+
+  it("returns the principal for a valid PAT", async () => {
+    const res = await app.request("/api/me", { headers: { Authorization: PAT_TOKEN } });
+    expect(res.status).toBe(200);
+    const body = await res.json() as OkBody<{ userId: string; kind: string; scopes: string[] }>;
+    expect(body.data).toEqual({ userId: "user-abc", kind: "pat", scopes: ["capture:read"] });
+  });
+
+  it("returns 401 without credentials", async () => {
+    mockResolvedToken = null;
+    const res = await app.request("/api/me");
+    expect(res.status).toBe(401);
+    const body = await res.json() as ErrBody;
+    expect(body.error.code).toBe("NOT_AUTHENTICATED");
+  });
+});
+
 // ─── POST capture tests ───────────────────────────────────────────────────────
 
 describe("Hono /api/capture — POST capture (PAT auth path)", () => {
