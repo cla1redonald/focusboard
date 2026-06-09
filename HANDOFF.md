@@ -55,6 +55,17 @@ Full token→capture loop hasn't been run with a **real** token (I can't read yo
 `curl -X POST https://focusboard-claire-donalds-projects.vercel.app/api/capture -H "Authorization: Bearer <token>" -H "Content-Type: application/json" -d '{"content":"smoke test"}'`
 → expect `200` + `{captureId}` → appears in Capture Inbox → revoke the token.
 
-## Related (other repos, this session)
-- **ShipIt V4** gained a **`runtime-smoke-test` gate** (HTTP curl + Playwright UI render + `SHIPIT_SMOKE_E2E_CMD` hook for Cypress/Playwright/Cucumber). When wiring `/ship` here, set `SHIPIT_SMOKE_PATHS=/api/capture`, `SHIPIT_SMOKE_UI=1`.
+## ShipIt V4 — the OTHER thing to evolve next session
+The whole point of this session was to improve ShipIt; FocusBoard was its first real-world test. **Plan + honest retro:** `~/code/shipit-v4/docs/plans/2026-06-09-v4-improvement-plan.md` (PR #10). Read it to start the next ShipIt session.
+
+**Assessment in one paragraph:** V4's thesis held but inverted from how it was sold — the *cheap* parts carried it (ad-hoc specialist summon was the highest-value output; the architect's plan review prevented a bad build; mechanical gates + the retro loop worked and self-improved). The *expensive headline* feature, the cross-model review, underdelivered: ~7 calibration rounds, real bugs, and it **passed GREEN on the PR that 504'd every route** — no diff review catches a runtime bug. V4's real blind spot was **no runtime verification** (every gate green on a dead deploy); patched mid-flight with the new `runtime-smoke-test` gate.
+
+**Prioritized fixes (in the plan; 3 routed to `shipit-v4/PROPOSED-LEARNINGS.md`):**
+- **P1** finish wiring the smoke gate so it fires by itself — into `install-gates.sh` + `ci-templates/ci.yml` (today only `/ship` prose) + **auto deploy-URL discovery**.
+- **P2** demote + de-noise the cross-model review to **advisory** (off the required-check path); structured `VERDICT:` parsing not prose-grep; size-gate off trivial PRs.
+- **P3** make **ad-hoc specialist summon** a first-class documented pattern.
+- **P4** battle-test on 2–3 repos (`n=1` is not "proven").
+
+## Related (this session)
+- **The new `runtime-smoke-test` gate** (HTTP curl + Playwright UI render + `SHIPIT_SMOKE_E2E_CMD` hook for Cypress/Playwright/Cucumber) — **FocusBoard is its first customer:** when wiring `/ship` here, set `SHIPIT_SMOKE_PATHS=/api/capture`, `SHIPIT_SMOKE_UI=1`.
 - `~/.claude` global rules updated: "green CI ≠ runtime works" (MANDATORY #4) + the Vercel `api/`-typecheck & 12-fn/Hono-504 facts.
