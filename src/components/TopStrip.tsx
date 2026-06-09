@@ -51,8 +51,13 @@ export function TopStrip({
   onUndo: () => void;
   onRedo: () => void;
 }) {
+  // relative z-20: backdrop-blur makes this bar a stacking context with z-auto,
+  // which traps every child dropdown's z-index inside it — the board (a later
+  // sibling) then paints OVER the Pomodoro panel and the completed-cards menu.
+  // Elevating the bar itself lets its popovers overlay the board; modals use
+  // z-[1200]+ fixed overlays, so they still cover the bar.
   return (
-    <div className="mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-gray-200 bg-white/80 px-4 py-2 text-sm text-gray-700 shadow-sm backdrop-blur dark:border-gray-700 dark:bg-gray-800/80 dark:text-gray-300">
+    <div className="relative z-20 mb-4 flex flex-wrap items-center gap-x-3 gap-y-2 rounded-xl border border-gray-200 bg-white/80 px-4 py-2 text-sm text-gray-700 shadow-sm backdrop-blur dark:border-gray-700 dark:bg-gray-800/80 dark:text-gray-300">
       <div className="flex items-center gap-0.5">
         <button
           onClick={onUndo}
