@@ -1,5 +1,13 @@
 /**
- * api/[...path].ts — Hono catch-all Vercel entry point (Node runtime).
+ * api/index.ts — the single Hono entry point (Node runtime).
+ *
+ * Routing: this was api/[...path].ts, but Vercel's filesystem router only matched it
+ * for SINGLE-segment paths (/api/capture reached it; /api/capture/:id/snooze got the
+ * platform 404 — the function was never invoked). The fix is the documented
+ * Hono-on-Vercel pattern: this file is api/index.ts and vercel.json rewrites
+ * /api/(.*) → /api, which invokes this function for every /api path that no literal
+ * function file matches. The rewrite only selects the function — req.url keeps the
+ * ORIGINAL path, which is what the Hono router matches on.
  *
  * All route logic lives in api/_lib/hono-app.ts (importable by tests via app.fetch).
  * This file bridges Vercel's Node (req, res) model ↔ Hono's Web Request/Response:
@@ -9,8 +17,8 @@
  * (createHash / timingSafeEqual), which the Edge runtime does not provide.
  *
  * Legacy functions (api/capture/process.ts, api/ai/*, api/feedback/submit.ts,
- * api/webhook/add-card.ts) remain untouched — Vercel routes specific function files
- * BEFORE this catch-all, so they keep working unchanged.
+ * api/webhook/add-card.ts) remain untouched — Vercel matches literal function files
+ * BEFORE rewrites, so they keep working unchanged.
  */
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";

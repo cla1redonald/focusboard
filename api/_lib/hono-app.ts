@@ -87,6 +87,16 @@ app.use("*", cors({
 // Auth policy for every route below — see ROUTE_SCOPES in auth-middleware.ts.
 app.use("*", enforceRouteScopes);
 
+// ── GET /api/health/deep — multi-segment routing liveness ─────────────────────
+//
+// Deliberately TWO path segments: Vercel's filesystem router silently dropped
+// multi-segment paths to the old [...path].ts catch-all (platform 404, function
+// never invoked) while single-segment routes worked. The runtime-smoke gate
+// asserts this returns 200, so a routing regression fails the deploy gate
+// instead of shipping silently.
+
+app.get("/health/deep", (c: Context<AuthEnv>) => ok(c, { deep: true }));
+
 // ── GET /api/capture — inbox listing ──────────────────────────────────────────
 
 app.get("/capture", async (c: Context<AuthEnv>) => {
