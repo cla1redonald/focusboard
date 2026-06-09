@@ -28,6 +28,7 @@ import {
 } from "./auth-middleware.js";
 import { resolveApiToken, SCOPES, generateToken } from "./token.js";
 import { ok, fail } from "./envelope.js";
+import { TRIAGE_STATUSES } from "../../src/app/captureTypes.js";
 
 // ── Allowed origins ────────────────────────────────────────────────────────────
 
@@ -122,12 +123,7 @@ app.get("/capture", async (c: Context<AuthEnv>) => {
         "id, raw_content, source, status, created_at, snoozed_until, confidence, parsed_cards, processed_at"
       )
       .eq("user_id", principal.userId)
-      // The triage set — matches the web Capture Inbox (useCaptureQueue.ts).
-      // "pending"/"processing" = not parsed yet; "ready" = parsed, awaiting triage.
-      // A capture is only "pending" for the seconds before AI processing promotes
-      // it to "ready" — filtering on pending alone made captures vanish from the
-      // CLI inbox the moment they were parsed.
-      .in("status", ["pending", "processing", "ready"])
+      .in("status", [...TRIAGE_STATUSES])
       .or(`snoozed_until.is.null,snoozed_until.lte.${now}`)
       .order("created_at", { ascending: false })
       .limit(50);
