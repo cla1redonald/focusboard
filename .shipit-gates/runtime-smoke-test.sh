@@ -38,19 +38,20 @@ fi
 fail=0
 
 # ── 1. HTTP smoke: every path must answer non-5xx, non-timeout ────────────────
-# A path may pin an EXACT expected status with "=NNN" (e.g. /api/health/deep=200,
-# /api/capture=401). Without "=", any non-5xx passes. Exact pins catch routing
+# A path may pin an EXACT expected status with "=NNN" (e.g. /api/capture=401,
+# /api/health/deep=200). Without "=", any non-5xx passes. Exact pins catch routing
 # regressions that hide behind "not a 5xx" — e.g. Vercel platform-404ing a path
-# that should reach the router (the multi-segment [...path].ts bug).
-PATHS="${SHIPIT_SMOKE_PATHS:-/}"
-IFS=',' read -ra ARR <<< "$PATHS"
-for spec in "${ARR[@]}"; do
-  [ -n "$spec" ] || continue
-  p="${spec%%=*}"
-  want=""
+# that should reach the router (FocusBoard's multi-segment [...path].ts bug).
+http_check() {  # $1=path-spec  $2=auth-header-or-empty
+  local spec="$1" auth="$2" p want full code
+  p="${spec%%=*}"; want=""
   [ "$spec" != "$p" ] && want="${spec#*=}"
   full="${URL%/}${p}"
-  code="$(curl -s -o /dev/null --max-time 25 -w '%{http_code}' "$full" 2>/dev/null)"
+  if [ -n "$auth" ]; then
+    code="$(curl -s -o /dev/null --max-time 25 -w '%{http_code}' -H "$auth" "$full" 2>/dev/null)"
+  else
+    code="$(curl -s -o /dev/null --max-time 25 -w '%{http_code}' "$full" 2>/dev/null)"
+  fi
   # curl prints "000" on connect failure/timeout; normalise anything not a 3-digit code.
   printf '%s' "$code" | grep -qE '^[0-9]{3}$' || code="000"
   if [ "$code" = "000" ]; then
@@ -62,50 +63,43 @@ for spec in "${ARR[@]}"; do
   else
     echo "runtime-smoke: $full → HTTP $code ✓"
   fi
+}
+
+PATHS="${SHIPIT_SMOKE_PATHS:-/}"
+IFS=',' read -ra ARR <<< "$PATHS"
+for spec in "${ARR[@]}"; do
+  [ -n "$spec" ] || continue
+  http_check "$spec" ""
 done
 
-# ── 1b. Authenticated round-trip (optional): data correctness, not just liveness ──
-# The unauth tier proves liveness/routing/auth — it CANNOT see wrong-rows-to-an-
-# authed-caller (the inbox status-filter bug passed every unauth gate). When a
-# low-privilege test PAT is present (SHIPIT_SMOKE_AUTH_TOKEN, from a CI secret),
-# drive one idempotent capture → inbox-shows-it → dismiss → inbox-hides-it loop.
-# No token → the rung skips with a note (mirrors [no-smoke] conditionality).
+# ── 1b. Authenticated tier (optional): data correctness, not just liveness ────
+# Tiers 1+2 prove liveness/routing/auth — they CANNOT see wrong-rows-returned-to-
+# an-authed-caller (FocusBoard's inbox status-filter bug passed every unauth gate).
+# When a low-privilege test credential is present as a CI secret
+# (SHIPIT_SMOKE_AUTH_TOKEN), this tier runs; without it, it skips with a note.
+#   SHIPIT_SMOKE_AUTH_PATHS  same path[=NNN] syntax, curled WITH the Bearer token.
+#   SHIPIT_SMOKE_AUTH_CMD    a project round-trip script (create → list-shows-it →
+#                            delete), run with SHIPIT_DEPLOY_URL + the token in env.
+#                            Reference implementation: FocusBoard's capture →
+#                            inbox → dismiss loop in its .shipit-gates copy.
 if [ -n "${SHIPIT_SMOKE_AUTH_TOKEN:-}" ]; then
-  authed_get() { curl -s --max-time 25 -H "Authorization: Bearer $SHIPIT_SMOKE_AUTH_TOKEN" "$1"; }
-  idem="shipit-smoke-${GITHUB_SHA:-$(date +%Y%m%d%H%M%S)}"
-
-  cap_resp="$(curl -s --max-time 25 -X POST "${URL%/}/api/capture" \
-    -H "Authorization: Bearer $SHIPIT_SMOKE_AUTH_TOKEN" \
-    -H "Content-Type: application/json" \
-    -H "Idempotency-Key: $idem" \
-    -d '{"content":"shipit-smoke (auto-dismissed by the deploy gate)"}' 2>/dev/null)"
-  cap_id="$(printf '%s' "$cap_resp" | sed -n 's/.*"captureId":"\([^"]*\)".*/\1/p')"
-
-  if [ -z "$cap_id" ]; then
-    echo "::error::runtime-smoke[authed]: capture failed — response: ${cap_resp:-<empty>}"; fail=1
-  else
-    inbox_resp="$(authed_get "${URL%/}/api/capture")"
-    if printf '%s' "$inbox_resp" | grep -q "$cap_id"; then
-      echo "runtime-smoke[authed]: capture → inbox round-trip ✓ ($cap_id)"
+  if [ -n "${SHIPIT_SMOKE_AUTH_PATHS:-}" ]; then
+    IFS=',' read -ra AARR <<< "$SHIPIT_SMOKE_AUTH_PATHS"
+    for spec in "${AARR[@]}"; do
+      [ -n "$spec" ] || continue
+      http_check "$spec" "Authorization: Bearer $SHIPIT_SMOKE_AUTH_TOKEN"
+    done
+  fi
+  if [ -n "${SHIPIT_SMOKE_AUTH_CMD:-}" ]; then
+    echo "runtime-smoke[authed]: running round-trip → $SHIPIT_SMOKE_AUTH_CMD"
+    if SHIPIT_DEPLOY_URL="$URL" bash -c "$SHIPIT_SMOKE_AUTH_CMD"; then
+      echo "runtime-smoke[authed]: round-trip ✓"
     else
-      echo "::error::runtime-smoke[authed]: capture $cap_id NOT in inbox — wrong rows to an authed caller (the status-filter bug class)"; fail=1
-    fi
-
-    dis_resp="$(curl -s --max-time 25 -X POST "${URL%/}/api/capture/$cap_id/dismiss" \
-      -H "Authorization: Bearer $SHIPIT_SMOKE_AUTH_TOKEN" 2>/dev/null)"
-    if printf '%s' "$dis_resp" | grep -q '"ok":true'; then
-      after_resp="$(authed_get "${URL%/}/api/capture")"
-      if printf '%s' "$after_resp" | grep -q "$cap_id"; then
-        echo "::error::runtime-smoke[authed]: dismissed capture $cap_id still in inbox"; fail=1
-      else
-        echo "runtime-smoke[authed]: dismiss hides it ✓"
-      fi
-    else
-      echo "::error::runtime-smoke[authed]: dismiss failed — response: ${dis_resp:-<empty>}"; fail=1
+      echo "::error::runtime-smoke[authed]: round-trip FAILED — wrong data to an authed caller on the deployed artifact"; fail=1
     fi
   fi
 else
-  echo "runtime-smoke: no SHIPIT_SMOKE_AUTH_TOKEN — authed round-trip skipped (liveness only; this tier cannot see data correctness)."
+  echo "runtime-smoke: no SHIPIT_SMOKE_AUTH_TOKEN — authed tier skipped (liveness only; this tier cannot see data correctness)."
 fi
 
 # ── 2. UI smoke: the real rendered page (Playwright) ──────────────────────────
