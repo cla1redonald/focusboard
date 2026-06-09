@@ -41,11 +41,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       process.env.SUPABASE_SERVICE_ROLE_KEY!
     );
 
-    // Mark as processing
+    // Mark as processing — guarded so we never resurrect a capture the user
+    // already dismissed/triaged in the gap since insert.
     await supabase
       .from("capture_queue")
       .update({ status: "processing" })
-      .eq("id", capture_id);
+      .eq("id", capture_id)
+      .eq("status", "pending");
 
     // Fetch the capture item
     const { data: capture, error: fetchError } = await supabase
@@ -172,8 +174,12 @@ Example: [{"title":"Review Q3 budget","notes":"From finance team email","tags":[
     // always land in the inbox as "ready" so the user reviews them.
     const status = (avgConfidence >= CONFIDENCE_THRESHOLD && auto_add !== false) ? "auto_added" : "ready";
 
-    // Update capture_queue with results
-    await supabase
+    // Update capture_queue with results. The STATUS write is guarded to rows
+    // still in the pipeline ("pending"/"processing") — the user may dismiss or
+    // triage the capture while the AI is parsing, and an unconditional write
+    // resurrects it into the inbox (caught live by the authed deploy smoke:
+    // capture → dismiss → the item came back as "ready").
+    const { data: statusRow } = await supabase
       .from("capture_queue")
       .update({
         status,
@@ -181,10 +187,29 @@ Example: [{"title":"Review Q3 budget","notes":"From finance team email","tags":[
         parsed_cards: parsedCards,
         processed_at: new Date().toISOString(),
       })
-      .eq("id", capture_id);
+      .eq("id", capture_id)
+      .in("status", ["pending", "processing"])
+      .select("id")
+      .maybeSingle();
 
-    // If high confidence, auto-add cards to board — but never for PAT/external captures
-    if (status === "auto_added" && appState && auto_add !== false) {
+    const statusApplied = Boolean(statusRow);
+    if (!statusApplied) {
+      // Status changed underneath us — keep the user's status, still persist
+      // the parse results for if/when the capture is revisited.
+      await supabase
+        .from("capture_queue")
+        .update({
+          confidence: avgConfidence,
+          parsed_cards: parsedCards,
+          processed_at: new Date().toISOString(),
+        })
+        .eq("id", capture_id);
+    }
+
+    // If high confidence, auto-add cards to board — but never for PAT/external
+    // captures, and never when the status write lost the race above (the user
+    // already dealt with the capture; adding cards now would contradict them).
+    if (statusApplied && status === "auto_added" && appState && auto_add !== false) {
       const { nanoid } = await import("nanoid");
       const now = new Date().toISOString();
 
@@ -265,7 +290,10 @@ Example: [{"title":"Review Q3 budget","notes":"From finance team email","tags":[
               }],
               processed_at: new Date().toISOString(),
             })
-            .eq("id", capture_id);
+            .eq("id", capture_id)
+            // Same race guard as the success path: the read above is stale by
+            // the time we write — never resurrect a dismissed/triaged capture.
+            .in("status", ["pending", "processing"]);
         }
       }
     } catch (recoveryErr) {
