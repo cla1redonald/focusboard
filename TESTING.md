@@ -326,3 +326,21 @@ await user.click(button);
 // Avoid
 fireEvent.click(button);
 ```
+
+## Smoke-test account (runtime verification without Claire)
+
+Runtime verification (CLI mutation loops, two-tab realtime passes, CI smoke
+round-trips) runs against a **dedicated smoke account**, never Claire's:
+
+- `npm run smoke:setup` (→ `scripts/smoke-account.sh`) idempotently ensures the
+  `focusboard-smoke@focusboard.invalid` auth user and mints it a fresh
+  all-scopes API token (stored at `~/.config/focusboard/smoke-credentials.json`,
+  0600; the plaintext is never printed). Re-run after any phase that adds
+  scopes — it revokes prior smoke tokens and re-mints with the current full set.
+- `npm run smoke:setup -- --gh-secret` additionally syncs the token to the
+  `FOCUSBOARD_SMOKE_TOKEN` GitHub Actions secret for the runtime-smoke gate.
+- Use it locally via `FOCUSBOARD_TOKEN=$(jq -r .token ~/.config/focusboard/smoke-credentials.json) fb …`
+  so Claire's own `fb auth` credentials are never displaced.
+- The smoke user's board is created by the app's own new-user path on first
+  sign-in — deliberately not seeded by the script, so fresh-user save/load gets
+  exercised too.

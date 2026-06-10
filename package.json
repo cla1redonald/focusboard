@@ -15,6 +15,7 @@
     "test:security": "vitest run --reporter=verbose src/test/security.test.tsx",
     "test:api": "vitest run --config vitest.api.config.ts",
     "test:cli": "npm --prefix cli run test",
+    "smoke:setup": "bash scripts/smoke-account.sh",
     "build:cli": "npm --prefix cli run build",
     "typecheck:api": "tsc --noEmit -p tsconfig.api.json"
   },
