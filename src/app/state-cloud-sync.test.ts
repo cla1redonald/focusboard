@@ -69,7 +69,7 @@ describe("useAppState ↔ Supabase sync", () => {
       }),
       flushSaveToSupabase: vi.fn(),
       cancelPendingSaveToSupabase: vi.fn(),
-      subscribeToStateChanges: vi.fn(() => null),
+      subscribeToBoardChanges: vi.fn(() => null),
       debouncedSaveMetricsToSupabase: vi.fn(),
     }));
 
@@ -89,15 +89,10 @@ describe("useAppState ↔ Supabase sync", () => {
       await Promise.resolve();
     });
 
-    // After cloud load resolves, only the imported (real) state should
-    // ever be observed by the sync layer — never the empty default.
-    await waitFor(() => {
-      expect(saveStateCalls.some((s) => s.cards.length > 0)).toBe(false);
-      // No call with empty default cards either: cloud load triggered
-      // IMPORT_STATE which set isExternalUpdate=true, so no save is
-      // expected at all from the mount + load sequence.
-    });
-
+    // The pinned regression: the EMPTY default state from mount must never
+    // reach the sync layer. (Since 4b, the imported cloud state itself IS
+    // queued after load — deliberately: saves are diffs against the
+    // last-seen server state, so it no-ops server-side.)
     const emptySaves = saveStateCalls.filter((s) => s.cards.length === 0);
     expect(emptySaves, "no empty-state save should ever be queued").toHaveLength(0);
   });
@@ -116,7 +111,7 @@ describe("useAppState ↔ Supabase sync", () => {
       debouncedSaveToSupabase: vi.fn(),
       flushSaveToSupabase: vi.fn(),
       cancelPendingSaveToSupabase: cancelMock,
-      subscribeToStateChanges: vi.fn(() => null),
+      subscribeToBoardChanges: vi.fn(() => null),
       debouncedSaveMetricsToSupabase: vi.fn(),
     }));
 

@@ -55,6 +55,19 @@ vi.mock("@supabase/supabase-js", () => ({
           })),
         };
       }
+      if (table === "cards") {
+        // Since 4b loadBoard reads cards from the cards table: serve
+        // mockBoardState.cards as rows.
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn(async () => ({
+            data: ((mockBoardState?.cards as Record<string, unknown>[] | undefined) ?? []).map(
+              (c, i) => ({ id: c.id, card_json: c, version: i + 1 })
+            ),
+            error: null,
+          })),
+        };
+      }
       // focus_sessions
       const selectChain = {
         eq: vi.fn().mockReturnThis(),

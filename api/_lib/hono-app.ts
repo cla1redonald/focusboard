@@ -29,7 +29,7 @@ import {
 import { resolveApiToken, SCOPES, generateToken } from "./token.js";
 import { ok, fail } from "./envelope.js";
 import { TRIAGE_STATUSES } from "../../src/app/captureTypes.js";
-import { loadBoard, slimCard, tagNameResolver, loadCardVersions } from "./board.js";
+import { loadBoard, slimCard, tagNameResolver } from "./board.js";
 import { buildTodayPlan, buildTodayDailyPlan, getActiveCards } from "../../src/app/today.js";
 import { filterCards, DEFAULT_FILTER } from "../../src/app/filters.js";
 
@@ -485,12 +485,11 @@ app.get("/cards", async (c: Context<AuthEnv>) => {
     );
 
     const resolveTags = tagNameResolver(board.state.tags);
-    const versions = await loadCardVersions(principalUserId(c));
     return ok(c, {
       total: cards.length,
       items: cards.slice(0, limit).map((card) => ({
         ...slimCard(card, resolveTags),
-        version: versions.get(card.id) ?? null,
+        version: board.versions.get(card.id) ?? null,
       })),
       columns: board.columns
         .sort((a, b) => a.order - b.order)
@@ -663,13 +662,12 @@ app.get("/cards/:id", async (c: Context<AuthEnv>) => {
     if (!board) return fail(c, 404, "NOT_FOUND", "No board found for this user");
     const card = board.cards.find((cd) => cd.id === id);
     if (!card) return fail(c, 404, "NOT_FOUND", "Card not found", "Use an id from fb list / focusboard_cards");
-    const versions = await loadCardVersions(principalUserId(c));
     const resolveTags = tagNameResolver(board.state.tags);
     return ok(c, {
       card: {
         ...slimCard(card, resolveTags),
         archived: Boolean(card.archivedAt),
-        version: versions.get(card.id) ?? null,
+        version: board.versions.get(card.id) ?? null,
       },
     });
   } catch (err) {
@@ -705,12 +703,11 @@ async function mutateCard(c: Context<AuthEnv>, id: string, expectedVersion: unkn
   if (error) return mapRpcError(c, error.message ?? "");
 
   const board = await loadBoard(principalUserId(c));
-  const versions = await loadCardVersions(principalUserId(c));
   const resolveTags = tagNameResolver(board?.state.tags);
   return ok(c, {
     card: {
       ...slimCard(data as never, resolveTags),
-      version: versions.get(id) ?? null,
+      version: board?.versions.get(id) ?? null,
     },
   });
 }
