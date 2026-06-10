@@ -166,6 +166,7 @@ claude mcp add focusboard -- fb mcp   # or any MCP client; auth via `fb auth log
 | `npm run test:run` | Run the full test suite |
 | `npm run test:coverage` | Run tests with coverage report |
 | `npm run preview` | Preview the production build |
+| `npm run smoke:setup` | Ensure the dedicated smoke-test account + all-scopes token (see [TESTING.md](TESTING.md)) |
 
 ## Documentation
 
