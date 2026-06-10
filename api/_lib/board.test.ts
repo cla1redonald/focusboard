@@ -35,16 +35,32 @@ vi.mock("./token.js", () => ({
 
 vi.mock("@vercel/functions", () => ({ waitUntil: vi.fn() }));
 
+// Since 4b the API reads non-card state from the app_state blob and CARDS from
+// the cards table. The mock serves mockBoardState.cards as table rows so the
+// test fixtures keep their one-object shape.
 vi.mock("@supabase/supabase-js", () => ({
   createClient: vi.fn(() => ({
-    from: vi.fn(() => ({
-      select: vi.fn().mockReturnThis(),
-      eq: vi.fn().mockReturnThis(),
-      maybeSingle: vi.fn(async () => ({
-        data: mockBoardState ? { state: mockBoardState } : null,
-        error: null,
-      })),
-    })),
+    from: vi.fn((table: string) => {
+      if (table === "cards") {
+        return {
+          select: vi.fn().mockReturnThis(),
+          eq: vi.fn(async () => ({
+            data: ((mockBoardState?.cards as Record<string, unknown>[] | undefined) ?? []).map(
+              (c, i) => ({ id: c.id, card_json: c, version: i + 1 })
+            ),
+            error: null,
+          })),
+        };
+      }
+      return {
+        select: vi.fn().mockReturnThis(),
+        eq: vi.fn().mockReturnThis(),
+        maybeSingle: vi.fn(async () => ({
+          data: mockBoardState ? { state: mockBoardState } : null,
+          error: null,
+        })),
+      };
+    }),
     auth: {
       getUser: vi.fn(async () => ({ data: { user: null }, error: { message: "no user" } })),
     },

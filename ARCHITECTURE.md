@@ -228,9 +228,21 @@ loadState() {
 When Supabase is configured:
 
 1. **Authentication** - Email/password or magic link via Supabase Auth
-2. **Storage** - State stored in `app_state` table, metrics in `metrics` table
+2. **Storage** - Cards live in the `cards` table (one row per card with an
+   optimistic-lock `version`, shared with the CLI/MCP/API writers); non-card
+   board state (columns, settings, tags, templates, daily plan) lives in the
+   `app_state` blob (saved without a cards key); metrics in `metrics`;
+   focus history in `focus_sessions`
 3. **Data Isolation** - Row Level Security (RLS) ensures users only access their own data
-4. **Sync Strategy** - Full state replacement (last-write-wins), debounced saves
+4. **Sync Strategy** (Phase 4b) - Saves are debounced, serialized, per-card
+   DIFFS against the last-seen server state: new cards insert
+   (retry-idempotent upsert), changed cards update behind a per-card version
+   compare-and-swap, removed cards delete behind the same guard. A CAS miss
+   means an external writer (CLI/MCP/another tab) got there first — the app
+   accepts THEIRS (re-fetch, reconcile) instead of clobbering. Realtime is
+   split the same way: per-card INSERT/UPDATE/DELETE events from `cards`
+   (own-write echoes dropped by version) and `app_state` UPDATE events for
+   non-card state (echoes dropped by JSON comparison)
 
 ```
 ┌──────────┐     ┌──────────┐     ┌──────────┐

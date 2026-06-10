@@ -5,14 +5,11 @@ import { debouncedSaveState, flushSaveState, loadState, setStorageUserId } from 
 import { DEFAULT_COLUMNS, DEFAULT_SETTINGS, DEFAULT_TAG_CATEGORIES, DEFAULT_TAGS } from "./constants";
 import { nowIso, suggestEmojiForTitle, suggestTagsForTitle } from "./utils";
 import { calculateAutoPriority } from "./urgency";
-import { cancelPendingSaveToSupabase, debouncedSaveToSupabase, flushSaveToSupabase, loadStateFromSupabase, subscribeToStateChanges } from "./sync";
+import { cancelPendingSaveToSupabase, debouncedSaveToSupabase, flushSaveToSupabase, loadStateFromSupabase, subscribeToBoardChanges, type NonCardState } from "./sync";
 import { supabase } from "./supabase";
 import { isDemoMode, hasSeededDemo, markDemoSeeded, getDemoCards } from "./demoMode";
 
 const MAX_HISTORY = 50;
-
-/** Ignore external updates within this window after our own save (prevents echo) */
-const ECHO_SUPPRESSION_MS = 3000;
 
 function getReciprocalType(type: RelationType): RelationType {
   switch (type) {
@@ -57,6 +54,8 @@ type Action =
   | { type: "DELETE_TAG_CATEGORY"; id: string }
   | { type: "REORDER_TAG_CATEGORIES"; categories: TagCategory[] }
   | { type: "IMPORT_STATE"; state: AppState }
+  | { type: "APPLY_REMOTE_CARDS"; upserts: Card[]; removes: string[] }
+  | { type: "APPLY_REMOTE_BOARD"; board: NonCardState }
   | { type: "APPLY_AUTO_PRIORITIES" }
   | { type: "ARCHIVE_CARD"; id: string }
   | { type: "UNARCHIVE_CARD"; id: string; toColumn: ColumnId }
@@ -546,6 +545,28 @@ function appReducer(state: AppState, action: Action): AppState {
       return action.state;
     }
 
+    // External per-card changes (realtime from the cards table, or
+    // accept-theirs conflict resolution after a CAS miss). Replaces matching
+    // local cards wholesale and appends cards we've never seen — board
+    // position is governed by each card's column/order fields, not array
+    // position.
+    case "APPLY_REMOTE_CARDS": {
+      const removeSet = new Set(action.removes);
+      const upsertById = new Map(action.upserts.map((c) => [c.id, c]));
+      const kept = state.cards
+        .filter((c) => !removeSet.has(c.id))
+        .map((c) => upsertById.get(c.id) ?? c);
+      const existingIds = new Set(state.cards.map((c) => c.id));
+      const added = action.upserts.filter((c) => !existingIds.has(c.id));
+      return { ...state, cards: [...added, ...kept] };
+    }
+
+    // External non-card board state (settings, columns, tags, templates,
+    // daily plan) from app_state realtime — local cards are untouched.
+    case "APPLY_REMOTE_BOARD": {
+      return { ...action.board, cards: state.cards };
+    }
+
     case "APPLY_AUTO_PRIORITIES": {
       // Only apply if the setting is enabled
       if (!state.settings.autoPriorityFromDueDate) return state;
@@ -762,8 +783,6 @@ export function useAppState(userId?: string | null) {
 
   // Track if we've loaded from cloud to avoid overwriting
   const hasLoadedFromCloud = React.useRef(false);
-  const isExternalUpdate = React.useRef(false);
-  const lastLocalSaveTime = React.useRef<number>(0);
   // Cloud saves are gated on this — see the comment in the save effect.
   const cloudLoadAttempted = React.useRef(false);
 
@@ -783,7 +802,6 @@ export function useAppState(userId?: string | null) {
       if (!isMounted) return;
       if (cloudState && !hasLoadedFromCloud.current) {
         hasLoadedFromCloud.current = true;
-        isExternalUpdate.current = true;
         dispatch({ type: "IMPORT_STATE", state: cloudState });
       }
       // Mark the load attempted regardless of outcome. From this point on
@@ -800,21 +818,20 @@ export function useAppState(userId?: string | null) {
     return () => { isMounted = false; };
   }, []);
 
-  // Subscribe to real-time changes from Supabase
+  // Subscribe to real-time changes from Supabase. Cards arrive as per-card
+  // upserts/removes from the cards table; non-card board state arrives from
+  // app_state. Echo filtering happens in sync.ts (by card version / blob JSON
+  // comparison), so anything delivered here is a genuine external change.
   React.useEffect(() => {
     if (!supabase || !userId) return;
 
-    const unsubscribe = subscribeToStateChanges(userId, (cloudState) => {
-      // Ignore updates that arrive within echo suppression window
-      // (these are likely echoes of our own changes)
-      const timeSinceLastSave = Date.now() - lastLocalSaveTime.current;
-      if (timeSinceLastSave < ECHO_SUPPRESSION_MS) {
-        return;
-      }
-
-      // Only update if this wasn't triggered by our own save
-      isExternalUpdate.current = true;
-      dispatch({ type: "IMPORT_STATE", state: cloudState });
+    const unsubscribe = subscribeToBoardChanges(userId, {
+      onCards: ({ upserts, removes }) => {
+        dispatch({ type: "APPLY_REMOTE_CARDS", upserts, removes });
+      },
+      onBoard: (board) => {
+        dispatch({ type: "APPLY_REMOTE_BOARD", board });
+      },
     });
 
     return () => {
@@ -826,25 +843,20 @@ export function useAppState(userId?: string | null) {
   React.useEffect(() => {
     debouncedSaveState(state);
 
-    // Don't save to cloud if this was an external update (to avoid loops)
-    if (isExternalUpdate.current) {
-      isExternalUpdate.current = false;
-      return;
-    }
-
     // Hold cloud writes until the initial cloud-load attempt finishes.
-    // If we don't, the default empty state at mount gets queued, then
-    // IMPORT_STATE arrives and silently overwrites the queued value via
-    // the isExternalUpdate guard above — but the empty queued state is
-    // still pending and the debounce timer eventually flushes it, wiping
-    // the cloud row. See cancelPendingSaveToSupabase() in loadFromCloud.
+    // If we don't, the default empty state at mount gets queued and the
+    // debounce timer eventually flushes it, wiping the cloud row. See
+    // cancelPendingSaveToSupabase() in loadFromCloud.
     if (!cloudLoadAttempted.current) {
       return;
     }
 
-    // Save to Supabase (debounced)
+    // Save to Supabase (debounced). External updates (IMPORT_STATE from the
+    // cloud load, APPLY_REMOTE_*) queue a save too — that's deliberate: the
+    // save is a DIFF against the last-seen server state, so an externally
+    // sourced state diffs to nothing, while re-queueing replaces any stale
+    // pending state that a remote change just superseded.
     if (supabase) {
-      lastLocalSaveTime.current = Date.now();
       debouncedSaveToSupabase(state);
     }
   }, [state]);

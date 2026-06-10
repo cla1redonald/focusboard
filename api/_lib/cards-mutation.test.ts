@@ -46,11 +46,20 @@ vi.mock("@vercel/functions", () => ({ waitUntil: vi.fn() }));
 
 vi.mock("@supabase/supabase-js", () => ({
   createClient: vi.fn(() => ({
+    // Since 4b loadBoard reads cards from the cards table: serve
+    // mockBoardState.cards as rows, joined with mockVersionRows versions.
     from: vi.fn((table: string) => {
       if (table === "cards") {
         return {
           select: vi.fn().mockReturnThis(),
-          eq: vi.fn(async () => ({ data: mockVersionRows, error: null })),
+          eq: vi.fn(async () => ({
+            data: ((mockBoardState?.cards as Record<string, unknown>[] | undefined) ?? []).map((c) => ({
+              id: c.id,
+              card_json: c,
+              version: mockVersionRows.find((v) => v.id === c.id)?.version ?? 1,
+            })),
+            error: null,
+          })),
         };
       }
       return {
