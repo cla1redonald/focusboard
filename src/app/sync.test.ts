@@ -470,14 +470,31 @@ describe("subscribeToBoardChanges (realtime)", () => {
     return { db, sync, onCards, onBoard, unsubscribe };
   }
 
-  it("subscribes to app_state UPDATE + cards INSERT/UPDATE/DELETE on one channel", async () => {
+  it("subscribes cards and app_state on SEPARATE channels (one bad binding cannot silence the other)", async () => {
     const { db } = await subscribed();
+    expect(db.supabase.channel).toHaveBeenCalledWith("cards_changes:user-123");
     expect(db.supabase.channel).toHaveBeenCalledWith("board_changes:user-123");
     const events = db.mockChannel.on.mock.calls.map((c) => `${(c[1] as { event: string }).event}:${(c[1] as { table: string }).table}`);
     expect(events).toEqual(
       expect.arrayContaining(["UPDATE:app_state", "INSERT:cards", "UPDATE:cards", "DELETE:cards"])
     );
     expect(db.mockChannel.subscribe).toHaveBeenCalled();
+  });
+
+  it("logs (never swallows) a failed subscription status", async () => {
+    const consoleSpy = vi.spyOn(console, "error").mockImplementation(() => {});
+    const { db } = await subscribed();
+    // Invoke the status callbacks the way supabase-js does on a rejected binding.
+    for (const call of db.mockChannel.subscribe.mock.calls) {
+      const cb = call[0] as ((status: string, err?: Error) => void) | undefined;
+      cb?.("CHANNEL_ERROR", new Error("Unable to subscribe to changes"));
+    }
+    expect(consoleSpy).toHaveBeenCalledWith(
+      expect.stringContaining("subscription failed"),
+      "CHANNEL_ERROR",
+      expect.any(Error)
+    );
+    consoleSpy.mockRestore();
   });
 
   it("delivers external card upserts and advances the snapshot", async () => {

@@ -395,23 +395,21 @@ export function subscribeToBoardChanges(
     handlers.onCards({ upserts: [], removes: [old.id] });
   };
 
-  const channel = client
-    .channel(`board_changes:${userId}`)
-    .on(
-      "postgres_changes",
-      { event: "UPDATE", schema: "public", table: "app_state", filter: `user_id=eq.${userId}` },
-      (payload) => {
-        const newState = (payload.new as { state?: AppState })?.state;
-        if (!newState) return;
-        // Strip any legacy cards array (pre-cleanup blobs) — cards arrive
-        // through the cards-table events, never through the blob.
-        const nonCards = stripCards(newState);
-        const json = JSON.stringify(nonCards);
-        if (json === lastSyncedNonCardsJson) return; // Echo of our own save.
-        lastSyncedNonCardsJson = json;
-        handlers.onBoard(nonCards);
-      }
-    )
+  // One realtime binding that the server rejects (e.g. a table missing from
+  // the supabase_realtime publication) kills its WHOLE channel — and a bare
+  // .subscribe() surfaces nothing. That exact failure hid for months on the
+  // app_state subscription. Two defenses, learned the hard way:
+  //   1. cards and app_state subscribe on SEPARATE channels, so a poisoned
+  //      binding on one can never silence the other;
+  //   2. subscription status errors are logged, never swallowed.
+  const logStatus = (label: string) => (status: string, err?: Error) => {
+    if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") {
+      console.error(`Realtime ${label} subscription failed:`, status, err ?? "");
+    }
+  };
+
+  const cardsChannel = client
+    .channel(`cards_changes:${userId}`)
     .on(
       "postgres_changes",
       { event: "INSERT", schema: "public", table: "cards", filter: `user_id=eq.${userId}` },
@@ -429,11 +427,31 @@ export function subscribeToBoardChanges(
       { event: "DELETE", schema: "public", table: "cards" },
       onCardDelete
     )
-    .subscribe();
+    .subscribe(logStatus("cards"));
+
+  const boardChannel = client
+    .channel(`board_changes:${userId}`)
+    .on(
+      "postgres_changes",
+      { event: "UPDATE", schema: "public", table: "app_state", filter: `user_id=eq.${userId}` },
+      (payload) => {
+        const newState = (payload.new as { state?: AppState })?.state;
+        if (!newState) return;
+        // Strip any legacy cards array (pre-cleanup blobs) — cards arrive
+        // through the cards-table events, never through the blob.
+        const nonCards = stripCards(newState);
+        const json = JSON.stringify(nonCards);
+        if (json === lastSyncedNonCardsJson) return; // Echo of our own save.
+        lastSyncedNonCardsJson = json;
+        handlers.onBoard(nonCards);
+      }
+    )
+    .subscribe(logStatus("board"));
 
   return () => {
     boardHandlers = null;
-    void client.removeChannel(channel);
+    void client.removeChannel(cardsChannel);
+    void client.removeChannel(boardChannel);
   };
 }
 
