@@ -40,7 +40,12 @@ The thing the original plan filed under "Risks." Promote it.
 - **CLI:** `fb focus start [<card-id>]`, `fb focus stop --outcome <…>`, `fb focus status`.
 - **MCP:** `focusboard_focus_start/stop/status` (Tier 3 — mutation, but on the safe append-only table).
 
-### Phase 4 — Controlled card mutation (gated)
+### Phase 4 — Controlled card mutation (gated) — STAGED 4a/4b (2026-06-09)
+
+**4a (shipped):** `cards` table as a trigger-maintained mirror of `app_state` (per-card version, bumped only on real change); atomic `fb_add_card`/`fb_mutate_card` Postgres functions (row-locked, version CAS → 409 STALE_STATE); API mutation routes; CLI read-then-CAS commands; MCP confirmation gate. Web write path untouched — its realtime IMPORT_STATE path delivers external changes live. Residual (documented): the web's full-blob save can clobber an external mutation in the same sub-second window — unchanged from pre-4a, bounded by realtime convergence.
+**4b (next):** the web's own writes go per-card (load = blob + rows; save = card diff with per-card CAS; realtime on the cards table), retiring the blob's cards array and closing the residual race.
+
+### Phase 4 — original spec (for reference)
 **Do not ship until concurrency is solved.** Recommended: **extract a normalized `cards` table** (per-card RLS, single-row updates, natural per-card optimistic locking) — this also fixes the latent web-app data-loss bug. Cheaper alternative: `version BIGINT` on `app_state` + make **web saves conflict-aware** (read version on load, send on save, refetch-and-rebase on 409). Either way, define **409 Conflict** as the conflict contract so the CLI can render "board changed, re-run".
 - `fb add`, `fb move <id> <col>`, `fb done <id>`, tags, blocked.
 - MCP Tier 3 with the confirmation-token gate (below).

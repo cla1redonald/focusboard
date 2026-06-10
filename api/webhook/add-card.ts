@@ -83,42 +83,38 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    // Fetch current state
+    // Phase 4a: write through the atomic fb_add_card function instead of a
+    // read-modify-write blob upsert (which could clobber concurrent web saves).
+    // If the user has no board row yet, seed it with the default state first.
     const { data, error: fetchError } = await supabase
       .from("app_state")
-      .select("state")
+      .select("user_id")
       .eq("user_id", userId)
-      .single();
+      .maybeSingle();
 
-    if (fetchError && fetchError.code !== "PGRST116") {
+    if (fetchError) {
       console.error("Webhook fetch error:", fetchError.message);
       return res.status(500).json({ error: "Failed to fetch state" });
     }
+    if (!data) {
+      const { error: seedError } = await supabase.from("app_state").upsert(
+        { user_id: userId, state: getDefaultState(), updated_at: new Date().toISOString() },
+        { onConflict: "user_id" }
+      );
+      if (seedError) {
+        console.error("Webhook seed error:", seedError.message);
+        return res.status(500).json({ error: "Failed to save card" });
+      }
+    }
 
-    const state: AppState = data?.state ?? getDefaultState();
-
-    // Create and add card
     const card = createCard(title.trim(), column, source, swimlane);
-    // Shift cards in the same column AND swimlane to make room at top (matches main app behavior)
-    state.cards = state.cards.map((c) =>
-      c.column === card.column && (c.swimlane ?? "work") === card.swimlane
-        ? { ...c, order: c.order + 1 }
-        : c
-    );
-    state.cards.unshift(card);
+    const { error: addError } = await supabase.rpc("fb_add_card", {
+      p_user: userId,
+      p_card: card,
+    });
 
-    // Save
-    const { error: upsertError } = await supabase.from("app_state").upsert(
-      {
-        user_id: userId,
-        state,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id" }
-    );
-
-    if (upsertError) {
-      console.error("Webhook upsert error:", upsertError.message);
+    if (addError) {
+      console.error("Webhook add-card error:", addError.message);
       return res.status(500).json({ error: "Failed to save card" });
     }
 

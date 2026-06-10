@@ -250,6 +250,38 @@ export class FocusboardClient {
     return this.request("GET", "/api/wip");
   }
 
+  cardGet(id: string): Promise<{ card: SlimCard & { version: number | null; archived?: boolean } }> {
+    return this.request("GET", `/api/cards/${encodeURIComponent(id)}`);
+  }
+
+  cardAdd(fields: {
+    title: string;
+    column?: string;
+    swimlane?: string;
+    dueDate?: string;
+    tags?: string[];
+    notes?: string;
+  }): Promise<{ card: SlimCard & { version: number } }> {
+    return this.request("POST", "/api/cards", fields);
+  }
+
+  /** version: a number = compare-and-swap; null = deliberately skip the check. */
+  cardPatch(
+    id: string,
+    version: number | null,
+    fields: { title?: string; notes?: string | null; dueDate?: string | null; tags?: string[]; blockedReason?: string | null }
+  ): Promise<{ card: SlimCard & { version: number | null } }> {
+    return this.request("PATCH", `/api/cards/${encodeURIComponent(id)}`, { version, ...fields });
+  }
+
+  cardMove(id: string, version: number | null, column: string): Promise<{ card: SlimCard & { version: number | null } }> {
+    return this.request("POST", `/api/cards/${encodeURIComponent(id)}/move`, { version, column });
+  }
+
+  cardDone(id: string, version: number | null): Promise<{ card: SlimCard & { version: number | null } }> {
+    return this.request("POST", `/api/cards/${encodeURIComponent(id)}/done`, { version });
+  }
+
   focusStatus(): Promise<FocusStatusData> {
     return this.request("GET", "/api/focus/status");
   }

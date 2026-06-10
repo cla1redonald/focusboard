@@ -1,3 +1,4 @@
+import { randomUUID } from "node:crypto";
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { z } from "zod";
@@ -240,6 +241,202 @@ export async function mcpCommand() {
     async () => {
       try {
         return okResult(await client.focusStatus());
+      } catch (err) {
+        return errResult(err);
+      }
+    }
+  );
+
+  // ── Tier 3 — card mutation, behind the confirmation gate ────────────────────
+  //
+  // Card mutations change board state an agent could get wrong. Every mutation
+  // tool returns { status: "confirmation_required", confirm_token, preview }
+  // instead of executing; the agent must echo the token to focusboard_confirm.
+  // Silent agent mutation is therefore impossible — the confirm call is a
+  // deliberate, visible second step. Tokens are single-use and expire in 5 min.
+  // The mutation itself does a FRESH read-then-CAS at confirm time, so even a
+  // confirmed op cannot clobber a card that changed since the proposal (409
+  // STALE_STATE comes back with a hint instead).
+
+  const CONFIRM_TTL_MS = 5 * 60 * 1000;
+  const pendingOps = new Map<string, { preview: string; execute: () => Promise<unknown>; expiresAt: number }>();
+
+  function propose(preview: string, execute: () => Promise<unknown>): ToolResult {
+    for (const [token, op] of pendingOps) {
+      if (op.expiresAt < Date.now()) pendingOps.delete(token);
+    }
+    const confirmToken = randomUUID();
+    pendingOps.set(confirmToken, { preview, execute, expiresAt: Date.now() + CONFIRM_TTL_MS });
+    return {
+      content: [{
+        type: "text",
+        text: JSON.stringify({
+          ok: true,
+          data: {
+            status: "confirmation_required",
+            confirm_token: confirmToken,
+            expires_in_seconds: CONFIRM_TTL_MS / 1000,
+            preview,
+            hint: "Call focusboard_confirm with this confirm_token to execute",
+          },
+        }),
+      }],
+    };
+  }
+
+  async function freshVersion(cardId: string): Promise<{ version: number | null; title: string }> {
+    const { card } = await client.cardGet(cardId);
+    return { version: card.version, title: card.title };
+  }
+
+  server.registerTool(
+    "focusboard_add_card",
+    {
+      title: "Add a card to the board (requires confirmation)",
+      description:
+        "Propose adding a card directly to the board. Returns a confirm_token — the card is " +
+        "only created after focusboard_confirm. For raw thoughts/ideas prefer focusboard_capture " +
+        "(goes to the inbox for Claire to triage, no confirmation needed).",
+      inputSchema: {
+        title: z.string().min(1).max(300).describe("Card title"),
+        column: z.string().optional().describe("Column id (default backlog; see focusboard_cards)"),
+        swimlane: z.enum(["work", "personal"]).optional(),
+        due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).optional().describe("Due date YYYY-MM-DD"),
+        tags: z.array(z.string()).optional().describe("Existing tag NAMES"),
+        notes: z.string().max(5000).optional(),
+      },
+    },
+    async (args) => {
+      const where = `${args.column ?? "backlog"} (${args.swimlane ?? "work"})`;
+      return propose(`Add card "${args.title}" to ${where}`, () =>
+        client.cardAdd({
+          title: args.title,
+          column: args.column,
+          swimlane: args.swimlane,
+          dueDate: args.due_date,
+          tags: args.tags,
+          notes: args.notes,
+        })
+      );
+    }
+  );
+
+  server.registerTool(
+    "focusboard_move_card",
+    {
+      title: "Move a card (requires confirmation)",
+      description:
+        "Propose moving a card to another column. Returns a confirm_token; executes only after " +
+        "focusboard_confirm. The move re-reads the card at confirm time (409 STALE_STATE if it changed).",
+      inputSchema: {
+        card_id: z.string().describe("Card id (from focusboard_cards)"),
+        column: z.string().describe("Target column id"),
+      },
+    },
+    async ({ card_id, column }) => {
+      try {
+        const { version, title } = await freshVersion(card_id);
+        void version;
+        return propose(`Move "${title}" → ${column}`, async () => {
+          const fresh = await freshVersion(card_id);
+          return client.cardMove(card_id, fresh.version, column);
+        });
+      } catch (err) {
+        return errResult(err);
+      }
+    }
+  );
+
+  server.registerTool(
+    "focusboard_complete_card",
+    {
+      title: "Complete a card (requires confirmation)",
+      description:
+        "Propose completing a card (moves it to the done column). Returns a confirm_token; " +
+        "executes only after focusboard_confirm.",
+      inputSchema: {
+        card_id: z.string().describe("Card id (from focusboard_cards)"),
+      },
+    },
+    async ({ card_id }) => {
+      try {
+        const { title } = await freshVersion(card_id);
+        return propose(`Complete "${title}"`, async () => {
+          const fresh = await freshVersion(card_id);
+          return client.cardDone(card_id, fresh.version);
+        });
+      } catch (err) {
+        return errResult(err);
+      }
+    }
+  );
+
+  server.registerTool(
+    "focusboard_update_card",
+    {
+      title: "Update a card's fields (requires confirmation)",
+      description:
+        "Propose editing a card (title, notes, due date, tags, blocked reason). Returns a " +
+        "confirm_token; executes only after focusboard_confirm. Pass null to clear a field.",
+      inputSchema: {
+        card_id: z.string().describe("Card id (from focusboard_cards)"),
+        title: z.string().min(1).max(300).optional(),
+        notes: z.string().max(5000).nullable().optional(),
+        due_date: z.string().regex(/^\d{4}-\d{2}-\d{2}$/).nullable().optional(),
+        tags: z.array(z.string()).optional().describe("Existing tag NAMES (replaces the set)"),
+        blocked_reason: z.string().max(500).nullable().optional(),
+      },
+    },
+    async ({ card_id, title, notes, due_date, tags, blocked_reason }) => {
+      try {
+        const current = await freshVersion(card_id);
+        const fields = Object.entries({ title, notes, dueDate: due_date, tags, blockedReason: blocked_reason })
+          .filter(([, v]) => v !== undefined)
+          .map(([k]) => k)
+          .join(", ");
+        return propose(`Update "${current.title}" (${fields})`, async () => {
+          const fresh = await freshVersion(card_id);
+          return client.cardPatch(card_id, fresh.version, {
+            ...(title !== undefined ? { title } : {}),
+            ...(notes !== undefined ? { notes } : {}),
+            ...(due_date !== undefined ? { dueDate: due_date } : {}),
+            ...(tags !== undefined ? { tags } : {}),
+            ...(blocked_reason !== undefined ? { blockedReason: blocked_reason } : {}),
+          });
+        });
+      } catch (err) {
+        return errResult(err);
+      }
+    }
+  );
+
+  server.registerTool(
+    "focusboard_confirm",
+    {
+      title: "Execute a proposed mutation",
+      description:
+        "Execute a mutation previously proposed by focusboard_add_card / move_card / " +
+        "complete_card / update_card, using its confirm_token. Tokens are single-use and " +
+        "expire after 5 minutes.",
+      inputSchema: {
+        confirm_token: z.string().describe("The confirm_token from the proposal"),
+      },
+    },
+    async ({ confirm_token }) => {
+      const op = pendingOps.get(confirm_token);
+      if (!op || op.expiresAt < Date.now()) {
+        pendingOps.delete(confirm_token);
+        return errResult(
+          new ApiError(410, {
+            code: "CONFIRMATION_EXPIRED",
+            message: "Unknown or expired confirm_token",
+            hint: "Propose the mutation again to get a fresh token",
+          })
+        );
+      }
+      pendingOps.delete(confirm_token); // single-use, even on failure
+      try {
+        return okResult({ executed: op.preview, result: await op.execute() });
       } catch (err) {
         return errResult(err);
       }

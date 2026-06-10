@@ -7,6 +7,7 @@ import { snoozeCommand } from "./commands/snooze.js";
 import { loginCommand, statusCommand, logoutCommand } from "./commands/auth.js";
 import { todayCommand, listCommand, searchCommand, wipCommand } from "./commands/board.js";
 import { focusStartCommand, focusStopCommand, focusStatusCommand } from "./commands/focus.js";
+import { addCommand, moveCommand, doneCommand, blockCommand } from "./commands/cards.js";
 import { mcpCommand } from "./commands/mcp.js";
 
 /**
@@ -93,6 +94,37 @@ program
   .command("wip")
   .description("work-in-progress per column vs limits")
   .action(run(wipCommand));
+
+program
+  .command("add")
+  .description("add a card directly to the board (use fb capture for raw thoughts)")
+  .argument("<title...>", "the card title")
+  .option("--column <column>", "column id (default backlog)")
+  .option("--swimlane <lane>", "work | personal (default work)")
+  .option("--due <when>", "today | tomorrow | YYYY-MM-DD")
+  .option("--tag <tag>", "tag name (repeatable)", (v: string, prev: string[]) => [...prev, v], [] as string[])
+  .option("--notes <notes>", "card notes")
+  .action(run(addCommand));
+
+program
+  .command("move")
+  .description("move a card to a column (read-then-CAS; 409 if it changed)")
+  .argument("<id>", "card id or c-N alias from fb list")
+  .argument("<column>", "target column id")
+  .action(run(moveCommand));
+
+program
+  .command("done")
+  .description("complete a card (moves it to the done column)")
+  .argument("<id>", "card id or c-N alias from fb list")
+  .action(run(doneCommand));
+
+program
+  .command("block")
+  .description("mark a card blocked with a reason")
+  .argument("<id>", "card id or c-N alias from fb list")
+  .option("--reason <reason>", "why it's blocked (required)")
+  .action(run(blockCommand));
 
 const focus = program.command("focus").description("focus sessions — protect attention, log outcomes");
 

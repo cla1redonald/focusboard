@@ -57,6 +57,23 @@ export async function loadBoard(userId: string): Promise<BoardData | null> {
   };
 }
 
+/** Per-card optimistic-lock versions from the cards mirror (Phase 4). */
+export async function loadCardVersions(userId: string): Promise<Map<string, number>> {
+  const url = process.env.SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!url || !key) throw new Error("Supabase credentials not configured");
+  const supabase = createClient(url, key);
+  const { data, error } = await supabase
+    .from("cards")
+    .select("id, version")
+    .eq("user_id", userId);
+  if (error) {
+    console.error("Card versions load error:", error.message);
+    return new Map();
+  }
+  return new Map((data ?? []).map((r) => [r.id as string, Number(r.version)]));
+}
+
 export function tagNameResolver(tags: Tag[] | undefined): (ids?: string[]) => string[] {
   const byId = new Map((tags ?? []).map((t) => [t.id, t.name]));
   return (ids) => (ids ?? []).map((id) => byId.get(id) ?? id);

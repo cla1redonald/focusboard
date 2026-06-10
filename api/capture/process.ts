@@ -210,42 +210,42 @@ Example: [{"title":"Review Q3 budget","notes":"From finance team email","tags":[
     // captures, and never when the status write lost the race above (the user
     // already dealt with the capture; adding cards now would contradict them).
     if (statusApplied && status === "auto_added" && appState && auto_add !== false) {
+      // Phase 4a: cards are added through the atomic fb_add_card function
+      // (app_state row locked inside the tx, mirror synced by trigger) — the
+      // old read-modify-write blob upsert here could clobber concurrent web
+      // saves. Auto-added cards now land at the BOTTOM of their column
+      // (max order + 1) instead of shifting everything down.
       const { nanoid } = await import("nanoid");
       const now = new Date().toISOString();
 
-      const newCards = parsedCards.map((parsed: ParsedCaptureCard) => ({
-        id: nanoid(),
-        column: parsed.suggestedColumn || "backlog",
-        swimlane: parsed.swimlane || "work",
-        title: parsed.title,
-        order: 0,
-        notes: parsed.notes || `Captured from ${capture.source}`,
-        tags: parsed.tags || [],
-        dueDate: parsed.dueDate || undefined,
-        checklist: [],
-        createdAt: now,
-        updatedAt: now,
-        columnHistory: [{ from: null, to: parsed.suggestedColumn || "backlog", at: now }],
-      }));
+      const maxOrder = (column: string, swimlane: string) =>
+        appState.cards
+          .filter((c) => c.column === column && (c.swimlane ?? "work") === swimlane)
+          .reduce((max, c) => Math.max(max, c.order ?? 0), 0);
 
-      // Shift existing card orders and add new cards
-      const updatedCards = appState.cards.map((c) => {
-        const hasNewCardInColumn = newCards.some(
-          (nc) => nc.column === c.column && (nc.swimlane ?? "work") === (c.swimlane ?? "work")
-        );
-        return hasNewCardInColumn ? { ...c, order: c.order + newCards.filter((nc) => nc.column === c.column).length } : c;
-      });
-
-      const finalState = {
-        ...appState,
-        cards: [...newCards, ...updatedCards],
-      };
-
-      await supabase.from("app_state").upsert({
-        user_id: user_id,
-        state: finalState,
-        updated_at: now,
-      }, { onConflict: "user_id" });
+      for (const parsed of parsedCards as ParsedCaptureCard[]) {
+        const column = parsed.suggestedColumn || "backlog";
+        const swimlane = parsed.swimlane || "work";
+        const card = {
+          id: nanoid(),
+          column,
+          swimlane,
+          title: parsed.title,
+          order: maxOrder(column, swimlane) + 1,
+          notes: parsed.notes || `Captured from ${capture.source}`,
+          tags: parsed.tags || [],
+          dueDate: parsed.dueDate || undefined,
+          checklist: [],
+          createdAt: now,
+          updatedAt: now,
+          columnHistory: [{ from: null, to: column, at: now }],
+        };
+        const { error: addError } = await supabase.rpc("fb_add_card", {
+          p_user: user_id,
+          p_card: card,
+        });
+        if (addError) console.error("Auto-add card error:", addError.message);
+      }
     }
 
     return res.status(200).json({
