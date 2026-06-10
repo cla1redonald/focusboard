@@ -118,9 +118,12 @@ function makeDb(opts: { blob?: Record<string, unknown> | null; rows?: DbRow[]; b
           error: null,
         };
       },
-      insert: async (arr: Record<string, unknown>[]) => {
+      // New-card writes use upsert with ignoreDuplicates (retry-idempotent
+      // insert) — existing rows are left untouched, like ON CONFLICT DO NOTHING.
+      upsert: async (arr: Record<string, unknown>[]) => {
         calls.cardInserts.push(arr);
         for (const r of arr) {
+          if (rows.has(r.id as string)) continue;
           rows.set(r.id as string, { id: r.id as string, card_json: r.card_json as Card, version: 1 });
         }
         return { error: null };
@@ -400,6 +403,36 @@ describe("saveStateToSupabase (diff + CAS)", () => {
     await sync.saveStateToSupabase(edited);
 
     expect(onCards).toHaveBeenCalledWith({ upserts: [], removes: ["card-1"] });
+  });
+
+  it("realtime echo landing before the insert bookkeeping keeps the server-confirmed entry", async () => {
+    const db = makeDb({ blob: nonCardsOf(baseState), rows: [] });
+    const sync = await importSyncWith(db);
+    const onCards = vi.fn();
+    sync.subscribeToBoardChanges("user-123", { onCards, onBoard: vi.fn() });
+    const loaded = await sync.loadStateFromSupabase();
+
+    // The INSERT echo for our own new card arrives before our save runs
+    // (e.g. the realtime socket beats the slow HTTP response).
+    const fresh = makeCard("card-new");
+    db.rows.set("card-new", { id: "card-new", card_json: fresh, version: 1 });
+    db.fire("INSERT", "cards", { new: { id: "card-new", card_json: fresh, version: 1 } });
+
+    await sync.saveStateToSupabase({
+      ...baseState,
+      ...(loaded ?? {}),
+      cards: [fresh],
+    });
+
+    // The save sees the card already snapshotted at the server version — the
+    // upsert no-ops on the duplicate and nothing is clobbered.
+    expect(db.rows.get("card-new")!.version).toBe(1);
+    expect(db.calls.cardUpdates).toHaveLength(0);
+
+    // Saving again is a clean no-op.
+    db.calls.cardInserts.length = 0;
+    await sync.saveStateToSupabase({ ...baseState, ...(loaded ?? {}), cards: [fresh] });
+    expect(db.calls.cardInserts).toHaveLength(0);
   });
 
   it("delete CAS miss (externally changed) → keeps theirs and resurrects the card", async () => {

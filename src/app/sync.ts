@@ -108,12 +108,11 @@ export async function loadStateFromSupabase(): Promise<AppState | null> {
 
 async function resolveCardConflict(
   client: NonNullable<typeof supabase>,
+  snap: NonNullable<typeof cardSnapshot>,
   userId: string,
   cardId: string,
   change: RemoteCardChange
 ): Promise<void> {
-  const snap = cardSnapshot;
-  if (!snap) return;
   const { data } = await client
     .from("cards")
     .select("id, card_json, version")
@@ -130,8 +129,22 @@ async function resolveCardConflict(
   }
 }
 
+// Saves run strictly one at a time: a flush (pagehide) can otherwise overlap a
+// slow in-flight debounced save, and both would diff against — and mutate —
+// the shared snapshot, manufacturing spurious CAS misses.
+let saveInFlight: Promise<unknown> = Promise.resolve();
+
 // Save app state to Supabase as a diff against the last-seen server state.
-export async function saveStateToSupabase(state: AppState): Promise<boolean> {
+export function saveStateToSupabase(state: AppState): Promise<boolean> {
+  const run = saveInFlight.then(
+    () => doSaveStateToSupabase(state),
+    () => doSaveStateToSupabase(state)
+  );
+  saveInFlight = run.catch(() => false);
+  return run;
+}
+
+async function doSaveStateToSupabase(state: AppState): Promise<boolean> {
   if (!supabase) return false;
   const client = supabase;
 
@@ -157,7 +170,8 @@ export async function saveStateToSupabase(state: AppState): Promise<boolean> {
   }
 
   // 2. Cards → per-row diff. No snapshot (load never succeeded) → skip card
-  // writes entirely; we cannot safely diff.
+  // writes entirely; we cannot safely diff. Deliberately false even when the
+  // blob saved fine: the cards were NOT synced.
   const snap = cardSnapshot;
   if (!snap) return false;
 
@@ -184,14 +198,22 @@ export async function saveStateToSupabase(state: AppState): Promise<boolean> {
   const conflictChange: RemoteCardChange = { upserts: [], removes: [] };
 
   if (inserts.length > 0) {
-    const { error } = await client.from("cards").insert(
-      inserts.map(({ card }) => ({ user_id: user.id, id: card.id, card_json: card }))
+    // Upsert + ignoreDuplicates makes a retry idempotent: if an earlier insert
+    // landed server-side but the response was lost, the retry no-ops instead
+    // of failing the unique key on every subsequent save.
+    const { error } = await client.from("cards").upsert(
+      inserts.map(({ card }) => ({ user_id: user.id, id: card.id, card_json: card })),
+      { onConflict: "user_id,id", ignoreDuplicates: true }
     );
     if (error) {
       console.error("Failed to insert cards to Supabase:", error);
       allOk = false;
     } else {
-      for (const { card, json } of inserts) snap.set(card.id, { json, version: 1 });
+      for (const { card, json } of inserts) {
+        // A realtime echo of this insert may have landed first with the
+        // server-confirmed row — that entry is authoritative; keep it.
+        if (!snap.has(card.id)) snap.set(card.id, { json, version: 1 });
+      }
     }
   }
 
@@ -213,7 +235,7 @@ export async function saveStateToSupabase(state: AppState): Promise<boolean> {
         snap.set(card.id, { json, version: expected + 1 });
       } else {
         // CAS miss: an external writer changed (or deleted) this card.
-        await resolveCardConflict(client, user.id, card.id, conflictChange);
+        await resolveCardConflict(client, snap, user.id, card.id, conflictChange);
       }
     })
   );
@@ -237,7 +259,7 @@ export async function saveStateToSupabase(state: AppState): Promise<boolean> {
       } else {
         // CAS miss: changed externally since we read it (keep theirs), or
         // already deleted (converged) — resolve either way.
-        await resolveCardConflict(client, user.id, id, conflictChange);
+        await resolveCardConflict(client, snap, user.id, id, conflictChange);
       }
     })
   );

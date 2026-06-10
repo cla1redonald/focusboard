@@ -129,6 +129,10 @@ end;
 $$;
 
 -- ── Realtime: per-card change events for the web ───────────────────────────────
+--
+-- Replica identity stays DEFAULT (the primary key): DELETE events then carry
+-- (user_id, id) in their old record — exactly what the web's delete handler
+-- needs — without paying to ship the whole card_json on every delete.
 
 do $$
 begin
