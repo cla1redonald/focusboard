@@ -29,7 +29,7 @@ import {
 import { resolveApiToken, SCOPES, generateToken } from "./token.js";
 import { ok, fail } from "./envelope.js";
 import { TRIAGE_STATUSES } from "../../src/app/captureTypes.js";
-import { loadBoard, slimCard, tagNameResolver } from "./board.js";
+import { loadBoard, slimCard, tagNameResolver, loadCardVersions } from "./board.js";
 import { buildTodayPlan, buildTodayDailyPlan, getActiveCards } from "../../src/app/today.js";
 import { filterCards, DEFAULT_FILTER } from "../../src/app/filters.js";
 
@@ -485,9 +485,13 @@ app.get("/cards", async (c: Context<AuthEnv>) => {
     );
 
     const resolveTags = tagNameResolver(board.state.tags);
+    const versions = await loadCardVersions(principalUserId(c));
     return ok(c, {
       total: cards.length,
-      items: cards.slice(0, limit).map((card) => slimCard(card, resolveTags)),
+      items: cards.slice(0, limit).map((card) => ({
+        ...slimCard(card, resolveTags),
+        version: versions.get(card.id) ?? null,
+      })),
       columns: board.columns
         .sort((a, b) => a.order - b.order)
         .map((col) => ({ id: col.id, title: col.title, wipLimit: col.wipLimit, isTerminal: col.isTerminal })),
@@ -525,6 +529,299 @@ app.get("/wip", async (c: Context<AuthEnv>) => {
     });
   } catch (err) {
     console.error("WIP unexpected error:", err);
+    return fail(c, 500, "INTERNAL", "Internal server error");
+  }
+});
+
+// ── Card mutation (Phase 4a, scope card:write) ─────────────────────────────────
+//
+// External card writes go through the fb_add_card / fb_mutate_card Postgres
+// functions: one transaction, app_state row locked, per-card version
+// compare-and-swap against the cards mirror. STALE_STATE → 409 (re-read and
+// retry); the blob update fires the existing realtime path so an open web tab
+// reflects the change live. The web's own writes are untouched in 4a.
+
+function principalUserId(c: Context<AuthEnv>): string {
+  return c.get("principal").userId;
+}
+
+function mapRpcError(c: Context<AuthEnv>, message: string) {
+  if (message.includes("CARD_NOT_FOUND")) {
+    return fail(c, 404, "NOT_FOUND", "Card not found", "Use an id from fb list / focusboard_cards");
+  }
+  if (message.includes("STALE_STATE")) {
+    return fail(
+      c, 409, "STALE_STATE", "The card changed since you read it",
+      "Re-read it (GET /api/cards/:id or fb list) and retry with the fresh version"
+    );
+  }
+  if (message.includes("BOARD_NOT_FOUND")) {
+    return fail(c, 404, "NOT_FOUND", "No board found for this user", "Open the web app once to create your board");
+  }
+  console.error("Card mutation rpc error:", message);
+  return fail(c, 500, "INTERNAL", "Card mutation failed");
+}
+
+/** Map user-facing tag NAMES to the board's internal tag ids. */
+function tagIdsFromNames(
+  names: unknown,
+  tags: { id: string; name: string }[]
+): { ids: string[] } | { error: string } {
+  if (names === undefined) return { ids: [] };
+  if (!Array.isArray(names)) return { error: "tags must be an array of tag names" };
+  const byName = new Map(tags.map((t) => [t.name.toLowerCase(), t.id]));
+  const ids: string[] = [];
+  for (const n of names) {
+    if (typeof n !== "string") return { error: "tags must be an array of tag names" };
+    const id = byName.get(n.toLowerCase());
+    if (!id) {
+      return { error: `Unknown tag "${n}" — existing tags: ${tags.map((t) => t.name).join(", ") || "(none)"}` };
+    }
+    ids.push(id);
+  }
+  return { ids };
+}
+
+app.post("/cards", async (c: Context<AuthEnv>) => {
+  let body: Record<string, unknown>;
+  try {
+    body = (await c.req.json()) as Record<string, unknown>;
+  } catch {
+    body = {};
+  }
+
+  const title = typeof body.title === "string" ? body.title.trim() : "";
+  if (!title) return fail(c, 400, "VALIDATION", "title is required");
+  if (title.length > 300) return fail(c, 400, "VALIDATION", "title must be 300 characters or fewer");
+
+  try {
+    const board = await loadBoard(principalUserId(c));
+    if (!board) {
+      return fail(c, 404, "NOT_FOUND", "No board found for this user", "Open the web app once to create your board");
+    }
+
+    const column = typeof body.column === "string" && body.column ? body.column : "backlog";
+    const col = board.columns.find((cl) => cl.id === column);
+    if (!col) {
+      return fail(c, 400, "VALIDATION", `Unknown column "${column}"`,
+        `Valid columns: ${board.columns.map((cl) => cl.id).join(", ")}`);
+    }
+
+    const swimlane = typeof body.swimlane === "string" && body.swimlane ? body.swimlane : "work";
+    if (!["work", "personal"].includes(swimlane)) {
+      return fail(c, 400, "VALIDATION", `Unknown swimlane "${swimlane}"`, "Use work or personal");
+    }
+
+    const tagResult = tagIdsFromNames(body.tags, board.state.tags ?? []);
+    if ("error" in tagResult) return fail(c, 400, "VALIDATION", tagResult.error);
+
+    const dueDate = typeof body.dueDate === "string" && body.dueDate ? body.dueDate : undefined;
+    if (dueDate && !/^\d{4}-\d{2}-\d{2}/.test(dueDate)) {
+      return fail(c, 400, "VALIDATION", "dueDate must be an ISO date (YYYY-MM-DD)");
+    }
+
+    const now = new Date().toISOString();
+    const order = board.cards
+      .filter((cd) => cd.column === column && (cd.swimlane ?? "work") === swimlane && !cd.archivedAt)
+      .reduce((max, cd) => Math.max(max, cd.order ?? 0), 0) + 1;
+
+    const card: Record<string, unknown> = {
+      id: crypto.randomUUID(),
+      column,
+      swimlane,
+      title,
+      order,
+      ...(typeof body.notes === "string" && body.notes ? { notes: body.notes.slice(0, 5000) } : {}),
+      ...(dueDate ? { dueDate } : {}),
+      ...(tagResult.ids.length ? { tags: tagResult.ids } : {}),
+      checklist: [],
+      createdAt: now,
+      updatedAt: now,
+      ...(col.isTerminal ? { completedAt: now } : {}),
+      columnHistory: [{ from: null, to: column, at: now }],
+    };
+
+    const supabase = getServiceClient();
+    const { error } = await supabase.rpc("fb_add_card", {
+      p_user: principalUserId(c),
+      p_card: card,
+    });
+    if (error) return mapRpcError(c, error.message ?? "");
+
+    const resolveTags = tagNameResolver(board.state.tags);
+    return ok(c, { card: { ...slimCard(card as never, resolveTags), version: 1 } }, 201);
+  } catch (err) {
+    console.error("Card create unexpected error:", err);
+    return fail(c, 500, "INTERNAL", "Internal server error");
+  }
+});
+
+app.get("/cards/:id", async (c: Context<AuthEnv>) => {
+  const id = c.req.param("id") ?? "";
+  try {
+    const board = await loadBoard(principalUserId(c));
+    if (!board) return fail(c, 404, "NOT_FOUND", "No board found for this user");
+    const card = board.cards.find((cd) => cd.id === id);
+    if (!card) return fail(c, 404, "NOT_FOUND", "Card not found", "Use an id from fb list / focusboard_cards");
+    const versions = await loadCardVersions(principalUserId(c));
+    const resolveTags = tagNameResolver(board.state.tags);
+    return ok(c, {
+      card: {
+        ...slimCard(card, resolveTags),
+        archived: Boolean(card.archivedAt),
+        version: versions.get(card.id) ?? null,
+      },
+    });
+  } catch (err) {
+    console.error("Card get unexpected error:", err);
+    return fail(c, 500, "INTERNAL", "Internal server error");
+  }
+});
+
+type MutateArgs = {
+  patch: Record<string, unknown>;
+  moveTo?: string | null;
+};
+
+async function mutateCard(c: Context<AuthEnv>, id: string, expectedVersion: unknown, args: MutateArgs) {
+  // The 409 contract: callers MUST take a position on concurrency. Either pass
+  // the version they read (CAS) or an explicit null to deliberately skip the
+  // check. Omitting it entirely is an error — that's how silent clobbers happen.
+  if (expectedVersion === undefined) {
+    return fail(c, 400, "VALIDATION", "version is required (an integer from GET /api/cards/:id)",
+      "Pass the version you last read, or version: null to deliberately skip the conflict check");
+  }
+  if (expectedVersion !== null && (typeof expectedVersion !== "number" || !Number.isInteger(expectedVersion))) {
+    return fail(c, 400, "VALIDATION", "version must be an integer or null");
+  }
+  const supabase = getServiceClient();
+  const { data, error } = await supabase.rpc("fb_mutate_card", {
+    p_user: principalUserId(c),
+    p_card_id: id,
+    p_expected_version: expectedVersion,
+    p_patch: args.patch,
+    p_move_to: args.moveTo ?? null,
+  });
+  if (error) return mapRpcError(c, error.message ?? "");
+
+  const board = await loadBoard(principalUserId(c));
+  const versions = await loadCardVersions(principalUserId(c));
+  const resolveTags = tagNameResolver(board?.state.tags);
+  return ok(c, {
+    card: {
+      ...slimCard(data as never, resolveTags),
+      version: versions.get(id) ?? null,
+    },
+  });
+}
+
+app.patch("/cards/:id", async (c: Context<AuthEnv>) => {
+  const id = c.req.param("id") ?? "";
+  let body: Record<string, unknown>;
+  try {
+    body = (await c.req.json()) as Record<string, unknown>;
+  } catch {
+    body = {};
+  }
+
+  try {
+    const patch: Record<string, unknown> = {};
+    if (body.title !== undefined) {
+      if (typeof body.title !== "string" || !body.title.trim()) {
+        return fail(c, 400, "VALIDATION", "title must be a non-empty string");
+      }
+      patch.title = body.title.trim().slice(0, 300);
+    }
+    if (body.notes !== undefined) {
+      if (body.notes !== null && typeof body.notes !== "string") {
+        return fail(c, 400, "VALIDATION", "notes must be a string or null");
+      }
+      patch.notes = body.notes === null ? null : (body.notes as string).slice(0, 5000);
+    }
+    if (body.dueDate !== undefined) {
+      if (body.dueDate !== null && (typeof body.dueDate !== "string" || !/^\d{4}-\d{2}-\d{2}/.test(body.dueDate))) {
+        return fail(c, 400, "VALIDATION", "dueDate must be an ISO date (YYYY-MM-DD) or null");
+      }
+      patch.dueDate = body.dueDate;
+    }
+    if (body.blockedReason !== undefined) {
+      if (body.blockedReason !== null && typeof body.blockedReason !== "string") {
+        return fail(c, 400, "VALIDATION", "blockedReason must be a string or null");
+      }
+      patch.blockedReason = body.blockedReason === null ? null : (body.blockedReason as string).slice(0, 500);
+    }
+    if (body.tags !== undefined) {
+      const board = await loadBoard(principalUserId(c));
+      if (!board) return fail(c, 404, "NOT_FOUND", "No board found for this user");
+      const tagResult = tagIdsFromNames(body.tags, board.state.tags ?? []);
+      if ("error" in tagResult) return fail(c, 400, "VALIDATION", tagResult.error);
+      patch.tags = tagResult.ids;
+    }
+    if (Object.keys(patch).length === 0) {
+      return fail(c, 400, "VALIDATION", "Nothing to update",
+        "Provide one of: title, notes, dueDate, tags, blockedReason");
+    }
+
+    return await mutateCard(c, id, body.version, { patch });
+  } catch (err) {
+    console.error("Card patch unexpected error:", err);
+    return fail(c, 500, "INTERNAL", "Internal server error");
+  }
+});
+
+app.post("/cards/:id/move", async (c: Context<AuthEnv>) => {
+  const id = c.req.param("id") ?? "";
+  let body: Record<string, unknown>;
+  try {
+    body = (await c.req.json()) as Record<string, unknown>;
+  } catch {
+    body = {};
+  }
+
+  try {
+    const column = typeof body.column === "string" ? body.column : "";
+    if (!column) return fail(c, 400, "VALIDATION", "column is required");
+
+    const board = await loadBoard(principalUserId(c));
+    if (!board) return fail(c, 404, "NOT_FOUND", "No board found for this user");
+    const col = board.columns.find((cl) => cl.id === column);
+    if (!col) {
+      return fail(c, 400, "VALIDATION", `Unknown column "${column}"`,
+        `Valid columns: ${board.columns.map((cl) => cl.id).join(", ")}`);
+    }
+
+    const patch: Record<string, unknown> = col.isTerminal
+      ? { completedAt: new Date().toISOString() }
+      : {};
+    return await mutateCard(c, id, body.version, { patch, moveTo: column });
+  } catch (err) {
+    console.error("Card move unexpected error:", err);
+    return fail(c, 500, "INTERNAL", "Internal server error");
+  }
+});
+
+app.post("/cards/:id/done", async (c: Context<AuthEnv>) => {
+  const id = c.req.param("id") ?? "";
+  let body: Record<string, unknown>;
+  try {
+    body = (await c.req.json()) as Record<string, unknown>;
+  } catch {
+    body = {};
+  }
+
+  try {
+    const board = await loadBoard(principalUserId(c));
+    if (!board) return fail(c, 404, "NOT_FOUND", "No board found for this user");
+    const terminal = board.columns.filter((cl) => cl.isTerminal).sort((a, b) => a.order - b.order)[0];
+    if (!terminal) {
+      return fail(c, 400, "VALIDATION", "The board has no terminal (done) column");
+    }
+    return await mutateCard(c, id, body.version, {
+      patch: { completedAt: new Date().toISOString() },
+      moveTo: terminal.id,
+    });
+  } catch (err) {
+    console.error("Card done unexpected error:", err);
     return fail(c, 500, "INTERNAL", "Internal server error");
   }
 });
@@ -738,7 +1035,7 @@ app.get("/tokens", async (c: Context<AuthEnv>) => {
 
 // ── POST /api/tokens — create PAT ─────────────────────────────────────────────
 
-const ALLOWED_SCOPES = new Set<string>([SCOPES.CAPTURE_READ, SCOPES.CAPTURE_WRITE, SCOPES.BOARD_READ, SCOPES.FOCUS_READ, SCOPES.FOCUS_WRITE]);
+const ALLOWED_SCOPES = new Set<string>([SCOPES.CAPTURE_READ, SCOPES.CAPTURE_WRITE, SCOPES.BOARD_READ, SCOPES.FOCUS_READ, SCOPES.FOCUS_WRITE, SCOPES.CARD_WRITE]);
 
 app.post("/tokens", async (c: Context<AuthEnv>) => {
   const principal = c.get("principal");
@@ -768,13 +1065,13 @@ app.post("/tokens", async (c: Context<AuthEnv>) => {
           400,
           "VALIDATION",
           `Invalid scope "${String(s)}"`,
-          "Allowed: capture:read, capture:write, board:read, focus:read, focus:write"
+          "Allowed: capture:read, capture:write, board:read, focus:read, focus:write, card:write"
         );
       }
     }
     scopes = requested as string[];
   } else {
-    scopes = [SCOPES.CAPTURE_READ, SCOPES.CAPTURE_WRITE, SCOPES.BOARD_READ, SCOPES.FOCUS_READ, SCOPES.FOCUS_WRITE];
+    scopes = [SCOPES.CAPTURE_READ, SCOPES.CAPTURE_WRITE, SCOPES.BOARD_READ, SCOPES.FOCUS_READ, SCOPES.FOCUS_WRITE, SCOPES.CARD_WRITE];
   }
 
   const { plaintext, hash } = generateToken();
@@ -811,7 +1108,7 @@ app.post("/tokens", async (c: Context<AuthEnv>) => {
 
 app.delete("/tokens/:id", async (c: Context<AuthEnv>) => {
   const principal = c.get("principal");
-  const id = c.req.param("id");
+  const id = c.req.param("id") ?? "";
 
   try {
     const supabase = getServiceClient();

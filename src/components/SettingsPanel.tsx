@@ -156,7 +156,7 @@ export function SettingsPanel({
         {
           id: body.data.id,
           name: body.data.name,
-          scopes: ["capture:read", "capture:write", "board:read"],
+          scopes: ["capture:read", "capture:write", "board:read", "focus:read", "focus:write", "card:write"],
           last_used_at: null,
           created_at: new Date().toISOString(),
           revoked_at: null,

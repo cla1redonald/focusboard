@@ -121,6 +121,11 @@ fb wip                   # per-column WIP vs limits
 fb focus start c-2 --for 50m   # one active session, persisted server-side
 fb focus status                # elapsed vs planned + today's totals
 fb focus stop -o completed --note "shipped it"
+
+fb add "Draft proposal" --column doing --due tomorrow --tag roami
+fb move c-3 doing              # read-then-CAS: 409 if the card changed under you
+fb done c-3
+fb block c-4 --reason "waiting on devops"
 ```
 
 Flags: `--json` (full IDs, machine-readable), `--quiet`, `--no-color` (NO_COLOR respected).
@@ -128,7 +133,10 @@ Flags: `--json` (full IDs, machine-readable), `--quiet`, `--no-color` (NO_COLOR 
 **MCP for agents** — Tier 1 capture-safe (`focusboard_capture`, `focusboard_inbox`,
 `focusboard_snooze_capture`) + Tier 2 read-board (`focusboard_today`, `focusboard_cards`,
 `focusboard_wip`) + Tier 3 focus sessions (`focusboard_start_focus_session`,
-`focusboard_stop_focus_session`, `focusboard_focus_status`):
+`focusboard_stop_focus_session`, `focusboard_focus_status`) + gated card mutation
+(`focusboard_add_card`, `focusboard_move_card`, `focusboard_complete_card`,
+`focusboard_update_card` — each returns a `confirm_token` that must be echoed to
+`focusboard_confirm`, so an agent can never mutate the board silently):
 
 ```bash
 claude mcp add focusboard -- fb mcp   # or any MCP client; auth via `fb auth login` or FOCUSBOARD_TOKEN
