@@ -344,3 +344,13 @@ round-trips) runs against a **dedicated smoke account**, never Claire's:
 - The smoke user's board is created by the app's own new-user path on first
   sign-in — deliberately not seeded by the script, so fresh-user save/load gets
   exercised too.
+
+## Token scope refresh
+
+Tokens are scope-frozen at mint, so every phase that adds scopes leaves
+existing tokens unable to call the new endpoints. `npm run token:scopes --
+--email <user-email>` (→ `scripts/token-scopes.sh`) bumps all of that user's
+non-revoked tokens to the current full scope set via the service key — no
+Settings-UI visit, nothing printed but token ids/names. Run it after any
+phase that adds scopes (keep the script's scope list in sync with
+`api/_lib/token.ts`).
