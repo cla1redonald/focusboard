@@ -1,6 +1,10 @@
 # Phase 5 — Agent-Native Workflows (plan, 2026-06-10)
 
-**Status:** 5a SHIPPED + runtime-verified (2026-06-11, PR #38) · 5b BUILT (PR pending merge + prod E2E)
+**Status:** PHASE 5 COMPLETE — 5a (PR #38) and 5b (PR #42) both SHIPPED + runtime-verified 2026-06-11.
+**5b verification (smoke account, prod):** `fb move --batch` moved 2/2 cards to blocked with CAS
+version bumps (v1→v2 each); an unknown column refused the WHOLE plan before any mutation;
+single-card `fb move` unchanged. The cross-model review's [MUST-FIX] was conditional speculation
+about a caller break — refuted on the PR with typecheck + tests + a live single-move demo.
 **5a verification (smoke account, prod):** fb shutdown / fb week / fb focus history all
 correct against seeded data; batch capture 3/3 via stdin; same-key retried batch
 re-inserted 0 rows (SQL-confirmed); CI smoke gate extended (unauth 401 pin + authed
