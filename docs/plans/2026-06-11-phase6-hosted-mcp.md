@@ -162,3 +162,9 @@ object (not JSONSchemaProperty recursive type) to avoid any-type complexity. SUP
 note: the authorize POST route reads SUPABASE_ANON_KEY ?? VITE_SUPABASE_ANON_KEY — the
 production deploy already has VITE_SUPABASE_ANON_KEY so no new Vercel env var is required,
 but explicitly adding SUPABASE_ANON_KEY is cleaner and recommended.
+
+**Security hardening (post OWASP review, folded into PR #47):** per-IP throttle on the
+OAuth login form (`oauth_login_attempts` table; 15 attempts / 10 min per IP → 429; defense in
+depth over Supabase's own limit) and CORS tightened from `endsWith('.vercel.app')` to the
+account-scoped `-claire-donalds-projects.vercel.app` suffix (no longer admits an
+attacker-registrable `focusboard-*.vercel.app`). 166 API tests.

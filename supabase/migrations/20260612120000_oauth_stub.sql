@@ -57,3 +57,21 @@ create table if not exists oauth_tokens (
 
 alter table oauth_tokens enable row level security;
 -- No user policies: service-role only.
+
+-- ── oauth_login_attempts ──────────────────────────────────────────────────────
+-- Per-IP throttle for the credential form (POST /api/oauth/authorize), defense
+-- in depth over Supabase Auth's own sign-in rate limit (OWASP A04/A07). One row
+-- per POST; the handler counts rows for the IP in a short window and refuses
+-- past a threshold. Prune old rows on a schedule (or by a TTL job).
+
+create table if not exists oauth_login_attempts (
+  id           uuid        primary key default gen_random_uuid(),
+  ip           text        not null,
+  attempted_at timestamptz not null default now()
+);
+
+create index if not exists oauth_login_attempts_ip_time_idx
+  on oauth_login_attempts (ip, attempted_at);
+
+alter table oauth_login_attempts enable row level security;
+-- No user policies: service-role only.

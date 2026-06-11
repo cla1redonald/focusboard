@@ -51,8 +51,19 @@ const ALLOWED_ORIGINS = [
 ];
 
 /**
- * Exact allowlist match, or a focusboard* deployment on *.vercel.app — checked on
- * the parsed HOSTNAME, not by substring (a substring check admits
+ * Account-scoped Vercel deploy suffix. Preview + prod URLs are
+ * `focusboard[-<hash>]-claire-donalds-projects.vercel.app`; the
+ * `-claire-donalds-projects` segment is Claire's Vercel TEAM slug, which is
+ * globally unique and NOT registrable by anyone else — so it's the real trust
+ * anchor. The earlier `startsWith("focusboard") && endsWith(".vercel.app")`
+ * check admitted any `focusboard-attacker.vercel.app` an attacker could
+ * register (OWASP A05, security-review hardening).
+ */
+const FOCUSBOARD_VERCEL_SUFFIX = "-claire-donalds-projects.vercel.app";
+
+/**
+ * Exact allowlist match, or a focusboard deploy under Claire's Vercel team —
+ * checked on the parsed HOSTNAME (a substring check admits
  * https://focusboard.vercel.app.evil.com).
  */
 export function isAllowedOrigin(origin: string): boolean {
@@ -62,7 +73,7 @@ export function isAllowedOrigin(origin: string): boolean {
     return (
       protocol === "https:" &&
       hostname.startsWith("focusboard") &&
-      hostname.endsWith(".vercel.app")
+      hostname.endsWith(FOCUSBOARD_VERCEL_SUFFIX)
     );
   } catch {
     return false;
@@ -1760,6 +1771,10 @@ const OAUTH_SCOPES_SUPPORTED = [
   "capture:read", "capture:write", "board:read", "focus:read", "focus:write", "card:write",
 ];
 const OAUTH_CODE_TTL_SECONDS = 300; // 5 minutes
+// Per-IP credential-form throttle (defense in depth over Supabase Auth's limit).
+// Generous enough never to trip a real human; tight enough to stop a script.
+const OAUTH_LOGIN_WINDOW_SECONDS = 600; // 10 minutes
+const OAUTH_LOGIN_MAX_ATTEMPTS = 15;
 
 /** sha256 hex of a string. */
 function hashOAuth(value: string): string {
@@ -1918,6 +1933,25 @@ app.post("/oauth/authorize", async (c: Context<AuthEnv>) => {
   if (!registeredUris.includes(redirectUri)) {
     return c.text("redirect_uri not registered for this client", 400);
   }
+
+  // Per-IP throttle (defense in depth over Supabase Auth's own sign-in limit).
+  // Count this IP's attempts in the window; refuse past the threshold. Record
+  // the attempt regardless of outcome (a brute-forcer's failures all count).
+  const ip = (c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip") ?? "unknown")
+    .split(",")[0]!.trim();
+  const windowStart = new Date(Date.now() - OAUTH_LOGIN_WINDOW_SECONDS * 1000).toISOString();
+  const { count: attemptCount } = await supabase
+    .from("oauth_login_attempts")
+    .select("id", { count: "exact", head: true })
+    .eq("ip", ip)
+    .gte("attempted_at", windowStart);
+  if ((attemptCount ?? 0) >= OAUTH_LOGIN_MAX_ATTEMPTS) {
+    c.header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'");
+    c.header("Retry-After", String(OAUTH_LOGIN_WINDOW_SECONDS));
+    return c.html(buildAuthorizeHtml({ clientId, redirectUri, state, codeChallenge, scope, error: "Too many sign-in attempts — please wait a few minutes and try again" }), 429);
+  }
+  // Fire-and-forget record (never block the login on the throttle's own write).
+  void supabase.from("oauth_login_attempts").insert({ ip });
 
   // Verify credentials server-side via Supabase anon key (throwaway client).
   const supabaseUrl = process.env.SUPABASE_URL;

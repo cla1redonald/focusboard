@@ -47,6 +47,7 @@ type OAuthTokenRow = {
 let mockClients: OAuthClientRow[] = [];
 let mockCodes: OAuthCodeRow[] = [];
 let mockTokens: OAuthTokenRow[] = [];
+let mockLoginAttempts: { ip: string; attempted_at: string }[] = [];
 
 let mockInsertClientError: string | null = null;
 let mockSignInResult: { user: { id: string } | null; error: { message: string } | null } = {
@@ -123,6 +124,7 @@ function buildTableMock(table: string) {
   if (table === "oauth_clients") return oauthClientsTableMock();
   if (table === "oauth_codes") return oauthCodesTableMock();
   if (table === "oauth_tokens") return oauthTokensTableMock();
+  if (table === "oauth_login_attempts") return oauthLoginAttemptsTableMock();
   // Default pass-through for other tables (api_tokens, etc.).
   return {
     select: vi.fn(() => ({ eq: vi.fn(() => ({ maybeSingle: vi.fn(async () => ({ data: null, error: null })) })) })),
@@ -236,6 +238,24 @@ function oauthCodesTableMock() {
   return { ...chain, ...updateChain };
 }
 
+function oauthLoginAttemptsTableMock() {
+  // select("id",{count,head}).eq("ip",X).gte("attempted_at",W) → { count }
+  return {
+    select: vi.fn(() => ({
+      eq: vi.fn((_f: string, ip: string) => ({
+        gte: vi.fn(async (_g: string, windowStart: string) => ({
+          count: mockLoginAttempts.filter((a) => a.ip === ip && a.attempted_at >= windowStart).length,
+          error: null,
+        })),
+      })),
+    })),
+    insert: vi.fn((row: { ip: string }) => {
+      mockLoginAttempts.push({ ip: row.ip, attempted_at: new Date().toISOString() });
+      return Promise.resolve({ error: null });
+    }),
+  };
+}
+
 function oauthTokensTableMock() {
   const chain: Record<string, unknown> = {};
 
@@ -307,6 +327,7 @@ beforeEach(() => {
   mockClients = [];
   mockCodes = [];
   mockTokens = [];
+  mockLoginAttempts = [];
   mockInsertClientError = null;
   mockSignInResult = { user: { id: "user-123" }, error: null };
   mockResolvedToken = null;
@@ -513,6 +534,31 @@ describe("POST /api/oauth/authorize", () => {
     // Code should have been stored.
     expect(mockCodes.length).toBe(1);
     expect(mockCodes[0].client_id).toBe(CLIENT_ID);
+  });
+
+  it("throttles a per-IP brute-force: 429 once the window threshold is exceeded", async () => {
+    mockSignInResult = { user: null, error: { message: "bad creds" } };
+    const attempt = () => app.request("/api/oauth/authorize", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded", "x-forwarded-for": "9.9.9.9" },
+      body: baseBody(),
+    });
+    // First 15 attempts pass the throttle (each re-renders the form, 200).
+    for (let i = 0; i < 15; i++) {
+      const r = await attempt();
+      expect(r.status).toBe(200);
+    }
+    // The 16th is refused by the throttle BEFORE the credential check.
+    const blocked = await attempt();
+    expect(blocked.status).toBe(429);
+    expect(blocked.headers.get("retry-after")).toBeTruthy();
+    // A different IP is unaffected.
+    const other = await app.request("/api/oauth/authorize", {
+      method: "POST",
+      headers: { "content-type": "application/x-www-form-urlencoded", "x-forwarded-for": "1.2.3.4" },
+      body: baseBody(),
+    });
+    expect(other.status).toBe(200);
   });
 });
 
