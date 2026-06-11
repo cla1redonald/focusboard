@@ -16,6 +16,7 @@
     "test:api": "vitest run --config vitest.api.config.ts",
     "test:cli": "npm --prefix cli run test",
     "smoke:setup": "bash scripts/smoke-account.sh",
+    "token:scopes": "bash scripts/token-scopes.sh",
     "build:cli": "npm --prefix cli run build",
     "typecheck:api": "tsc --noEmit -p tsconfig.api.json"
   },
