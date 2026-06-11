@@ -168,3 +168,10 @@ OAuth login form (`oauth_login_attempts` table; 15 attempts / 10 min per IP → 
 depth over Supabase's own limit) and CORS tightened from `endsWith('.vercel.app')` to the
 account-scoped `-claire-donalds-projects.vercel.app` suffix (no longer admits an
 attacker-registrable `focusboard-*.vercel.app`). 166 API tests.
+
+**Prod hotfix (PR #48):** the Vercel (req,res)→server.fetch adapter re-serialized form-
+urlencoded bodies as JSON under the original form content-type, so every OAuth login/token
+POST parsed to empty fields in prod while all 166 route tests passed (they call app.request,
+bypassing the adapter — the original-504 blind spot). `reserializeBody()` re-encodes by
+declared content-type; first adapter-level test added. Caught by the deployed-artifact OAuth
+E2E (smoke account: DCR → login → code → PKCE token → /api/mcp).
