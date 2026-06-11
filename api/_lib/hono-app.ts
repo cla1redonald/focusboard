@@ -1181,8 +1181,11 @@ app.post("/capture/batch", async (c: Context<AuthEnv>) => {
     const supabase = getServiceClient();
 
     // Rate limit: the batch counts as items.length against the per-user
-    // window. Best-effort (the count isn't reserved; a concurrent capture can
-    // race it) — acceptable single-user, revisit with a DB counter if needed.
+    // window. `count + items > MAX` enforces the SAME ≤MAX-rows-per-window cap
+    // as the single route's `count >= MAX` pre-insert check (a full 30-batch
+    // from a cold window is legal; a 31st row never is). Best-effort (the
+    // count isn't reserved; a concurrent capture can race it) — acceptable
+    // single-user, revisit with a DB counter if needed.
     const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_SECONDS * 1000).toISOString();
     const { count } = await supabase
       .from("capture_queue")
@@ -1200,6 +1203,8 @@ app.post("/capture/batch", async (c: Context<AuthEnv>) => {
     // is partial (WHERE idempotency_key IS NOT NULL), which ON CONFLICT can't
     // target through supabase-js — so: batched pre-check + per-item insert
     // with 23505 recovery, the same proven pattern as the single route.
+    // The header is OPTIONAL: omit it and you get no dedup — a bare retry
+    // inserts duplicates (the CLI/MCP clients always send one).
     const batchKey = c.req.header("idempotency-key");
     const itemKeys = batchKey
       ? items.map((_, i) => createHash("sha256").update(`${batchKey}:${i}`).digest("hex"))
@@ -1246,7 +1251,14 @@ app.post("/capture/batch", async (c: Context<AuthEnv>) => {
             .eq("user_id", principal.userId)
             .eq("idempotency_key", key)
             .maybeSingle();
-          results.push({ index: i, ok: true, captureId: (raced as { id: string } | null)?.id, duplicate: true });
+          const racedId = (raced as { id: string } | null)?.id;
+          // A duplicate with no recoverable id is a failure, not a success —
+          // an ok:true result must always carry a usable captureId.
+          results.push(
+            racedId
+              ? { index: i, ok: true, captureId: racedId, duplicate: true }
+              : { index: i, ok: false, error: "INSERT_FAILED" }
+          );
           continue;
         }
         console.error(`Batch capture item ${i} insert error:`, error.message);
