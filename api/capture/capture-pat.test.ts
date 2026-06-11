@@ -51,6 +51,10 @@ vi.mock("../_lib/token.js", () => ({
   isPat: vi.fn((token: string | undefined) =>
     typeof token === "string" && token.startsWith("fb_pat_")
   ),
+  isOAuthToken: vi.fn((token: string | undefined) =>
+    typeof token === "string" && token.startsWith("fb_oat_")
+  ),
+  resolveOAuthToken: vi.fn(async () => null),
   generateToken: vi.fn(() => ({ plaintext: "fb_pat_generated", hash: "hashed" })),
   hashToken: vi.fn((t: string) => t + "_hashed"),
   bearerToken: vi.fn((authHeader: string | undefined | null) =>

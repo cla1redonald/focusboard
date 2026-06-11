@@ -22,9 +22,12 @@
  */
 
 import type { VercelRequest, VercelResponse } from "@vercel/node";
-import { app } from "./_lib/hono-app.js";
+import { app, server } from "./_lib/hono-app.js";
 
-export { app };
+// Re-export both: `server` is the composed well-known+app handler (used by the
+// Vercel function entry point); `app` is the /api basePath app (used by tests
+// that import api/_lib/hono-app.ts directly — those keep working unchanged).
+export { app, server };
 
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const proto = (req.headers["x-forwarded-proto"] as string | undefined) ?? "https";
@@ -48,7 +51,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
   }
 
-  const response = await app.fetch(new Request(url, { method, headers, body }));
+  // Use `server.fetch` (the composed well-known + app handler) so that
+  // /.well-known/* requests are handled correctly. `app.fetch` is also
+  // re-exported for tests that import api/_lib/hono-app.ts directly.
+  const response = await server.fetch(new Request(url, { method, headers, body }));
 
   res.status(response.status);
   response.headers.forEach((value, key) => {

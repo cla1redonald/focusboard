@@ -11,6 +11,11 @@ const ALLOWED_ORIGINS = [
   "http://localhost:3000",
 ];
 
+// Account-scoped suffix (Claire's Vercel team slug — globally unique, not
+// attacker-registrable). The earlier `.endsWith(".vercel.app")` admitted any
+// focusboard-*.vercel.app an attacker could register (OWASP A05).
+const FOCUSBOARD_VERCEL_SUFFIX = "-claire-donalds-projects.vercel.app";
+
 // Hostname-parsed, not substring-matched — a substring check admits
 // https://focusboard.vercel.app.evil.com.
 function isFocusboardVercelOrigin(origin: string): boolean {
@@ -19,7 +24,7 @@ function isFocusboardVercelOrigin(origin: string): boolean {
     return (
       protocol === "https:" &&
       hostname.startsWith("focusboard") &&
-      hostname.endsWith(".vercel.app")
+      hostname.endsWith(FOCUSBOARD_VERCEL_SUFFIX)
     );
   } catch {
     return false;

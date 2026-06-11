@@ -39,6 +39,7 @@ import { filterCards, DEFAULT_FILTER } from "../../src/app/filters.js";
 import type { Card } from "../../src/app/types.js";
 import { createHash, randomBytes } from "crypto";
 import { CONFIRMATION_TOOL_ALLOWLIST, executeConfirmedOp } from "./confirm-executor.js";
+import { handleMcpRpc } from "./mcp-server.js";
 
 // ── Allowed origins ────────────────────────────────────────────────────────────
 
@@ -50,8 +51,19 @@ const ALLOWED_ORIGINS = [
 ];
 
 /**
- * Exact allowlist match, or a focusboard* deployment on *.vercel.app — checked on
- * the parsed HOSTNAME, not by substring (a substring check admits
+ * Account-scoped Vercel deploy suffix. Preview + prod URLs are
+ * `focusboard[-<hash>]-claire-donalds-projects.vercel.app`; the
+ * `-claire-donalds-projects` segment is Claire's Vercel TEAM slug, which is
+ * globally unique and NOT registrable by anyone else — so it's the real trust
+ * anchor. The earlier `startsWith("focusboard") && endsWith(".vercel.app")`
+ * check admitted any `focusboard-attacker.vercel.app` an attacker could
+ * register (OWASP A05, security-review hardening).
+ */
+const FOCUSBOARD_VERCEL_SUFFIX = "-claire-donalds-projects.vercel.app";
+
+/**
+ * Exact allowlist match, or a focusboard deploy under Claire's Vercel team —
+ * checked on the parsed HOSTNAME (a substring check admits
  * https://focusboard.vercel.app.evil.com).
  */
 export function isAllowedOrigin(origin: string): boolean {
@@ -61,7 +73,7 @@ export function isAllowedOrigin(origin: string): boolean {
     return (
       protocol === "https:" &&
       hostname.startsWith("focusboard") &&
-      hostname.endsWith(".vercel.app")
+      hostname.endsWith(FOCUSBOARD_VERCEL_SUFFIX)
     );
   } catch {
     return false;
@@ -1743,3 +1755,631 @@ app.delete("/tokens/:id", async (c: Context<AuthEnv>) => {
     return fail(c, 500, "INTERNAL", "Internal server error");
   }
 });
+
+// ── Phase 6.2: OAuth 2.1 stub (single-principal) ──────────────────────────────
+//
+// NOTE: OAuth/DCR endpoints return RAW RFC-shaped JSON bodies — NOT the
+// { ok, data } / { ok, error } envelope used by every other route here.
+// claude.ai and OAuth clients expect RFC 6749 / RFC 7591 shapes. Comments
+// on each handler note the specific RFC response format.
+//
+// All OAuth routes are PUBLIC in ROUTE_SCOPES (the flow authenticates via
+// Supabase password, not Bearer tokens). The authorize page verifies Claire's
+// credentials server-side via Supabase auth.signInWithPassword.
+
+const OAUTH_SCOPES_SUPPORTED = [
+  "capture:read", "capture:write", "board:read", "focus:read", "focus:write", "card:write",
+];
+const OAUTH_CODE_TTL_SECONDS = 300; // 5 minutes
+// Per-IP credential-form throttle (defense in depth over Supabase Auth's limit).
+// Generous enough never to trip a real human; tight enough to stop a script.
+const OAUTH_LOGIN_WINDOW_SECONDS = 600; // 10 minutes
+const OAUTH_LOGIN_MAX_ATTEMPTS = 15;
+
+/** sha256 hex of a string. */
+function hashOAuth(value: string): string {
+  return createHash("sha256").update(value).digest("hex");
+}
+
+// POST /api/oauth/register — Dynamic Client Registration (RFC 7591).
+// Body: { redirect_uris: string[], client_name?: string }
+// Returns RFC 7591 client metadata (NOT the ok/data envelope).
+app.post("/oauth/register", async (c: Context<AuthEnv>) => {
+  let body: { redirect_uris?: unknown; client_name?: unknown };
+  try {
+    body = (await c.req.json()) as typeof body;
+  } catch {
+    body = {};
+  }
+
+  // Validate redirect_uris: non-empty array of https:// URLs (or http://localhost).
+  if (!Array.isArray(body.redirect_uris) || body.redirect_uris.length === 0) {
+    return c.json({ error: "invalid_client_metadata", error_description: "redirect_uris must be a non-empty array" }, 400);
+  }
+  const redirectUris = body.redirect_uris as unknown[];
+  for (const uri of redirectUris) {
+    if (typeof uri !== "string") {
+      return c.json({ error: "invalid_client_metadata", error_description: "Each redirect_uri must be a string" }, 400);
+    }
+    try {
+      const parsed = new URL(uri);
+      const isLocalhost = parsed.hostname === "localhost" || parsed.hostname === "127.0.0.1";
+      if (parsed.protocol !== "https:" && !(isLocalhost && parsed.protocol === "http:")) {
+        return c.json({ error: "invalid_client_metadata", error_description: `redirect_uri must use https:// (or http://localhost): ${uri}` }, 400);
+      }
+    } catch {
+      return c.json({ error: "invalid_client_metadata", error_description: `Invalid redirect_uri: ${uri}` }, 400);
+    }
+  }
+
+  const clientName = typeof body.client_name === "string" ? body.client_name.trim() : null;
+
+  try {
+    const supabase = getServiceClient();
+    const { data, error } = await supabase
+      .from("oauth_clients")
+      .insert({ redirect_uris: redirectUris, client_name: clientName })
+      .select("client_id, client_name, redirect_uris")
+      .single();
+
+    if (error) {
+      console.error("OAuth register error:", error.message);
+      return c.json({ error: "server_error", error_description: "Failed to register client" }, 500);
+    }
+
+    // RFC 7591 response shape.
+    return c.json({
+      client_id: (data as { client_id: string }).client_id,
+      client_name: (data as { client_name: string | null }).client_name,
+      redirect_uris: (data as { redirect_uris: string[] }).redirect_uris,
+      token_endpoint_auth_method: "none",
+      grant_types: ["authorization_code", "refresh_token"],
+      response_types: ["code"],
+    }, 201);
+  } catch (err) {
+    console.error("OAuth register unexpected error:", err);
+    return c.json({ error: "server_error", error_description: "Internal server error" }, 500);
+  }
+});
+
+// GET /api/oauth/authorize — render the login page.
+// Query: response_type=code, client_id, redirect_uri, state?, code_challenge, code_challenge_method=S256, scope?
+// On invalid client/redirect_uri → 400 text (do NOT redirect).
+// On other param errors → redirect with ?error=invalid_request.
+app.get("/oauth/authorize", async (c: Context<AuthEnv>) => {
+  const clientId = c.req.query("client_id") ?? "";
+  const redirectUri = c.req.query("redirect_uri") ?? "";
+  const responseType = c.req.query("response_type") ?? "";
+  const state = c.req.query("state") ?? "";
+  const codeChallenge = c.req.query("code_challenge") ?? "";
+  const codeChallengeMethod = c.req.query("code_challenge_method") ?? "";
+  const scope = c.req.query("scope") ?? OAUTH_SCOPES_SUPPORTED.join(" ");
+
+  // Validate client + redirect_uri first (do NOT redirect on these errors per RFC 6749 §4.1.2.1).
+  if (!clientId) return c.text("Missing client_id", 400);
+  if (!redirectUri) return c.text("Missing redirect_uri", 400);
+
+  const supabase = getServiceClient();
+  const { data: client } = await supabase
+    .from("oauth_clients")
+    .select("client_id, redirect_uris")
+    .eq("client_id", clientId)
+    .maybeSingle();
+
+  if (!client) return c.text("Unknown client_id", 400);
+
+  const registeredUris = (client as { redirect_uris: string[] }).redirect_uris;
+  if (!registeredUris.includes(redirectUri)) {
+    return c.text("redirect_uri not registered for this client", 400);
+  }
+
+  // From here on, errors redirect with ?error=...
+  const errorRedirect = (error: string, description?: string) => {
+    const url = new URL(redirectUri);
+    url.searchParams.set("error", error);
+    if (description) url.searchParams.set("error_description", description);
+    if (state) url.searchParams.set("state", state);
+    return c.redirect(url.toString(), 302);
+  };
+
+  if (responseType !== "code") return errorRedirect("unsupported_response_type");
+  if (!codeChallenge) return errorRedirect("invalid_request", "code_challenge is required");
+  if (codeChallengeMethod && codeChallengeMethod !== "S256") {
+    return errorRedirect("invalid_request", "Only S256 code_challenge_method is supported");
+  }
+
+  // Render the login form. All params are passed as hidden fields so the POST handler
+  // can re-validate them without relying on session state.
+  const html = buildAuthorizeHtml({
+    clientId,
+    redirectUri,
+    state,
+    codeChallenge,
+    scope,
+    error: null,
+  });
+
+  c.header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'");
+  return c.html(html, 200);
+});
+
+// POST /api/oauth/authorize — process the login form.
+// Body: form-urlencoded (application/x-www-form-urlencoded).
+// On bad credentials → re-render the form with an error.
+// On success → 302 to redirect_uri?code=...&state=...
+app.post("/oauth/authorize", async (c: Context<AuthEnv>) => {
+  const body = await c.req.parseBody();
+
+  const clientId = (body.client_id as string) ?? "";
+  const redirectUri = (body.redirect_uri as string) ?? "";
+  const state = (body.state as string) ?? "";
+  const codeChallenge = (body.code_challenge as string) ?? "";
+  const scope = (body.scope as string) ?? OAUTH_SCOPES_SUPPORTED.join(" ");
+  const email = (body.email as string) ?? "";
+  const password = (body.password as string) ?? "";
+
+  // Re-validate client + redirect_uri (the form could be tampered).
+  if (!clientId || !redirectUri) return c.text("Invalid request", 400);
+
+  const supabase = getServiceClient();
+  const { data: client } = await supabase
+    .from("oauth_clients")
+    .select("client_id, redirect_uris")
+    .eq("client_id", clientId)
+    .maybeSingle();
+
+  if (!client) return c.text("Unknown client_id", 400);
+  const registeredUris = (client as { redirect_uris: string[] }).redirect_uris;
+  if (!registeredUris.includes(redirectUri)) {
+    return c.text("redirect_uri not registered for this client", 400);
+  }
+
+  // Per-IP throttle (defense in depth over Supabase Auth's own sign-in limit).
+  // Count this IP's attempts in the window; refuse past the threshold. Record
+  // the attempt regardless of outcome (a brute-forcer's failures all count).
+  const ip = (c.req.header("x-forwarded-for") ?? c.req.header("x-real-ip") ?? "unknown")
+    .split(",")[0]!.trim();
+  const windowStart = new Date(Date.now() - OAUTH_LOGIN_WINDOW_SECONDS * 1000).toISOString();
+  const { count: attemptCount } = await supabase
+    .from("oauth_login_attempts")
+    .select("id", { count: "exact", head: true })
+    .eq("ip", ip)
+    .gte("attempted_at", windowStart);
+  if ((attemptCount ?? 0) >= OAUTH_LOGIN_MAX_ATTEMPTS) {
+    c.header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'");
+    c.header("Retry-After", String(OAUTH_LOGIN_WINDOW_SECONDS));
+    return c.html(buildAuthorizeHtml({ clientId, redirectUri, state, codeChallenge, scope, error: "Too many sign-in attempts — please wait a few minutes and try again" }), 429);
+  }
+  // Fire-and-forget record (never block the login on the throttle's own write).
+  void supabase.from("oauth_login_attempts").insert({ ip });
+
+  // Verify credentials server-side via Supabase anon key (throwaway client).
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const anonKey = process.env.SUPABASE_ANON_KEY ?? process.env.VITE_SUPABASE_ANON_KEY;
+  if (!supabaseUrl || !anonKey) {
+    console.error("OAuth authorize: SUPABASE_ANON_KEY (or VITE_SUPABASE_ANON_KEY) is not set");
+    return c.html(buildAuthorizeHtml({ clientId, redirectUri, state, codeChallenge, scope, error: "Server configuration error" }), 500);
+  }
+
+  const authClient = createClient(supabaseUrl, anonKey, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { data: authData, error: authError } = await authClient.auth.signInWithPassword({ email, password });
+
+  if (authError || !authData.user) {
+    // Bad credentials → re-render form with error (HTTP 200 per OAuth convention for login forms).
+    c.header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'");
+    return c.html(buildAuthorizeHtml({ clientId, redirectUri, state, codeChallenge, scope, error: "Invalid email or password" }), 200);
+  }
+
+  const userId = authData.user.id;
+
+  // Mint a single-use authorization code (store sha256 hash; return plaintext).
+  const codeRaw = randomBytes(32).toString("base64url");
+  const codeHash = hashOAuth(codeRaw);
+  const effectiveScope = scope || OAUTH_SCOPES_SUPPORTED.join(" ");
+  const expiresAt = new Date(Date.now() + OAUTH_CODE_TTL_SECONDS * 1000).toISOString();
+
+  const { error: insertError } = await supabase.from("oauth_codes").insert({
+    code_hash: codeHash,
+    client_id: clientId,
+    user_id: userId,
+    redirect_uri: redirectUri,
+    code_challenge: codeChallenge,
+    scope: effectiveScope,
+    expires_at: expiresAt,
+  });
+
+  if (insertError) {
+    console.error("OAuth code insert error:", insertError.message);
+    c.header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'");
+    return c.html(buildAuthorizeHtml({ clientId, redirectUri, state, codeChallenge, scope, error: "Server error — please try again" }), 500);
+  }
+
+  // Redirect to redirect_uri with code (and state if present).
+  const dest = new URL(redirectUri);
+  dest.searchParams.set("code", codeRaw);
+  if (state) dest.searchParams.set("state", state);
+  return c.redirect(dest.toString(), 302);
+});
+
+// POST /api/oauth/token — exchange code for tokens, or rotate a refresh token.
+// Accepts application/x-www-form-urlencoded OR application/json.
+// Returns RFC 6749 token response (NOT the ok/data envelope).
+app.post("/oauth/token", async (c: Context<AuthEnv>) => {
+  // Parse body from form or JSON.
+  let fields: Record<string, string>;
+  const ct = c.req.header("content-type") ?? "";
+  if (ct.includes("application/x-www-form-urlencoded") || ct.includes("multipart/form-data")) {
+    const parsed = await c.req.parseBody();
+    fields = Object.fromEntries(
+      Object.entries(parsed).map(([k, v]) => [k, String(v)])
+    );
+  } else {
+    try {
+      fields = (await c.req.json()) as Record<string, string>;
+    } catch {
+      return c.json({ error: "invalid_request", error_description: "Could not parse request body" }, 400);
+    }
+  }
+
+  const grantType = fields.grant_type ?? "";
+  const supabase = getServiceClient();
+
+  // ── authorization_code grant ───────────────────────────────────────────────
+  if (grantType === "authorization_code") {
+    const code = fields.code ?? "";
+    const redirectUri = fields.redirect_uri ?? "";
+    const codeVerifier = fields.code_verifier ?? "";
+    const clientId = fields.client_id ?? "";
+
+    if (!code || !redirectUri || !codeVerifier) {
+      return c.json({ error: "invalid_request", error_description: "code, redirect_uri, and code_verifier are required" }, 400);
+    }
+
+    const codeHash = hashOAuth(code);
+    const now = new Date().toISOString();
+
+    // Atomic claim: UPDATE used_at WHERE code_hash AND used_at IS NULL AND expires_at > now RETURNING.
+    const { data: codeRow, error: claimError } = await supabase
+      .from("oauth_codes")
+      .update({ used_at: now })
+      .eq("code_hash", codeHash)
+      .is("used_at", null)
+      .gt("expires_at", now)
+      .select("client_id, user_id, redirect_uri, code_challenge, scope")
+      .maybeSingle();
+
+    if (claimError) {
+      console.error("OAuth token code claim error:", claimError.message);
+      return c.json({ error: "server_error" }, 500);
+    }
+    if (!codeRow) {
+      return c.json({ error: "invalid_grant", error_description: "Code not found, expired, or already used" }, 400);
+    }
+
+    const row = codeRow as { client_id: string; user_id: string; redirect_uri: string; code_challenge: string; scope: string };
+
+    // Verify client_id (when supplied) and redirect_uri match the stored row.
+    // Deliberate: PKCE (verified below) is the binding that stops a stolen-code
+    // replay — only the holder of the code_verifier can redeem, regardless of
+    // client_id. The client_id match is defense-in-depth, enforced WHEN the
+    // request presents one; it is not required, because a public connector may
+    // omit it at the token endpoint and forcing it would break the flow with no
+    // security gain over PKCE (review finding A, accepted for single-principal).
+    if (clientId && row.client_id !== clientId) {
+      return c.json({ error: "invalid_grant", error_description: "client_id mismatch" }, 400);
+    }
+    if (row.redirect_uri !== redirectUri) {
+      return c.json({ error: "invalid_grant", error_description: "redirect_uri mismatch" }, 400);
+    }
+
+    // Verify PKCE: base64url(sha256(code_verifier)) must equal the stored code_challenge.
+    const expectedChallenge = createHash("sha256").update(codeVerifier).digest("base64url");
+    if (expectedChallenge !== row.code_challenge) {
+      return c.json({ error: "invalid_grant", error_description: "code_verifier does not match code_challenge" }, 400);
+    }
+
+    // Mint tokens.
+    const { accessToken, refreshToken, accessHash, refreshHash, accessExpiresAt } = mintTokenPair();
+
+    const { error: insertError } = await supabase.from("oauth_tokens").insert({
+      client_id: row.client_id,
+      user_id: row.user_id,
+      access_token_hash: accessHash,
+      refresh_token_hash: refreshHash,
+      scope: row.scope,
+      access_expires_at: accessExpiresAt,
+    });
+
+    if (insertError) {
+      console.error("OAuth token insert error:", insertError.message);
+      return c.json({ error: "server_error" }, 500);
+    }
+
+    return c.json({
+      access_token: accessToken,
+      token_type: "Bearer",
+      expires_in: 3600,
+      refresh_token: refreshToken,
+      scope: row.scope,
+    }, 200);
+  }
+
+  // ── refresh_token grant ────────────────────────────────────────────────────
+  if (grantType === "refresh_token") {
+    const refreshToken = fields.refresh_token ?? "";
+    if (!refreshToken) {
+      return c.json({ error: "invalid_request", error_description: "refresh_token is required" }, 400);
+    }
+
+    const refreshHash = hashOAuth(refreshToken);
+    const nowIso = new Date().toISOString();
+    const { data: existingRow, error: lookupError } = await supabase
+      .from("oauth_tokens")
+      .select("id, client_id, user_id, scope")
+      .eq("refresh_token_hash", refreshHash)
+      .is("revoked_at", null)
+      .gt("refresh_expires_at", nowIso) // expired refresh tokens are dead (review finding D)
+      .maybeSingle();
+
+    if (lookupError) {
+      console.error("OAuth refresh lookup error:", lookupError.message);
+      return c.json({ error: "server_error" }, 500);
+    }
+    if (!existingRow) {
+      return c.json({ error: "invalid_grant", error_description: "refresh_token not found, revoked, or expired" }, 400);
+    }
+
+    const existing = existingRow as { id: string; client_id: string; user_id: string; scope: string };
+
+    // Rotate INSERT-FIRST, then revoke (review finding B): if the function dies
+    // between the two writes, the worst case is the old refresh token briefly
+    // still works (a benign double-valid for the SAME single principal) — never
+    // a lockout, never a second principal. Revoke-first risked permanent
+    // lockout on a mid-rotation crash.
+    const { accessToken, refreshToken: newRefreshToken, accessHash, refreshHash: newRefreshHash, accessExpiresAt } = mintTokenPair();
+
+    const { error: insertError } = await supabase.from("oauth_tokens").insert({
+      client_id: existing.client_id,
+      user_id: existing.user_id,
+      access_token_hash: accessHash,
+      refresh_token_hash: newRefreshHash,
+      scope: existing.scope,
+      access_expires_at: accessExpiresAt,
+    });
+
+    if (insertError) {
+      console.error("OAuth refresh insert error:", insertError.message);
+      return c.json({ error: "server_error" }, 500);
+    }
+
+    const { error: revokeError } = await supabase
+      .from("oauth_tokens")
+      .update({ revoked_at: nowIso })
+      .eq("id", existing.id);
+
+    if (revokeError) {
+      // The new pair is already live; a lingering old token is benign (same
+      // principal) and expires on its own. Log, don't fail the grant.
+      console.error("OAuth refresh revoke (post-insert) error — old token left to expire:", revokeError.message);
+    }
+
+    return c.json({
+      access_token: accessToken,
+      token_type: "Bearer",
+      expires_in: 3600,
+      refresh_token: newRefreshToken,
+      scope: existing.scope,
+    }, 200);
+  }
+
+  // ── unsupported grant ──────────────────────────────────────────────────────
+  return c.json({ error: "unsupported_grant_type" }, 400);
+});
+
+/** Mint a new access + refresh token pair. Returns plaintexts and hashes. */
+function mintTokenPair() {
+  const accessToken = "fb_oat_" + randomBytes(32).toString("base64url");
+  const refreshToken = "fb_ort_" + randomBytes(32).toString("base64url");
+  const accessHash = hashOAuth(accessToken);
+  const refreshHash = hashOAuth(refreshToken);
+  const accessExpiresAt = new Date(Date.now() + 3600 * 1000).toISOString();
+  return { accessToken, refreshToken, accessHash, refreshHash, accessExpiresAt };
+}
+
+/** Build the OAuth authorization HTML page. */
+function buildAuthorizeHtml(params: {
+  clientId: string;
+  redirectUri: string;
+  state: string;
+  codeChallenge: string;
+  scope: string;
+  error: string | null;
+}): string {
+  const { clientId, redirectUri, state, codeChallenge, scope, error } = params;
+  const escAttr = (s: string) => s.replace(/"/g, "&quot;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  const escHtml = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+
+  const errorHtml = error
+    ? `<p class="error">${escHtml(error)}</p>`
+    : "";
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>FocusBoard — Sign in</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0f0f10;
+    color: #e2e2e5;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Helvetica, Arial, sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+  .card {
+    background: #1a1a1f;
+    border: 1px solid #2e2e38;
+    border-radius: 12px;
+    padding: 2rem 2.5rem;
+    width: 100%;
+    max-width: 380px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.5);
+  }
+  h1 {
+    font-size: 1.3rem;
+    font-weight: 600;
+    color: #f0f0f5;
+    margin-bottom: 0.4rem;
+  }
+  .subtitle {
+    font-size: 0.85rem;
+    color: #888;
+    margin-bottom: 1.5rem;
+  }
+  label {
+    display: block;
+    font-size: 0.8rem;
+    color: #aaa;
+    margin-bottom: 0.3rem;
+    margin-top: 1rem;
+  }
+  input[type="email"], input[type="password"] {
+    width: 100%;
+    padding: 0.6rem 0.8rem;
+    background: #0f0f10;
+    border: 1px solid #2e2e38;
+    border-radius: 6px;
+    color: #e2e2e5;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.15s;
+  }
+  input[type="email"]:focus, input[type="password"]:focus {
+    border-color: #6c8cff;
+  }
+  button[type="submit"] {
+    margin-top: 1.5rem;
+    width: 100%;
+    padding: 0.65rem;
+    background: #6c8cff;
+    border: none;
+    border-radius: 6px;
+    color: #fff;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  button[type="submit"]:hover { background: #5a7aee; }
+  .error {
+    margin-top: 1rem;
+    padding: 0.5rem 0.75rem;
+    background: rgba(220,50,50,0.15);
+    border: 1px solid rgba(220,50,50,0.35);
+    border-radius: 6px;
+    font-size: 0.85rem;
+    color: #f08080;
+  }
+</style>
+</head>
+<body>
+<div class="card">
+  <h1>FocusBoard</h1>
+  <p class="subtitle">Sign in to connect your account</p>
+  <form method="POST" action="/api/oauth/authorize">
+    <input type="hidden" name="client_id" value="${escAttr(clientId)}"/>
+    <input type="hidden" name="redirect_uri" value="${escAttr(redirectUri)}"/>
+    <input type="hidden" name="state" value="${escAttr(state)}"/>
+    <input type="hidden" name="code_challenge" value="${escAttr(codeChallenge)}"/>
+    <input type="hidden" name="scope" value="${escAttr(scope)}"/>
+    <label for="email">Email</label>
+    <input type="email" id="email" name="email" autocomplete="email" required/>
+    <label for="password">Password</label>
+    <input type="password" id="password" name="password" autocomplete="current-password" required/>
+    ${errorHtml}
+    <button type="submit">Sign in</button>
+  </form>
+</div>
+</body>
+</html>`;
+}
+
+// ── Phase 6.2: MCP endpoint ────────────────────────────────────────────────────
+//
+// POST /api/mcp — stateless JSON-RPC using the proven probe shape.
+// GET /api/mcp  — 405 (connector may probe with GET; log-free as confirmed by probe)
+// DELETE /api/mcp — 405
+
+// GET and DELETE stubs (log-free 405 — the probe confirmed these arrive silently).
+app.get("/mcp", (c: Context<AuthEnv>) => c.body(null, 405));
+app.delete("/mcp", (c: Context<AuthEnv>) => c.body(null, 405));
+
+// POST /api/mcp — the MCP JSON-RPC endpoint.
+// Auth: capture:read (lowest bar to enter). Per-tool scope enforcement happens
+// during in-process dispatch (ROUTE_SCOPES re-fires on every sub-request).
+// The `server` export (which includes the well-known router) is passed lazily
+// as a getFetch callback to avoid circular initialization at module load time.
+app.post("/mcp", (c: Context<AuthEnv>) => {
+  // Pass a lazy reference to server.fetch so mcp-server.ts can dispatch
+  // in-process without importing server at module-init time (circular dep risk).
+  return handleMcpRpc(c, () => (req: Request) => Promise.resolve(server.fetch(req)));
+});
+
+// ── Well-known router (no basePath — paths arrive as-is from the rewrite) ─────
+//
+// The vercel.json rewrite already routes /.well-known/(.*) → /api.
+// The `server` composed app (below) handles them before the /api basePath app.
+// These endpoints are OAuth discovery; they return raw RFC JSON (no envelope).
+// ORIGIN is derived from the Host header to work across preview + prod deploys.
+
+const wellKnown = new Hono();
+
+wellKnown.get("/.well-known/oauth-authorization-server", (c) => {
+  const host = c.req.header("host") ?? "localhost";
+  const ORIGIN = `https://${host}`;
+  return c.json({
+    issuer: ORIGIN,
+    authorization_endpoint: `${ORIGIN}/api/oauth/authorize`,
+    token_endpoint: `${ORIGIN}/api/oauth/token`,
+    registration_endpoint: `${ORIGIN}/api/oauth/register`,
+    response_types_supported: ["code"],
+    grant_types_supported: ["authorization_code", "refresh_token"],
+    code_challenge_methods_supported: ["S256"],
+    token_endpoint_auth_methods_supported: ["none"],
+    scopes_supported: OAUTH_SCOPES_SUPPORTED,
+  }, 200);
+});
+
+// /.well-known/oauth-protected-resource AND /.well-known/oauth-protected-resource/*
+wellKnown.get("/.well-known/oauth-protected-resource", (c) => {
+  const host = c.req.header("host") ?? "localhost";
+  const ORIGIN = `https://${host}`;
+  return c.json({
+    resource: `${ORIGIN}/api/mcp`,
+    authorization_servers: [ORIGIN],
+  }, 200);
+});
+
+wellKnown.get("/.well-known/oauth-protected-resource/*", (c) => {
+  const host = c.req.header("host") ?? "localhost";
+  const ORIGIN = `https://${host}`;
+  return c.json({
+    resource: `${ORIGIN}/api/mcp`,
+    authorization_servers: [ORIGIN],
+  }, 200);
+});
+
+// ── Composed server (well-known + app) — exported for api/index.ts ────────────
+//
+// `wellKnown` handles /.well-known/* BEFORE the /api basePath app handles
+// anything. Existing tests import { app } and use /api/... paths — they keep
+// working because `app` itself is unchanged. api/index.ts switches to
+// server.fetch; tests that import { app } directly continue to work.
+export const server = new Hono().route("/", wellKnown).route("/", app);
