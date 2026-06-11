@@ -110,8 +110,9 @@ program
 program
   .command("move")
   .description("move a card to a column (read-then-CAS; 409 if it changed)")
-  .argument("<id>", "card id or c-N alias from fb list")
-  .argument("<column>", "target column id")
+  .argument("[id]", "card id or c-N alias from fb list")
+  .argument("[column]", "target column id")
+  .option("--batch", 'read "id column" pairs from stdin (one per line, max 20) and move them all')
   .action(run(moveCommand));
 
 program

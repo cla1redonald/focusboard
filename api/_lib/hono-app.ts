@@ -827,6 +827,112 @@ app.post("/cards/:id/done", async (c: Context<AuthEnv>) => {
   }
 });
 
+// Batch move (Phase 5b): up to 20 moves, validated together, executed as
+// SEQUENTIAL per-card CAS — deliberately N RPCs over a new batch Postgres
+// function (simplicity; reuses the audited fb_mutate_card primitive) and
+// deliberately NOT transactional: a board is not an invoice — per-card results
+// report partial success honestly instead of punishing 19 good moves for 1
+// stale one. Versions are read at EXECUTION time (the board load below), so a
+// confirm-gated caller gets fresh CAS at confirm, matching the 4a contract.
+const BATCH_MOVE_MAX = 20;
+
+app.post("/cards/batch-move", async (c: Context<AuthEnv>) => {
+  let body: { moves?: unknown };
+  try {
+    body = (await c.req.json()) as typeof body;
+  } catch {
+    body = {};
+  }
+
+  if (!Array.isArray(body.moves) || body.moves.length === 0) {
+    return fail(c, 400, "VALIDATION", "moves is required (a non-empty array)",
+      `Provide 1-${BATCH_MOVE_MAX} moves: [{ id: "...", to: "column-id" }]`);
+  }
+  if (body.moves.length > BATCH_MOVE_MAX) {
+    return fail(c, 400, "VALIDATION", `Too many moves (${body.moves.length})`,
+      `Max ${BATCH_MOVE_MAX} per batch — split into multiple calls`);
+  }
+
+  const moves: { id: string; to: string }[] = [];
+  for (const [i, raw] of body.moves.entries()) {
+    const m = raw as { id?: unknown; to?: unknown };
+    if (typeof m?.id !== "string" || !m.id.trim() || typeof m?.to !== "string" || !m.to.trim()) {
+      return fail(c, 400, "VALIDATION", `moves[${i}] must be { id, to }`);
+    }
+    moves.push({ id: m.id.trim(), to: m.to.trim() });
+  }
+  const ids = new Set(moves.map((m) => m.id));
+  if (ids.size !== moves.length) {
+    return fail(c, 400, "VALIDATION", "Duplicate card ids in the batch",
+      "Each card may appear once — merge or drop the duplicates");
+  }
+
+  try {
+    const board = await loadBoard(principalUserId(c));
+    if (!board) {
+      return fail(c, 404, "NOT_FOUND", "No board found for this user", "Open the web app once to create your board");
+    }
+
+    // Validate the WHOLE plan up front — a typo'd column or unknown card fails
+    // the batch before anything mutates.
+    for (const [i, m] of moves.entries()) {
+      const col = board.columns.find((cl) => cl.id === m.to);
+      if (!col) {
+        return fail(c, 400, "VALIDATION", `moves[${i}]: unknown column "${m.to}"`,
+          `Valid columns: ${board.columns.map((cl) => cl.id).join(", ")}`);
+      }
+      if (!board.cards.some((cd) => cd.id === m.id)) {
+        return fail(c, 404, "NOT_FOUND", `moves[${i}]: card "${m.id}" not found`,
+          "Use ids from fb list / focusboard_cards");
+      }
+    }
+
+    const supabase = getServiceClient();
+    const results: { id: string; title: string; to: string; ok: boolean; version?: number | null; error?: string }[] = [];
+
+    for (const m of moves) {
+      const card = board.cards.find((cd) => cd.id === m.id)!;
+      const col = board.columns.find((cl) => cl.id === m.to)!;
+      const patch: Record<string, unknown> = col.isTerminal
+        ? { completedAt: new Date().toISOString() }
+        : {};
+
+      const { data, error } = await supabase.rpc("fb_mutate_card", {
+        p_user: principalUserId(c),
+        p_card_id: m.id,
+        p_expected_version: board.versions.get(m.id) ?? null,
+        p_patch: patch,
+        p_move_to: m.to,
+      });
+
+      if (error) {
+        const msg = error.message ?? "";
+        const code = msg.includes("STALE_STATE") ? "STALE_STATE"
+          : msg.includes("CARD_NOT_FOUND") ? "NOT_FOUND"
+          : "INTERNAL";
+        if (code === "INTERNAL") console.error(`Batch move "${m.id}" rpc error:`, msg);
+        results.push({ id: m.id, title: card.title, to: m.to, ok: false, error: code });
+        continue;
+      }
+      void data;
+      const prev = board.versions.get(m.id);
+      results.push({
+        id: m.id, title: card.title, to: m.to, ok: true,
+        version: typeof prev === "number" ? prev + 1 : null,
+      });
+    }
+
+    return ok(c, {
+      total: moves.length,
+      moved: results.filter((r) => r.ok).length,
+      results,
+    });
+  } catch (err) {
+    console.error("Batch move unexpected error:", err);
+    return fail(c, 500, "INTERNAL", "Internal server error");
+  }
+});
+
 // ── Focus sessions (Phase 3, scopes focus:read / focus:write) ─────────────────
 //
 // Append-only rows in focus_sessions — never blob mutation. One active session

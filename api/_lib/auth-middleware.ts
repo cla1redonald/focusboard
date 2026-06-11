@@ -49,6 +49,7 @@ export const ROUTE_SCOPES: Record<string, string> = {
   "PATCH /api/cards/:id": SCOPES.CARD_WRITE,
   "POST /api/cards/:id/move": SCOPES.CARD_WRITE,
   "POST /api/cards/:id/done": SCOPES.CARD_WRITE,
+  "POST /api/cards/batch-move": SCOPES.CARD_WRITE,
   "GET /api/wip": SCOPES.BOARD_READ,
   "GET /api/capture": SCOPES.CAPTURE_READ,
   "POST /api/capture": "INLINE_AUTH",

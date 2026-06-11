@@ -1,6 +1,6 @@
 # Phase 5 — Agent-Native Workflows (plan, 2026-06-10)
 
-**Status:** 5a SHIPPED + runtime-verified (2026-06-11, PR #38) · 5b NEXT
+**Status:** 5a SHIPPED + runtime-verified (2026-06-11, PR #38) · 5b BUILT (PR pending merge + prod E2E)
 **5a verification (smoke account, prod):** fb shutdown / fb week / fb focus history all
 correct against seeded data; batch capture 3/3 via stdin; same-key retried batch
 re-inserted 0 rows (SQL-confirmed); CI smoke gate extended (unauth 401 pin + authed
