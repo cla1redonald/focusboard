@@ -176,6 +176,12 @@ export type BatchCaptureData = {
   results: { index: number; ok: boolean; captureId?: string; duplicate?: boolean; error?: string }[];
 };
 
+export type BatchMoveData = {
+  total: number;
+  moved: number;
+  results: { id: string; title: string; to: string; ok: boolean; version?: number | null; error?: string }[];
+};
+
 export class FocusboardClient {
   private baseUrl: string;
   private token: string | null;
@@ -340,6 +346,14 @@ export class FocusboardClient {
 
   cardDone(id: string, version: number | null): Promise<{ card: SlimCard & { version: number | null } }> {
     return this.request("POST", `/api/cards/${encodeURIComponent(id)}/done`, { version });
+  }
+
+  /**
+   * Batch move (Phase 5b): up to 20 moves, validated together server-side,
+   * executed as sequential per-card CAS with honest partial results.
+   */
+  cardBatchMove(moves: { id: string; to: string }[]): Promise<BatchMoveData> {
+    return this.request("POST", "/api/cards/batch-move", { moves });
   }
 
   focusStatus(): Promise<FocusStatusData> {

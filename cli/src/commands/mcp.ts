@@ -495,13 +495,49 @@ export async function mcpCommand() {
   );
 
   server.registerTool(
+    "focusboard_move_cards",
+    {
+      title: "Move MULTIPLE cards in one batch (requires ONE confirmation)",
+      description:
+        "Propose moving up to 20 cards in one plan — e.g. 'move all waiting-on-someone items " +
+        "to blocked'. Returns ONE confirm_token covering the whole plan; after " +
+        "focusboard_confirm the moves execute as per-card compare-and-swaps with versions read " +
+        "FRESH at confirm time. Partial success is reported per card (a STALE_STATE on one card " +
+        "does not stop the others) — re-read and re-plan any failures.",
+      inputSchema: {
+        moves: z.array(z.object({
+          card_id: z.string().describe("Card id (from focusboard_cards)"),
+          column: z.string().describe("Target column id"),
+        })).min(1).max(20).describe("The moves, one entry per card"),
+      },
+    },
+    async ({ moves }) => {
+      try {
+        // Validate NOW so the agent sees a trustworthy plan: every card must
+        // resolve to a title (404s surface here, before any token is minted).
+        const lines: string[] = [];
+        for (const m of moves) {
+          const { title } = await freshVersion(m.card_id);
+          lines.push(`Move "${title}" → ${m.column}`);
+        }
+        const preview = `${moves.length} move${moves.length === 1 ? "" : "s"}:\n` + lines.join("\n");
+        return propose(preview, () =>
+          client.cardBatchMove(moves.map((m) => ({ id: m.card_id, to: m.column })))
+        );
+      } catch (err) {
+        return errResult(err);
+      }
+    }
+  );
+
+  server.registerTool(
     "focusboard_confirm",
     {
       title: "Execute a proposed mutation",
       description:
         "Execute a mutation previously proposed by focusboard_add_card / move_card / " +
-        "complete_card / update_card, using its confirm_token. Tokens are single-use and " +
-        "expire after 5 minutes.",
+        "complete_card / update_card / move_cards, using its confirm_token. Tokens are " +
+        "single-use and expire after 5 minutes.",
       inputSchema: {
         confirm_token: z.string().describe("The confirm_token from the proposal"),
       },

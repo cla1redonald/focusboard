@@ -59,7 +59,15 @@ async function freshVersion(client: FocusboardClient, idOrAlias: string): Promis
   return { id, version: card.version, title: card.title };
 }
 
-export async function moveCommand(idOrAlias: string, column: string) {
+export async function moveCommand(
+  idOrAlias: string | undefined,
+  column: string | undefined,
+  opts: { batch?: boolean } = {}
+) {
+  if (opts.batch) return moveBatchFromStdin();
+  if (!idOrAlias || !column) {
+    throw new Error('Usage: fb move <id> <column> — or pipe "id column" lines into fb move --batch');
+  }
   const client = new FocusboardClient();
   const { id, version, title } = await freshVersion(client, idOrAlias);
   const { card } = await client.cardMove(id, version, column);
@@ -69,6 +77,47 @@ export async function moveCommand(idOrAlias: string, column: string) {
     return;
   }
   info(`${paint("✓", "green")} Moved "${title}" → ${card.column}`);
+}
+
+/**
+ * Phase 5b — fb move --batch: "id column" (or "id:column") pairs, one per
+ * stdin line. Validated together server-side, executed per-card CAS, partial
+ * success reported honestly.
+ */
+async function moveBatchFromStdin() {
+  const chunks: Buffer[] = [];
+  for await (const chunk of process.stdin) chunks.push(chunk as Buffer);
+  const lines = Buffer.concat(chunks).toString("utf8").split("\n").map((l) => l.trim()).filter(Boolean);
+  if (lines.length === 0) {
+    throw new Error('Nothing on stdin — pipe "id column" lines into fb move --batch');
+  }
+  if (lines.length > 20) {
+    throw new Error(`Too many moves (${lines.length}) — max 20 per batch`);
+  }
+
+  const moves = lines.map((line, i) => {
+    const parts = line.includes(":") ? line.split(":") : line.split(/\s+/);
+    const [rawId, to] = [parts[0]?.trim(), parts.slice(1).join(" ").trim()];
+    if (!rawId || !to) throw new Error(`Line ${i + 1} is not "id column": ${line}`);
+    return { id: resolveId(rawId), to };
+  });
+
+  const client = new FocusboardClient();
+  const result = await client.cardBatchMove(moves);
+
+  if (isJson()) {
+    printJson(result);
+    return;
+  }
+  if (isQuiet()) {
+    for (const r of result.results) if (r.ok) console.log(r.id);
+    return;
+  }
+  info(`${paint("✓", "green")} Moved ${result.moved}/${result.total}`);
+  for (const r of result.results) {
+    if (r.ok) info(`  ${paint("✓", "green")} "${r.title}" → ${r.to}`);
+    else info(`  ${paint("✗", "red")} "${r.title}" → ${r.to} (${r.error}${r.error === "STALE_STATE" ? " — re-run fb list and retry" : ""})`);
+  }
 }
 
 export async function doneCommand(idOrAlias: string) {
