@@ -1884,7 +1884,7 @@ app.get("/oauth/authorize", async (c: Context<AuthEnv>) => {
     error: null,
   });
 
-  c.header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'");
+  c.header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'");
   return c.html(html, 200);
 });
 
@@ -1934,7 +1934,7 @@ app.post("/oauth/authorize", async (c: Context<AuthEnv>) => {
 
   if (authError || !authData.user) {
     // Bad credentials → re-render form with error (HTTP 200 per OAuth convention for login forms).
-    c.header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'");
+    c.header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'");
     return c.html(buildAuthorizeHtml({ clientId, redirectUri, state, codeChallenge, scope, error: "Invalid email or password" }), 200);
   }
 
@@ -1958,7 +1958,7 @@ app.post("/oauth/authorize", async (c: Context<AuthEnv>) => {
 
   if (insertError) {
     console.error("OAuth code insert error:", insertError.message);
-    c.header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'");
+    c.header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'");
     return c.html(buildAuthorizeHtml({ clientId, redirectUri, state, codeChallenge, scope, error: "Server error — please try again" }), 500);
   }
 
@@ -2026,7 +2026,13 @@ app.post("/oauth/token", async (c: Context<AuthEnv>) => {
 
     const row = codeRow as { client_id: string; user_id: string; redirect_uri: string; code_challenge: string; scope: string };
 
-    // Verify client_id and redirect_uri match the stored row.
+    // Verify client_id (when supplied) and redirect_uri match the stored row.
+    // Deliberate: PKCE (verified below) is the binding that stops a stolen-code
+    // replay — only the holder of the code_verifier can redeem, regardless of
+    // client_id. The client_id match is defense-in-depth, enforced WHEN the
+    // request presents one; it is not required, because a public connector may
+    // omit it at the token endpoint and forcing it would break the flow with no
+    // security gain over PKCE (review finding A, accepted for single-principal).
     if (clientId && row.client_id !== clientId) {
       return c.json({ error: "invalid_grant", error_description: "client_id mismatch" }, 400);
     }
@@ -2074,11 +2080,13 @@ app.post("/oauth/token", async (c: Context<AuthEnv>) => {
     }
 
     const refreshHash = hashOAuth(refreshToken);
+    const nowIso = new Date().toISOString();
     const { data: existingRow, error: lookupError } = await supabase
       .from("oauth_tokens")
       .select("id, client_id, user_id, scope")
       .eq("refresh_token_hash", refreshHash)
       .is("revoked_at", null)
+      .gt("refresh_expires_at", nowIso) // expired refresh tokens are dead (review finding D)
       .maybeSingle();
 
     if (lookupError) {
@@ -2086,23 +2094,16 @@ app.post("/oauth/token", async (c: Context<AuthEnv>) => {
       return c.json({ error: "server_error" }, 500);
     }
     if (!existingRow) {
-      return c.json({ error: "invalid_grant", error_description: "refresh_token not found or revoked" }, 400);
+      return c.json({ error: "invalid_grant", error_description: "refresh_token not found, revoked, or expired" }, 400);
     }
 
     const existing = existingRow as { id: string; client_id: string; user_id: string; scope: string };
 
-    // Rotate: revoke the old token pair, mint a new one.
-    const now = new Date().toISOString();
-    const { error: revokeError } = await supabase
-      .from("oauth_tokens")
-      .update({ revoked_at: now })
-      .eq("id", existing.id);
-
-    if (revokeError) {
-      console.error("OAuth refresh revoke error:", revokeError.message);
-      return c.json({ error: "server_error" }, 500);
-    }
-
+    // Rotate INSERT-FIRST, then revoke (review finding B): if the function dies
+    // between the two writes, the worst case is the old refresh token briefly
+    // still works (a benign double-valid for the SAME single principal) — never
+    // a lockout, never a second principal. Revoke-first risked permanent
+    // lockout on a mid-rotation crash.
     const { accessToken, refreshToken: newRefreshToken, accessHash, refreshHash: newRefreshHash, accessExpiresAt } = mintTokenPair();
 
     const { error: insertError } = await supabase.from("oauth_tokens").insert({
@@ -2117,6 +2118,17 @@ app.post("/oauth/token", async (c: Context<AuthEnv>) => {
     if (insertError) {
       console.error("OAuth refresh insert error:", insertError.message);
       return c.json({ error: "server_error" }, 500);
+    }
+
+    const { error: revokeError } = await supabase
+      .from("oauth_tokens")
+      .update({ revoked_at: nowIso })
+      .eq("id", existing.id);
+
+    if (revokeError) {
+      // The new pair is already live; a lingering old token is benign (same
+      // principal) and expires on its own. Log, don't fail the grant.
+      console.error("OAuth refresh revoke (post-insert) error — old token left to expire:", revokeError.message);
     }
 
     return c.json({

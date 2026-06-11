@@ -40,6 +40,7 @@ type OAuthTokenRow = {
   refresh_token_hash: string;
   scope: string;
   access_expires_at: string;
+  refresh_expires_at?: string;
   revoked_at: string | null;
 };
 
@@ -264,11 +265,19 @@ function oauthTokensTableMock() {
         }),
         gt: vi.fn(() => ({
           maybeSingle: vi.fn(async () => {
-            // Access token lookup for resolveOAuthToken (with expiry check)
+            // Expiry-checked lookups: access_token_hash (resolveOAuthToken) OR
+            // refresh_token_hash (refresh grant — now enforces refresh_expires_at).
             const now = new Date();
             const found = mockTokens.find((t) => {
-              if (field !== "access_token_hash") return false;
-              return t.access_token_hash === value && t.revoked_at === null && new Date(t.access_expires_at) > now;
+              if (t.revoked_at !== null) return false;
+              if (field === "access_token_hash") {
+                return t.access_token_hash === value && new Date(t.access_expires_at) > now;
+              }
+              if (field === "refresh_token_hash") {
+                const rExp = t.refresh_expires_at ? new Date(t.refresh_expires_at) : new Date(Date.now() + 30 * 86400000);
+                return t.refresh_token_hash === value && rExp > now;
+              }
+              return false;
             }) ?? null;
             return { data: found, error: null };
           }),
@@ -433,6 +442,13 @@ describe("GET /api/oauth/authorize", () => {
     const html = await res.text();
     expect(html).toContain("<form");
     expect(html).toContain("FocusBoard");
+  });
+
+  it("the login page forbids framing (clickjacking defense)", async () => {
+    const res = await app.request(
+      `/api/oauth/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&code_challenge=abc&code_challenge_method=S256`
+    );
+    expect(res.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
   });
 
   it("missing code_challenge redirects with error (not 400)", async () => {

@@ -50,6 +50,7 @@ create table if not exists oauth_tokens (
   refresh_token_hash  text        not null unique,
   scope               text        not null,
   access_expires_at   timestamptz not null,
+  refresh_expires_at  timestamptz not null default now() + interval '30 days',
   created_at          timestamptz default now(),
   revoked_at          timestamptz
 );
