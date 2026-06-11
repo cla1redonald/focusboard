@@ -58,6 +58,10 @@ export const ROUTE_SCOPES: Record<string, string> = {
   "HEAD /api/capture": "PUBLIC",
   "POST /api/capture/:id/snooze": SCOPES.CAPTURE_WRITE,
   "POST /api/capture/:id/dismiss": SCOPES.CAPTURE_WRITE,
+  // Phase 6 probe — THROWAWAY, unauthenticated by design (echo only, no data).
+  "POST /api/mcp-probe": "PUBLIC",
+  "GET /api/mcp-probe": "PUBLIC",
+  "DELETE /api/mcp-probe": "PUBLIC",
   "GET /api/tokens": "SESSION_ONLY",
   "POST /api/tokens": "SESSION_ONLY",
   "DELETE /api/tokens/:id": "SESSION_ONLY",

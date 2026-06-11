@@ -1535,6 +1535,90 @@ app.post("/confirmations/confirm", async (c: Context<AuthEnv>) => {
   }
 });
 
+// ── Phase 6 step 0: connector probe (THROWAWAY — delete after the probe) ───────
+//
+// A minimal, stateless, UNAUTHENTICATED MCP endpoint whose only job is to learn
+// what claude.ai's custom-connector client ACTUALLY sends (Accept negotiation,
+// GET/SSE channel attempts, protocol version, session headers, timing) — the
+// official SDK client negotiates politely and cannot reproduce connector
+// behaviour. Exposes ONE harmless echo tool; touches NO data. Every request is
+// logged to the function logs with a "mcp-probe:" prefix for later analysis.
+
+function probeLog(c: Context, note: string) {
+  console.log("mcp-probe:", JSON.stringify({
+    note,
+    method: c.req.method,
+    accept: c.req.header("accept") ?? null,
+    contentType: c.req.header("content-type") ?? null,
+    protocolVersion: c.req.header("mcp-protocol-version") ?? null,
+    sessionId: c.req.header("mcp-session-id") ?? null,
+    ua: (c.req.header("user-agent") ?? "").slice(0, 80),
+  }));
+}
+
+app.get("/mcp-probe", (c) => {
+  probeLog(c, "GET (SSE channel attempt?)");
+  return c.body(null, 405);
+});
+
+app.delete("/mcp-probe", (c) => {
+  probeLog(c, "DELETE (session teardown attempt?)");
+  return c.body(null, 405);
+});
+
+app.post("/mcp-probe", async (c) => {
+  let rpc: { jsonrpc?: string; id?: number | string | null; method?: string; params?: Record<string, unknown> };
+  try {
+    rpc = (await c.req.json()) as typeof rpc;
+  } catch {
+    probeLog(c, "POST unparseable body");
+    return c.json({ jsonrpc: "2.0", id: null, error: { code: -32700, message: "Parse error" } }, 400);
+  }
+  probeLog(c, `POST ${rpc.method ?? "(no method)"}`);
+
+  // Notifications (no id) → 202 Accepted, empty body (streamable-http spec).
+  if (rpc.id === undefined || rpc.id === null) {
+    return c.body(null, 202);
+  }
+
+  const reply = (result: unknown) => c.json({ jsonrpc: "2.0", id: rpc.id, result });
+
+  switch (rpc.method) {
+    case "initialize":
+      return reply({
+        protocolVersion: (rpc.params?.protocolVersion as string) ?? "2025-06-18",
+        capabilities: { tools: { listChanged: false } },
+        serverInfo: { name: "focusboard-probe", version: "0.0.1" },
+      });
+    case "ping":
+      return reply({});
+    case "tools/list":
+      return reply({
+        tools: [{
+          name: "probe_echo",
+          description: "Echo a message back (connectivity probe — no data access).",
+          inputSchema: {
+            type: "object",
+            properties: { text: { type: "string", description: "Text to echo" } },
+            required: ["text"],
+          },
+        }],
+      });
+    case "tools/call": {
+      const args = (rpc.params?.arguments ?? {}) as { text?: string };
+      return reply({
+        content: [{ type: "text", text: `probe echo: ${args.text ?? "(no text)"}` }],
+        isError: false,
+      });
+    }
+    default:
+      return c.json(
+        { jsonrpc: "2.0", id: rpc.id, error: { code: -32601, message: `Method not found: ${rpc.method}` } },
+        200
+      );
+  }
+});
+
 // ── GET /api/tokens — list PATs ────────────────────────────────────────────────
 
 app.get("/tokens", async (c: Context<AuthEnv>) => {
