@@ -29,6 +29,36 @@ import { app, server } from "./_lib/hono-app.js";
 // that import api/_lib/hono-app.ts directly — those keep working unchanged).
 export { app, server };
 
+/**
+ * Re-serialize Vercel's pre-parsed `req.body` to match its DECLARED content-type.
+ * Vercel parses BOTH application/json and application/x-www-form-urlencoded into
+ * an object; serializing a form object as JSON (but keeping the form
+ * content-type) makes the downstream parser read empty fields. Exported for the
+ * adapter regression test — the adapter itself is never hit by route tests
+ * (they call app.request directly), which is exactly how the form-body bug
+ * reached prod undetected.
+ *
+ * Returns the body string to send and (possibly) a content-type to set.
+ */
+export function reserializeBody(
+  reqBody: unknown,
+  contentType: string | null
+): { body: string; setContentType?: string } {
+  if (typeof reqBody === "string") return { body: reqBody };
+  const ct = (contentType ?? "").toLowerCase();
+  if (ct.includes("application/x-www-form-urlencoded")) {
+    const params = new URLSearchParams();
+    for (const [k, v] of Object.entries(reqBody as Record<string, unknown>)) {
+      params.set(k, typeof v === "string" ? v : String(v));
+    }
+    return { body: params.toString() };
+  }
+  return {
+    body: JSON.stringify(reqBody),
+    ...(contentType ? {} : { setContentType: "application/json" }),
+  };
+}
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   const proto = (req.headers["x-forwarded-proto"] as string | undefined) ?? "https";
   const host = req.headers.host ?? "localhost";
@@ -43,12 +73,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   const method = (req.method ?? "GET").toUpperCase();
   let body: string | undefined;
   if (method !== "GET" && method !== "HEAD" && req.body != null) {
-    // Vercel's Node runtime pre-parses JSON bodies into req.body (an object).
-    // Re-serialize so the Hono handlers can read them via c.req.json().
-    body = typeof req.body === "string" ? req.body : JSON.stringify(req.body);
-    if (typeof req.body !== "string" && !headers.has("content-type")) {
-      headers.set("content-type", "application/json");
-    }
+    // Vercel's Node runtime PRE-PARSES the body into req.body: a JSON object
+    // for application/json, AND a plain object for application/x-www-form-
+    // urlencoded. We must re-serialize to match the DECLARED content-type, or
+    // the Hono handler's parser reads the wrong format. (A form body
+    // re-serialized as JSON but still labelled form-urlencoded parses to empty
+    // fields — which silently broke every OAuth login/token POST in prod, while
+    // tests that call app.request() directly bypass this adapter and pass.)
+    const r = reserializeBody(req.body, headers.get("content-type"));
+    body = r.body;
+    if (r.setContentType) headers.set("content-type", r.setContentType);
   }
 
   // Use `server.fetch` (the composed well-known + app handler) so that
