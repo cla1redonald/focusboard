@@ -96,7 +96,9 @@ say "credentials written to ${CREDS_FILE}"
 
 if [ "${1:-}" = "--gh-secret" ]; then
   command -v gh >/dev/null || { say "gh CLI required for --gh-secret"; exit 1; }
-  printf '%s' "$TOKEN" | gh secret set FOCUSBOARD_SMOKE_TOKEN --repo cla1redonald/focusboard --body -
+  # NB: no --body flag — `--body -` stores the LITERAL string "-" (gh reads
+  # stdin only when --body is absent). This bug shipped a Bearer "-" to CI once.
+  printf '%s' "$TOKEN" | gh secret set FOCUSBOARD_SMOKE_TOKEN --repo cla1redonald/focusboard
   say "GitHub secret FOCUSBOARD_SMOKE_TOKEN updated"
 fi
 
