@@ -61,6 +61,10 @@ export const ROUTE_SCOPES: Record<string, string> = {
   "GET /api/tokens": "SESSION_ONLY",
   "POST /api/tokens": "SESSION_ONLY",
   "DELETE /api/tokens/:id": "SESSION_ONLY",
+  // Phase 6.1: durable confirmation gate — both routes require card:write
+  // (every gated tool mutates cards).
+  "POST /api/confirmations": SCOPES.CARD_WRITE,
+  "POST /api/confirmations/confirm": SCOPES.CARD_WRITE,
 };
 
 // ── Core authenticate function ─────────────────────────────────────────────────

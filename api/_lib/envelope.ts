@@ -25,6 +25,7 @@ export const ERROR_CODES = {
   RATE_LIMITED: "RATE_LIMITED", // 429
   ALREADY_ACTIVE: "ALREADY_ACTIVE", // 409 — a focus session is already running
   STALE_STATE: "STALE_STATE", // 409 — reserved for Phase 4
+  CONFIRM_NOT_FOUND: "CONFIRM_NOT_FOUND", // 404 — confirmation token expired/used/wrong user
   INTERNAL: "INTERNAL", // 500
 } as const;
 
