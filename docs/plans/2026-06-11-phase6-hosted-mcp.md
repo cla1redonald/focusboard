@@ -1,6 +1,13 @@
 # Phase 6 — Hosted MCP (FocusBoard everywhere: Cowork, claude.ai, mobile)
 
-**Status:** ARCHITECTURE-REVIEWED rev 2 — one decision open (auth posture, below)
+**Status:** ARCHITECTURE-REVIEWED rev 2 · auth decision MADE: **Option A (single-principal
+OAuth stub)** chosen 2026-06-11 · 6.0 probe in flight.
+**Probe finding #1 (from Claire's first connector attempt, before the endpoint was even live):**
+claude.ai attempts OAuth discovery/registration against `/.well-known/oauth-*` when adding a
+connector — and Vercel's SPA fallback rewrite served index.html with HTTP 200 for those paths,
+which claude.ai read as a broken sign-in service ("Couldn't register"). Fixed: `/.well-known/*`
+now rewrites to the API function (proper 404 until the OAuth stub provides real metadata).
+The stub's discovery endpoints are therefore CONFIRMED load-bearing for 6.2, not optional.
 **Context:** Phases 0–5 shipped. The MCP server is local stdio (`fb mcp`), which works
 in Claude Code but NOT in Cowork / claude.ai web / mobile — custom connectors are
 reached over HTTPS from Anthropic's cloud only. The original plan anticipated this:
