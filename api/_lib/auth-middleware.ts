@@ -35,8 +35,14 @@ export const ROUTE_SCOPES: Record<string, string> = {
   "GET /api/me": SCOPES.CAPTURE_READ,
   "GET /api/today": SCOPES.BOARD_READ,
   "GET /api/focus/status": SCOPES.FOCUS_READ,
+  "GET /api/focus/history": SCOPES.FOCUS_READ,
   "POST /api/focus/start": SCOPES.FOCUS_WRITE,
   "POST /api/focus/stop": SCOPES.FOCUS_WRITE,
+  // Digests are board-level views: their responses carry focus data as
+  // AGGREGATES ONLY (raw sessions stay behind focus:read on /api/focus/*).
+  "GET /api/review/daily": SCOPES.BOARD_READ,
+  "GET /api/review/weekly": SCOPES.BOARD_READ,
+  "POST /api/capture/batch": SCOPES.CAPTURE_WRITE,
   "GET /api/cards": SCOPES.BOARD_READ,
   "GET /api/cards/:id": SCOPES.BOARD_READ,
   "POST /api/cards": SCOPES.CARD_WRITE,

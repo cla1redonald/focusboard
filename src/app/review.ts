@@ -1,5 +1,5 @@
-import type { Card, Column, CompletedCardMetric, FocusSession, MetricsState } from "./types";
-import { dateKey } from "./today";
+import type { Card, Column, CompletedCardMetric, FocusSession, MetricsState } from "./types.js";
+import { dateKey } from "./today.js";
 
 export type DailyShutdownSummary = {
   date: string;

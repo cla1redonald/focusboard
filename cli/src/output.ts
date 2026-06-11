@@ -30,7 +30,7 @@ export function isJson(): boolean {
   return json;
 }
 
-const codes = { dim: 2, red: 31, green: 32, yellow: 33, cyan: 36 } as const;
+const codes = { bold: 1, dim: 2, red: 31, green: 32, yellow: 33, cyan: 36 } as const;
 
 export function paint(text: string, color: keyof typeof codes): string {
   if (!colorEnabled) return text;

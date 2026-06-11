@@ -116,6 +116,66 @@ export type WipData = {
   activeCount: number;
 };
 
+// ── Phase 5a: focus history, review digests, batch capture ─────────────────────
+
+export type FocusAggregates = {
+  sessionCount: number;
+  totalMinutes: number;
+  byOutcome: Record<string, number>;
+};
+
+export type FocusHistoryData = FocusAggregates & {
+  days: number;
+  byDay: Record<string, { sessionCount: number; minutes: number }>;
+  sessions: {
+    id: string;
+    cardId: string | null;
+    cardTitle: string;
+    plannedMinutes: number;
+    startedAt: string;
+    endedAt: string;
+    outcome: FocusOutcome;
+    note?: string;
+  }[];
+};
+
+export type DigestCard = SlimCard & { version: number | null };
+
+export type CompletedCardMetric = {
+  cardId: string;
+  title: string;
+  completedAt: string;
+  leadTimeMs: number;
+  cycleTimeMs: number;
+};
+
+export type ReviewDailyData = {
+  date: string;
+  isComplete: boolean;
+  completedToday: CompletedCardMetric[];
+  focus: FocusAggregates;
+  slipped: DigestCard[];
+  blocked: DigestCard[];
+  stale: DigestCard[];
+  tomorrowCandidates: DigestCard[];
+};
+
+export type ReviewWeeklyData = {
+  weekKey: string;
+  isComplete: boolean;
+  completedThisWeek: CompletedCardMetric[];
+  focus: FocusAggregates;
+  blocked: DigestCard[];
+  staleBacklog: DigestCard[];
+  proposedCommitments: DigestCard[];
+};
+
+export type BatchCaptureData = {
+  total: number;
+  captured: number;
+  results: { index: number; ok: boolean; captureId?: string; duplicate?: boolean; error?: string }[];
+};
+
 export class FocusboardClient {
   private baseUrl: string;
   private token: string | null;
@@ -298,6 +358,44 @@ export class FocusboardClient {
       outcome: opts.outcome ?? "progressed",
       ...(opts.note ? { note: opts.note } : {}),
     });
+  }
+
+  focusHistory(days?: number): Promise<FocusHistoryData> {
+    const qs = days ? `?days=${days}` : "";
+    return this.request("GET", `/api/focus/history${qs}`);
+  }
+
+  reviewDaily(): Promise<ReviewDailyData> {
+    return this.request("GET", "/api/review/daily");
+  }
+
+  reviewWeekly(): Promise<ReviewWeeklyData> {
+    return this.request("GET", "/api/review/weekly");
+  }
+
+  /**
+   * Batch capture (Phase 5a). One Idempotency-Key covers the batch — the
+   * server derives per-item keys from it, so a network retry with the SAME
+   * key re-inserts nothing.
+   */
+  async captureBatch(
+    items: string[],
+    opts: { source?: string } = {}
+  ): Promise<BatchCaptureData> {
+    const idempotencyKey = randomUUID();
+    const body = { items: items.map((content) => ({ content, source: opts.source ?? "in_app" })) };
+    try {
+      return await this.request("POST", "/api/capture/batch", body, {
+        "Idempotency-Key": idempotencyKey,
+      });
+    } catch (err) {
+      if (err instanceof ApiError && err.code === "NETWORK") {
+        return await this.request("POST", "/api/capture/batch", body, {
+          "Idempotency-Key": idempotencyKey,
+        });
+      }
+      throw err;
+    }
   }
 
   snooze(captureId: string, minutes: number): Promise<{ captureId: string; snoozedUntil: string }> {

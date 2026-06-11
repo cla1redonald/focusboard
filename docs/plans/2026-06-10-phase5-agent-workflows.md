@@ -75,9 +75,11 @@ New in `api/_lib/`:
   webhook-body auth; the batch gets normal `enforceRouteScopes` + `capture:write` and
   no webhook entanglement). Body `{ items: [{ content, source? }] }`, 1–25 items.
 - Per-item idempotency: batch `Idempotency-Key` K → item key `sha256(K + ":" + index)`
-  (delimited), written via per-item upsert-on-conflict against the existing
-  `(user_id, idempotency_key)` unique index — a retried batch re-inserts nothing. The
-  single-item route's one-key pre-check logic is NOT reused (it's single-row-shaped).
+  (delimited) — a retried batch re-inserts nothing. Implementation note (found at
+  build time): the unique index is PARTIAL (`where idempotency_key is not null`),
+  which `ON CONFLICT` can't target through supabase-js — so it's a batched
+  pre-check (`.in(itemKeys)`) + per-item insert with 23505 recovery, the same
+  proven pattern as the single route, not upsert-on-conflict as rev 2 assumed.
 - Rate limit: counts as `items.length` against the existing per-user 30/60s window;
   oversized batches refused up front with 429 + hint. Documented as BEST-EFFORT
   (the window count isn't reserved; a concurrent capture can race it — acceptable

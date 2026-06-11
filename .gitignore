@@ -32,3 +32,4 @@ dist-ssr
 # Screenshot working files (final shots live in public/)
 /screenshots/*.png
 /.playwright-mcp/
+.playwright-mcp/

@@ -66,3 +66,38 @@ export async function focusStatusCommand() {
   }
   info(paint(`Today: ${status.today.sessions} session${status.today.sessions === 1 ? "" : "s"} · ${status.today.focusedMinutes}m focused`, "dim"));
 }
+
+/** Phase 5a — fb focus history [--days N]: table-sourced sessions + aggregates. */
+export async function focusHistoryCommand(opts: { days?: string }) {
+  const days = opts.days ? Math.max(1, Math.min(90, Number(opts.days) || 7)) : 7;
+  const client = new FocusboardClient();
+  const history = await client.focusHistory(days);
+
+  if (isJson()) {
+    printJson(history);
+    return;
+  }
+
+  const outcomes = Object.entries(history.byOutcome)
+    .map(([k, v]) => `${v} ${k}`)
+    .join(", ");
+  info(paint(`Focus — last ${history.days} day${history.days === 1 ? "" : "s"}`, "bold"));
+  info(
+    history.sessionCount === 0
+      ? paint("No focus sessions in this window.", "dim")
+      : `${history.sessionCount} session${history.sessionCount === 1 ? "" : "s"} · ${history.totalMinutes}m focused (${outcomes})`
+  );
+
+  const dayKeys = Object.keys(history.byDay).sort().reverse();
+  for (const day of dayKeys) {
+    const d = history.byDay[day]!;
+    info(`  ${day}  ${String(d.minutes).padStart(4)}m  ${"▪".repeat(Math.min(40, Math.max(1, Math.round(d.minutes / 10))))}  (${d.sessionCount})`);
+  }
+  if (history.sessions.length > 0) {
+    info("");
+    for (const s of history.sessions.slice(0, 10)) {
+      const mins = Math.max(0, Math.round((new Date(s.endedAt).getTime() - new Date(s.startedAt).getTime()) / 60_000));
+      info(paint(`  ${relativeTime(s.endedAt)} — ${s.cardTitle} · ${mins}m · ${s.outcome}`, "dim"));
+    }
+  }
+}
