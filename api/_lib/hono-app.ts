@@ -11,6 +11,8 @@
  *   GET    /api/tokens               → list PATs          (session only)
  *   POST   /api/tokens               → create PAT         (session only)
  *   DELETE /api/tokens/:id           → revoke PAT         (session only)
+ *   POST   /api/confirmations        → propose a Tier-3 op (scope: card:write)
+ *   POST   /api/confirmations/confirm → claim + execute    (scope: card:write)
  *
  * Every response uses the envelope from envelope.ts:
  *   { ok: true, data } | { ok: false, error: { code, message, hint? } }
@@ -35,7 +37,8 @@ import { buildTodayPlan, buildTodayDailyPlan, getActiveCards } from "../../src/a
 import { buildDailyShutdownSummary, buildWeeklyReviewSummary } from "../../src/app/review.js";
 import { filterCards, DEFAULT_FILTER } from "../../src/app/filters.js";
 import type { Card } from "../../src/app/types.js";
-import { createHash } from "crypto";
+import { createHash, randomBytes } from "crypto";
+import { CONFIRMATION_TOOL_ALLOWLIST, executeConfirmedOp } from "./confirm-executor.js";
 
 // ── Allowed origins ────────────────────────────────────────────────────────────
 
@@ -1381,6 +1384,153 @@ app.post("/capture/batch", async (c: Context<AuthEnv>) => {
     return ok(c, { total: items.length, captured: landed, results }, 201);
   } catch (err) {
     console.error("Batch capture unexpected error:", err);
+    return fail(c, 500, "INTERNAL", "Internal server error");
+  }
+});
+
+// ── Phase 6.1: durable MCP confirmation gate ──────────────────────────────────
+//
+// These two routes replace the stdio process's in-memory Map for Tier-3 tool
+// confirmations. The gate is now durable: a stateless hosted MCP server can
+// use the same routes.
+//
+// SECURITY INVARIANTS (enforced atomically in the DB update):
+//   - user_id equality: cross-principal tokens can never execute.
+//   - single-use: enforced by the row update (SET used_at = now() WHERE used_at IS NULL).
+//   - expiry: enforced by expires_at > now() in the WHERE clause.
+//   - allowlist: only known tools can be proposed; unknown tools are rejected at
+//     proposal time, before a token row is ever created.
+
+const CONFIRM_TTL_SECONDS = 300; // 5 minutes
+
+/** sha256 hex of a token string (matches the migration's storage model). */
+function hashConfirmToken(token: string): string {
+  return createHash("sha256").update(token).digest("hex");
+}
+
+// POST /api/confirmations — propose a Tier-3 operation.
+// Body: { tool, args, preview }
+// Returns: { confirm_token, expires_in_seconds, preview }
+app.post("/confirmations", async (c: Context<AuthEnv>) => {
+  const principal = c.get("principal");
+
+  let body: { tool?: unknown; args?: unknown; preview?: unknown };
+  try {
+    body = (await c.req.json()) as typeof body;
+  } catch {
+    body = {};
+  }
+
+  const tool = typeof body.tool === "string" ? body.tool.trim() : "";
+  if (!tool) return fail(c, 400, "VALIDATION", "tool is required");
+  if (!CONFIRMATION_TOOL_ALLOWLIST.has(tool)) {
+    return fail(
+      c, 400, "VALIDATION",
+      `Unknown tool "${tool}"`,
+      `Allowed tools: ${[...CONFIRMATION_TOOL_ALLOWLIST].join(", ")}`
+    );
+  }
+
+  const preview = typeof body.preview === "string" ? body.preview.trim() : "";
+  if (!preview) return fail(c, 400, "VALIDATION", "preview is required (non-empty string)");
+  if (preview.length > 2000) {
+    return fail(c, 400, "VALIDATION", "preview must be 2000 characters or fewer");
+  }
+
+  if (!body.args || typeof body.args !== "object" || Array.isArray(body.args)) {
+    return fail(c, 400, "VALIDATION", "args is required (an object)");
+  }
+
+  // Mint a random token; store only its sha256 hash.
+  const plaintext = randomBytes(32).toString("base64url");
+  const tokenHash = hashConfirmToken(plaintext);
+  const expiresAt = new Date(Date.now() + CONFIRM_TTL_SECONDS * 1000).toISOString();
+
+  try {
+    const supabase = getServiceClient();
+    const { error } = await supabase.from("mcp_confirmations").insert({
+      user_id: principal.userId,
+      token_hash: tokenHash,
+      tool,
+      args: body.args,
+      preview,
+      expires_at: expiresAt,
+    });
+    if (error) {
+      console.error("Confirmation create error:", error.message);
+      return fail(c, 500, "INTERNAL", "Failed to create confirmation");
+    }
+    return ok(c, { confirm_token: plaintext, expires_in_seconds: CONFIRM_TTL_SECONDS, preview }, 201);
+  } catch (err) {
+    console.error("Confirmation create unexpected error:", err);
+    return fail(c, 500, "INTERNAL", "Internal server error");
+  }
+});
+
+// POST /api/confirmations/confirm — claim and execute.
+// Body: { confirm_token }
+// Returns: the executor's response body verbatim under the normal envelope.
+app.post("/confirmations/confirm", async (c: Context<AuthEnv>) => {
+  const principal = c.get("principal");
+
+  let body: { confirm_token?: unknown };
+  try {
+    body = (await c.req.json()) as typeof body;
+  } catch {
+    body = {};
+  }
+
+  const confirmToken = typeof body.confirm_token === "string" ? body.confirm_token.trim() : "";
+  if (!confirmToken) return fail(c, 400, "VALIDATION", "confirm_token is required");
+
+  const tokenHash = hashConfirmToken(confirmToken);
+  const now = new Date().toISOString();
+
+  try {
+    const supabase = getServiceClient();
+
+    // Atomic claim: SET used_at = now() WHERE token_hash = hash AND used_at IS NULL
+    // AND expires_at > now() AND user_id = principal.userId.
+    // Zero rows → the token is unknown, expired, already used, or belongs to another user.
+    const { data, error } = await supabase
+      .from("mcp_confirmations")
+      .update({ used_at: now })
+      .eq("token_hash", tokenHash)
+      .is("used_at", null)
+      .gt("expires_at", now)
+      .eq("user_id", principal.userId)
+      .select("tool, args")
+      .maybeSingle();
+
+    if (error) {
+      console.error("Confirmation claim error:", error.message);
+      return fail(c, 500, "INTERNAL", "Failed to claim confirmation");
+    }
+    if (!data) {
+      return fail(
+        c, 404, "CONFIRM_NOT_FOUND",
+        "Confirmation token not found or already used",
+        "expired, already used, or not yours — re-propose the operation"
+      );
+    }
+
+    const { tool, args } = data as { tool: string; args: Record<string, unknown> };
+    const authHeader = c.req.header("authorization") ?? "";
+
+    // Execute the mapped operation in-process. The executor lazily references app,
+    // which is fully constructed before any request can arrive.
+    try {
+      const result = await executeConfirmedOp(app, tool, args, authHeader);
+      return ok(c, result as Record<string, unknown>);
+    } catch (execErr) {
+      // Surface the underlying route's error (e.g. 409 STALE_STATE, 404 NOT_FOUND).
+      const e = execErr as { code?: string; message?: string; hint?: string; status?: number };
+      const status = (e.status ?? 500) as 400 | 404 | 409 | 500;
+      const code = (e.code ?? "INTERNAL") as Parameters<typeof fail>[2];
+      return fail(c, status, code, e.message ?? "Execution failed", e.hint);
+    }
+  } catch (err) {
+    console.error("Confirmation confirm unexpected error:", err);
     return fail(c, 500, "INTERNAL", "Internal server error");
   }
 });

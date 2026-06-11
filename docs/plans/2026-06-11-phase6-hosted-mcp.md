@@ -137,3 +137,8 @@ needed?) is then evidence-based, not SDK-client-inferred.
   split; own-table verdict; "SDK harness ≠ Cowork proof" honesty forced.
 - rev 2 (this doc) incorporates all findings; auth posture left as the one
   decision for Claire with a recommendation.
+
+**6.1 BUILT (PR #46):** mcp_confirmations migration + POST /api/confirmations[/confirm]
+(atomic single-use + expiry + cross-principal claim), in-process app.fetch executor with
+fresh-version reads, shared tool registry (cli/src/mcp-tools.ts), stdio server switched —
+pendingOps Map deleted. 23 new API tests (128 total).

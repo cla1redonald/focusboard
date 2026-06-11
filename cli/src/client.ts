@@ -182,6 +182,22 @@ export type BatchMoveData = {
   results: { id: string; title: string; to: string; ok: boolean; version?: number | null; error?: string }[];
 };
 
+// ── Phase 6.1: durable confirmation gate ───────────────────────────────────────
+
+export type ConfirmationCreateData = {
+  confirm_token: string;
+  expires_in_seconds: number;
+  preview: string;
+};
+
+export type ConfirmationPayload = {
+  status: "confirmation_required";
+  confirm_token: string;
+  expires_in_seconds: number;
+  preview: string;
+  hint: string;
+};
+
 export class FocusboardClient {
   private baseUrl: string;
   private token: string | null;
@@ -410,6 +426,28 @@ export class FocusboardClient {
       }
       throw err;
     }
+  }
+
+  // ── Phase 6.1: durable confirmation gate ─────────────────────────────────────
+
+  /**
+   * Propose a Tier-3 operation. Returns the confirm token and preview so the
+   * caller can display the confirmation_required payload to the agent.
+   */
+  async confirmationCreate(
+    tool: string,
+    args: Record<string, unknown>,
+    preview: string
+  ): Promise<ConfirmationCreateData> {
+    return this.request("POST", "/api/confirmations", { tool, args, preview });
+  }
+
+  /**
+   * Claim and execute a previously proposed operation.
+   * Returns the executed route's response data on success.
+   */
+  async confirmationExecute(confirmToken: string): Promise<unknown> {
+    return this.request("POST", "/api/confirmations/confirm", { confirm_token: confirmToken });
   }
 
   snooze(captureId: string, minutes: number): Promise<{ captureId: string; snoozedUntil: string }> {
