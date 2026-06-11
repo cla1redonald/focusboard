@@ -176,6 +176,90 @@ export async function mcpCommand() {
     }
   );
 
+  // ── Tier 2 — Phase 5a workflow reads + batch capture ────────────────────────
+
+  server.registerTool(
+    "focusboard_focus_history",
+    {
+      title: "Focus session history",
+      description:
+        "Closed focus sessions over a window (default 7 days, max 90) with aggregates: total " +
+        "minutes, counts by outcome, minutes per day. Read-only. Use for 'summarise my focus week'.",
+      inputSchema: {
+        days: z.number().int().min(1).max(90).default(7).describe("Window in days"),
+      },
+    },
+    async ({ days }) => {
+      try {
+        return okResult(await client.focusHistory(days));
+      } catch (err) {
+        return errResult(err);
+      }
+    }
+  );
+
+  server.registerTool(
+    "focusboard_shutdown",
+    {
+      title: "Daily shutdown digest",
+      description:
+        "The daily shutdown ritual as data — today's completions, focus aggregates, slipped/" +
+        "blocked/stale cards, and tomorrow candidates (each card carries the version needed for " +
+        "a follow-up mutation). Same semantics as the web's Shutdown panel. Read-only. Use for " +
+        "'prepare my daily shutdown' and narrate the result conversationally.",
+      inputSchema: {},
+    },
+    async () => {
+      try {
+        return okResult(await client.reviewDaily());
+      } catch (err) {
+        return errResult(err);
+      }
+    }
+  );
+
+  server.registerTool(
+    "focusboard_week",
+    {
+      title: "Weekly review digest",
+      description:
+        "The weekly review as data — this week's completions, focus aggregates, blocked cards, " +
+        "stale backlog, and proposed commitments for next week. Same semantics as the web's " +
+        "Weekly Review panel. Read-only.",
+      inputSchema: {},
+    },
+    async () => {
+      try {
+        return okResult(await client.reviewWeekly());
+      } catch (err) {
+        return errResult(err);
+      }
+    }
+  );
+
+  server.registerTool(
+    "focusboard_capture_actions",
+    {
+      title: "Batch-capture action items",
+      description:
+        "Capture MULTIPLE items (e.g. actions you extracted from meeting notes) into the " +
+        "Focusboard inbox in one call — split the text into discrete items yourself first. " +
+        "Append-only and safe: nothing lands on the board until Claire triages it. Max 25 items; " +
+        "retries are idempotent; per-item results are returned.",
+      inputSchema: {
+        items: z.array(z.string().min(1).max(10000)).min(1).max(25)
+          .describe("The action items, one string each"),
+      },
+    },
+    async ({ items }) => {
+      try {
+        return okResult(await client.captureBatch(items));
+      } catch (err) {
+        return errResult(err);
+      }
+    }
+  );
+
   // ── Tier 3 — focus sessions (mutation, but append-only rows) ────────────────
   //
   // Decision (2026-06-09): NO confirmation-token gate for focus start/stop —

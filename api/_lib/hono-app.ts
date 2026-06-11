@@ -30,8 +30,12 @@ import { resolveApiToken, SCOPES, generateToken } from "./token.js";
 import { ok, fail } from "./envelope.js";
 import { TRIAGE_STATUSES } from "../../src/app/captureTypes.js";
 import { loadBoard, slimCard, tagNameResolver } from "./board.js";
+import { loadFocusSessions, loadMetrics, aggregateFocusSessions } from "./focus-data.js";
 import { buildTodayPlan, buildTodayDailyPlan, getActiveCards } from "../../src/app/today.js";
+import { buildDailyShutdownSummary, buildWeeklyReviewSummary } from "../../src/app/review.js";
 import { filterCards, DEFAULT_FILTER } from "../../src/app/filters.js";
+import type { Card } from "../../src/app/types.js";
+import { createHash } from "crypto";
 
 // ── Allowed origins ────────────────────────────────────────────────────────────
 
@@ -1002,6 +1006,263 @@ app.post("/focus/stop", async (c: Context<AuthEnv>) => {
     });
   } catch (err) {
     console.error("Focus stop unexpected error:", err);
+    return fail(c, 500, "INTERNAL", "Internal server error");
+  }
+});
+
+// ── Phase 5a: focus history + review digests + batch capture ──────────────────
+//
+// Composite READS are server-side (one endpoint, importing the web's own
+// review.ts semantics — the no-drift rule); focus sessions come from the
+// focus_sessions TABLE (system of record), the metrics blob only contributes
+// completedCards/reviewMarkers. Digests expose focus data as AGGREGATES ONLY:
+// raw session rows stay exclusively behind focus:read (/api/focus/*) — a
+// board:read token must not read focus history through the digest.
+
+app.get("/focus/history", async (c: Context<AuthEnv>) => {
+  const principal = c.get("principal");
+  const daysRaw = Number(c.req.query("days") ?? 7);
+  const days = Math.max(1, Math.min(90, Number.isFinite(daysRaw) ? Math.floor(daysRaw) : 7));
+
+  try {
+    const since = new Date(Date.now() - days * 86_400_000);
+    const sessions = await loadFocusSessions(principal.userId, since);
+
+    const byDay: Record<string, { sessionCount: number; minutes: number }> = {};
+    for (const s of sessions) {
+      const day = s.endedAt.slice(0, 10);
+      const ms = new Date(s.endedAt).getTime() - new Date(s.startedAt).getTime();
+      const entry = (byDay[day] ??= { sessionCount: 0, minutes: 0 });
+      entry.sessionCount += 1;
+      entry.minutes += Math.max(0, Math.round(ms / 60_000));
+    }
+
+    return ok(c, {
+      days,
+      ...aggregateFocusSessions(sessions),
+      byDay,
+      sessions: sessions.map((s) => ({
+        id: s.id,
+        cardId: s.cardId || null,
+        cardTitle: s.cardTitle,
+        plannedMinutes: s.plannedMinutes,
+        startedAt: s.startedAt,
+        endedAt: s.endedAt,
+        outcome: s.outcome,
+        ...(s.note ? { note: s.note } : {}),
+      })),
+    });
+  } catch (err) {
+    console.error("Focus history unexpected error:", err);
+    return fail(c, 500, "INTERNAL", "Internal server error");
+  }
+});
+
+/** Slim + version projection for digest card lists. */
+function digestCards(
+  cards: Card[],
+  board: NonNullable<Awaited<ReturnType<typeof loadBoard>>>,
+  resolveTags: (ids?: string[]) => string[]
+) {
+  return cards.map((card) => ({
+    ...slimCard(card, resolveTags),
+    version: board.versions.get(card.id) ?? null,
+  }));
+}
+
+app.get("/review/daily", async (c: Context<AuthEnv>) => {
+  const principal = c.get("principal");
+  try {
+    const board = await loadBoard(principal.userId);
+    if (!board) {
+      return fail(c, 404, "NOT_FOUND", "No board found for this user", "Open the web app once to create your board");
+    }
+    // 2 days of table sessions comfortably covers "today" (the builder filters
+    // precisely by date key); metrics blob contributes completedCards/markers.
+    const [metrics, sessions] = await Promise.all([
+      loadMetrics(principal.userId),
+      loadFocusSessions(principal.userId, new Date(Date.now() - 2 * 86_400_000)),
+    ]);
+
+    const summary = buildDailyShutdownSummary(board.cards, board.columns, {
+      ...metrics,
+      focusSessions: sessions,
+    });
+
+    const resolveTags = tagNameResolver(board.state.tags);
+    return ok(c, {
+      date: summary.date,
+      isComplete: summary.isComplete,
+      completedToday: summary.completedToday,
+      focus: aggregateFocusSessions(summary.focusSessionsToday),
+      slipped: digestCards(summary.slippedCards, board, resolveTags),
+      blocked: digestCards(summary.blockedCards, board, resolveTags),
+      stale: digestCards(summary.staleCards, board, resolveTags),
+      tomorrowCandidates: digestCards(summary.tomorrowCandidates, board, resolveTags),
+    });
+  } catch (err) {
+    console.error("Daily review unexpected error:", err);
+    return fail(c, 500, "INTERNAL", "Internal server error");
+  }
+});
+
+app.get("/review/weekly", async (c: Context<AuthEnv>) => {
+  const principal = c.get("principal");
+  try {
+    const board = await loadBoard(principal.userId);
+    if (!board) {
+      return fail(c, 404, "NOT_FOUND", "No board found for this user", "Open the web app once to create your board");
+    }
+    const [metrics, sessions] = await Promise.all([
+      loadMetrics(principal.userId),
+      loadFocusSessions(principal.userId, new Date(Date.now() - 8 * 86_400_000)),
+    ]);
+
+    const summary = buildWeeklyReviewSummary(board.cards, board.columns, {
+      ...metrics,
+      focusSessions: sessions,
+    });
+
+    const resolveTags = tagNameResolver(board.state.tags);
+    return ok(c, {
+      weekKey: summary.weekKey,
+      isComplete: summary.isComplete,
+      completedThisWeek: summary.completedThisWeek,
+      focus: aggregateFocusSessions(summary.focusSessionsThisWeek),
+      blocked: digestCards(summary.blockedCards, board, resolveTags),
+      staleBacklog: digestCards(summary.staleBacklog, board, resolveTags),
+      proposedCommitments: digestCards(summary.proposedCommitments, board, resolveTags),
+    });
+  } catch (err) {
+    console.error("Weekly review unexpected error:", err);
+    return fail(c, 500, "INTERNAL", "Internal server error");
+  }
+});
+
+// Batch capture — a SEPARATE route from POST /api/capture (the INLINE_AUTH
+// exception with hand-rolled webhook-body auth); this one gets normal
+// route→scope enforcement. The agent does the language work (splitting
+// meeting notes); the server takes ready items. No AI processing is
+// triggered — PAT captures keep auto-add disabled, batches doubly so.
+const BATCH_MAX_ITEMS = 25;
+
+app.post("/capture/batch", async (c: Context<AuthEnv>) => {
+  const principal = c.get("principal");
+  let body: { items?: unknown };
+  try {
+    body = (await c.req.json()) as typeof body;
+  } catch {
+    body = {};
+  }
+
+  if (!Array.isArray(body.items) || body.items.length === 0) {
+    return fail(c, 400, "VALIDATION", "items is required (a non-empty array)",
+      `Provide 1-${BATCH_MAX_ITEMS} items: [{ content: "..." }]`);
+  }
+  if (body.items.length > BATCH_MAX_ITEMS) {
+    return fail(c, 400, "VALIDATION", `Too many items (${body.items.length})`,
+      `Max ${BATCH_MAX_ITEMS} per batch — split into multiple calls`);
+  }
+
+  const items: { content: string; source: string }[] = [];
+  for (const [i, raw] of body.items.entries()) {
+    const item = raw as { content?: unknown; source?: unknown };
+    if (typeof item?.content !== "string" || !item.content.trim()) {
+      return fail(c, 400, "VALIDATION", `items[${i}].content is required (non-empty string)`);
+    }
+    const validSources = ["email", "slack", "shortcut", "browser", "whatsapp", "in_app"];
+    items.push({
+      content: item.content.trim().substring(0, 10000),
+      source: validSources.includes(item.source as string) ? (item.source as string) : "in_app",
+    });
+  }
+
+  try {
+    const supabase = getServiceClient();
+
+    // Rate limit: the batch counts as items.length against the per-user
+    // window. Best-effort (the count isn't reserved; a concurrent capture can
+    // race it) — acceptable single-user, revisit with a DB counter if needed.
+    const windowStart = new Date(Date.now() - RATE_LIMIT_WINDOW_SECONDS * 1000).toISOString();
+    const { count } = await supabase
+      .from("capture_queue")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", principal.userId)
+      .gte("created_at", windowStart);
+    if ((count ?? 0) + items.length > RATE_LIMIT_MAX) {
+      return fail(c, 429, "RATE_LIMITED",
+        `Batch of ${items.length} would exceed the rate limit (${count ?? 0}/${RATE_LIMIT_MAX} used)`,
+        "Retry in 60 seconds");
+    }
+
+    // Per-item idempotency: batch key K → item key sha256(K + ":" + index).
+    // (Delimited — "ab"+"1" and "a"+"b1" must not collide.) The unique index
+    // is partial (WHERE idempotency_key IS NOT NULL), which ON CONFLICT can't
+    // target through supabase-js — so: batched pre-check + per-item insert
+    // with 23505 recovery, the same proven pattern as the single route.
+    const batchKey = c.req.header("idempotency-key");
+    const itemKeys = batchKey
+      ? items.map((_, i) => createHash("sha256").update(`${batchKey}:${i}`).digest("hex"))
+      : null;
+
+    const existingByKey = new Map<string, string>();
+    if (itemKeys) {
+      const { data: existing } = await supabase
+        .from("capture_queue")
+        .select("id, idempotency_key")
+        .eq("user_id", principal.userId)
+        .in("idempotency_key", itemKeys);
+      for (const row of (existing ?? []) as { id: string; idempotency_key: string }[]) {
+        existingByKey.set(row.idempotency_key, row.id);
+      }
+    }
+
+    const results: { index: number; ok: boolean; captureId?: string; duplicate?: boolean; error?: string }[] = [];
+    for (const [i, item] of items.entries()) {
+      const key = itemKeys?.[i];
+      const dupId = key ? existingByKey.get(key) : undefined;
+      if (dupId) {
+        results.push({ index: i, ok: true, captureId: dupId, duplicate: true });
+        continue;
+      }
+      const { data, error } = await supabase
+        .from("capture_queue")
+        .insert({
+          user_id: principal.userId,
+          status: "pending",
+          source: item.source,
+          raw_content: item.content,
+          raw_metadata: {},
+          ...(key ? { idempotency_key: key } : {}),
+        })
+        .select("id")
+        .single();
+
+      if (error) {
+        if (error.code === "23505" && key) {
+          const { data: raced } = await supabase
+            .from("capture_queue")
+            .select("id")
+            .eq("user_id", principal.userId)
+            .eq("idempotency_key", key)
+            .maybeSingle();
+          results.push({ index: i, ok: true, captureId: (raced as { id: string } | null)?.id, duplicate: true });
+          continue;
+        }
+        console.error(`Batch capture item ${i} insert error:`, error.message);
+        results.push({ index: i, ok: false, error: "INSERT_FAILED" });
+        continue;
+      }
+      results.push({ index: i, ok: true, captureId: (data as { id: string }).id });
+    }
+
+    const landed = results.filter((r) => r.ok).length;
+    if (landed === 0) {
+      return fail(c, 500, "INTERNAL", "No items in the batch could be captured");
+    }
+    return ok(c, { total: items.length, captured: landed, results }, 201);
+  } catch (err) {
+    console.error("Batch capture unexpected error:", err);
     return fail(c, 500, "INTERNAL", "Internal server error");
   }
 });

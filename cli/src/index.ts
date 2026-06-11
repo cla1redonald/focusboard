@@ -6,8 +6,9 @@ import { inboxCommand, dismissCommand } from "./commands/inbox.js";
 import { snoozeCommand } from "./commands/snooze.js";
 import { loginCommand, statusCommand, logoutCommand } from "./commands/auth.js";
 import { todayCommand, listCommand, searchCommand, wipCommand } from "./commands/board.js";
-import { focusStartCommand, focusStopCommand, focusStatusCommand } from "./commands/focus.js";
+import { focusStartCommand, focusStopCommand, focusStatusCommand, focusHistoryCommand } from "./commands/focus.js";
 import { addCommand, moveCommand, doneCommand, blockCommand } from "./commands/cards.js";
+import { shutdownCommand, weekCommand } from "./commands/review.js";
 import { mcpCommand } from "./commands/mcp.js";
 
 /**
@@ -146,6 +147,22 @@ focus
   .command("status")
   .description("the active session + today's focus totals")
   .action(run(focusStatusCommand));
+
+focus
+  .command("history")
+  .description("closed sessions + aggregates over a window (default 7 days)")
+  .option("--days <n>", "window in days (1-90)", "7")
+  .action(run(focusHistoryCommand));
+
+program
+  .command("shutdown")
+  .description("daily shutdown digest — completions, focus, slipped/blocked/stale, tomorrow")
+  .action(run(shutdownCommand));
+
+program
+  .command("week")
+  .description("weekly review digest — the week's completions, focus, stale backlog, commitments")
+  .action(run(weekCommand));
 
 const auth = program.command("auth").description("manage CLI authentication");
 
