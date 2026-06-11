@@ -1,6 +1,10 @@
 # Phase 5 — Agent-Native Workflows (plan, 2026-06-10)
 
-**Status:** ARCHITECTURE-REVIEWED (rev 2 — incorporates all blocker/should-fix findings)
+**Status:** 5a SHIPPED + runtime-verified (2026-06-11, PR #38) · 5b NEXT
+**5a verification (smoke account, prod):** fb shutdown / fb week / fb focus history all
+correct against seeded data; batch capture 3/3 via stdin; same-key retried batch
+re-inserted 0 rows (SQL-confirmed); CI smoke gate extended (unauth 401 pin + authed
+200s on /api/review/daily|weekly + /api/focus/history).
 **Supersedes:** the one-line Phase 5 entries in `2026-06-09-cli-mcp-operating-layer{,-v2}.md`
 **Context:** Phases 0–4b shipped and runtime-verified. The cards table is the system of
 record (per-card version CAS, 409 STALE_STATE), focus_sessions is append-only truth,
