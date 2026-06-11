@@ -142,3 +142,23 @@ needed?) is then evidence-based, not SDK-client-inferred.
 (atomic single-use + expiry + cross-principal claim), in-process app.fetch executor with
 fresh-version reads, shared tool registry (cli/src/mcp-tools.ts), stdio server switched —
 pendingOps Map deleted. 23 new API tests (128 total).
+
+**6.2 BUILT (branch phase6-2-hosted-mcp):** OAuth 2.1 stub + hosted MCP endpoint.
+Migration: supabase/migrations/20260612120000_oauth_stub.sql (NOT applied — manual step).
+New routes: POST /api/oauth/register (DCR, RFC 7591), GET+POST /api/oauth/authorize (PKCE
+login page — Supabase signInWithPassword server-side), POST /api/oauth/token (auth_code +
+refresh grants, S256 PKCE, token rotation), POST /api/mcp (stateless JSON-RPC, 17-tool
+surface mirroring cli/src/mcp-tools.ts), GET /api/mcp + DELETE /api/mcp (405 stubs).
+Well-known router (no basePath): GET /.well-known/oauth-authorization-server and
+/.well-known/oauth-protected-resource[/*]. api/index.ts switched to server.fetch (composed
+well-known + app); existing tests unchanged (they import { app } directly).
+Auth: fb_oat_ OAuth access token branch added to authenticate() (kind: "oauth");
+resolveOAuthToken() added to token.ts. All existing test mocks updated with isOAuthToken +
+resolveOAuthToken stubs. 36 new API tests (164 total). All gates green: typecheck,
+typecheck:api, test:api (164), test:run (648), test:cli (21), eslint clean.
+Deviations: (1) mcp-contract.test.ts uses ts-expect-error to cross the cli/ boundary —
+per spec, tests may import cli; (2) focusboard_move_cards JSON Schema items uses inline
+object (not JSONSchemaProperty recursive type) to avoid any-type complexity. SUPABASE_ANON_KEY
+note: the authorize POST route reads SUPABASE_ANON_KEY ?? VITE_SUPABASE_ANON_KEY — the
+production deploy already has VITE_SUPABASE_ANON_KEY so no new Vercel env var is required,
+but explicitly adding SUPABASE_ANON_KEY is cleaner and recommended.

@@ -2,12 +2,12 @@ import { createMiddleware } from "hono/factory";
 import { matchedRoutes } from "hono/route";
 import { createClient } from "@supabase/supabase-js";
 import { timingSafeEqual } from "crypto";
-import { resolveApiToken, hasScope, isPat, bearerToken, SCOPES } from "./token.js";
+import { resolveApiToken, hasScope, isPat, isOAuthToken, resolveOAuthToken, bearerToken, SCOPES } from "./token.js";
 import { fail } from "./envelope.js";
 
 // ── Principal types ────────────────────────────────────────────────────────────
 
-export type PrincipalKind = "pat" | "webhook" | "session";
+export type PrincipalKind = "pat" | "oauth" | "webhook" | "session";
 
 export type Principal = {
   userId: string;
@@ -69,6 +69,16 @@ export const ROUTE_SCOPES: Record<string, string> = {
   // (every gated tool mutates cards).
   "POST /api/confirmations": SCOPES.CARD_WRITE,
   "POST /api/confirmations/confirm": SCOPES.CARD_WRITE,
+  // Phase 6.2: OAuth endpoints — RFC-shaped responses, envelope-exempt.
+  // All PUBLIC (the authorization flow authenticates via Supabase creds, not Bearer).
+  "POST /api/oauth/register": "PUBLIC",
+  "GET /api/oauth/authorize": "PUBLIC",
+  "POST /api/oauth/authorize": "PUBLIC",
+  "POST /api/oauth/token": "PUBLIC",
+  // Phase 6.2: MCP endpoint — lowest scope to enter; per-tool enforcement in dispatch.
+  "POST /api/mcp": SCOPES.CAPTURE_READ,
+  "GET /api/mcp": "PUBLIC",
+  "DELETE /api/mcp": "PUBLIC",
 };
 
 // ── Core authenticate function ─────────────────────────────────────────────────
@@ -92,11 +102,21 @@ export async function authenticate(headers: Headers): Promise<Principal | null> 
     return null;
   }
 
-  // 2. Webhook secret (passed as JSON body field; the capture route calls
+  // 2. OAuth access token — fb_oat_... prefix
+  if (isOAuthToken(token)) {
+    const resolved = await resolveOAuthToken(authHeader);
+    if (resolved) {
+      return { userId: resolved.userId, scopes: resolved.scopes, kind: "oauth" };
+    }
+    // OAuth prefix present but lookup failed (expired/revoked) — do NOT fall through
+    return null;
+  }
+
+  // 3. Webhook secret (passed as JSON body field; the capture route calls
   //    authenticateWebhook() explicitly because reading the body here would
   //    consume it before the handler runs).
 
-  // 3. Session JWT (Supabase access token)
+  // 4. Session JWT (Supabase access token)
   if (token) {
     const supabaseUrl = process.env.SUPABASE_URL;
     const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;

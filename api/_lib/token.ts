@@ -95,3 +95,53 @@ export async function resolveApiToken(
 export function hasScope(resolved: ResolvedToken, scope: string): boolean {
   return resolved.scopes.includes(scope);
 }
+
+// ── OAuth access token resolution ─────────────────────────────────────────────
+
+const OAUTH_ACCESS_TOKEN_PREFIX = "fb_oat_";
+
+export function isOAuthToken(token: string | undefined | null): boolean {
+  return typeof token === "string" && token.startsWith(OAUTH_ACCESS_TOKEN_PREFIX);
+}
+
+export type ResolvedOAuthToken = {
+  userId: string;
+  scopes: string[];
+  tokenId: string;
+};
+
+/**
+ * Resolve an `Authorization: Bearer fb_oat_...` header to its user + scopes, or null.
+ * Checks revoked_at IS NULL and access_expires_at > now() in the query.
+ * Uses the service-role key (bypasses RLS).
+ */
+export async function resolveOAuthToken(
+  authHeader: string | undefined | null
+): Promise<ResolvedOAuthToken | null> {
+  const token = bearerToken(authHeader);
+  if (!isOAuthToken(token)) return null;
+
+  const supabaseUrl = process.env.SUPABASE_URL;
+  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  if (!supabaseUrl || !serviceKey) {
+    console.error("Supabase credentials not configured");
+    return null;
+  }
+
+  const supabase = createClient(supabaseUrl, serviceKey);
+  const hash = createHash("sha256").update(token as string).digest("hex");
+  const now = new Date().toISOString();
+
+  const { data, error } = await supabase
+    .from("oauth_tokens")
+    .select("id, user_id, scope")
+    .eq("access_token_hash", hash)
+    .is("revoked_at", null)
+    .gt("access_expires_at", now)
+    .maybeSingle();
+
+  if (error || !data) return null;
+
+  const scopes = (typeof data.scope === "string" ? data.scope : "").split(" ").filter(Boolean);
+  return { userId: data.user_id as string, scopes, tokenId: data.id as string };
+}
