@@ -185,3 +185,10 @@ keep frame-ancestors 'none'; the redirect is guarded server-side by redirect_uri
 Caught by Claire's real Cowork connect — curl e2e + route tests don't enforce CSP (a browser
 does), so all green. THIRD instance this project of 'the bug lives where the harness diverges
 from the real client' (after the 504 adapter bug and the form-body adapter bug).
+
+**Prod hotfix (PR #50) — no-store on the sign-in page:** the authorize page had no
+Cache-Control, so browsers cached it (the 304s in the logs) and replayed the STALE page
+including its old CSP header — the form-action fix only took effect after a hard refresh.
+Auth pages carrying per-request hidden fields (code_challenge, state) must never be cached;
+added Cache-Control: no-store to all four authorize responses + a regression test. Phase 6
+COMPLETE — Claire connected FocusBoard in Cowork 2026-06-12.
