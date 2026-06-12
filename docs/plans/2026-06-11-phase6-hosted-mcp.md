@@ -192,3 +192,12 @@ including its old CSP header — the form-action fix only took effect after a ha
 Auth pages carrying per-request hidden fields (code_challenge, state) must never be cached;
 added Cache-Control: no-store to all four authorize responses + a regression test. Phase 6
 COMPLETE — Claire connected FocusBoard in Cowork 2026-06-12.
+
+**Durable guard (PR — real-browser OAuth smoke):** scripts/oauth-smoke.mjs loads the
+sign-in page in real Chromium, submits it, and asserts the redirect FIRES with a code (the
+only thing that experiences CSP/cache enforcement) + no CSP console violation + no-store +
+no form-action, then completes PKCE token exchange and a hosted-MCP call. Wired into the
+runtime-smoke gate via SHIPIT_SMOKE_E2E_CMD (smoke email/password as CI secrets, synced by
+`npm run smoke:setup -- --gh-secret`); npm run smoke:oauth runs it locally. A CSP/cache
+regression on the auth page now fails CI instead of reaching the user. The throwaway
+/api/mcp-probe endpoint is deleted (its job — characterising the connector — is done).
