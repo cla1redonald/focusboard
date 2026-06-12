@@ -485,6 +485,13 @@ describe("GET /api/oauth/authorize", () => {
     expect(res.headers.get("content-security-policy")).not.toContain("form-action");
   });
 
+  it("the login page is not cacheable (no stale CSP/hidden-field replay)", async () => {
+    const res = await app.request(
+      `/api/oauth/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&code_challenge=abc&code_challenge_method=S256`
+    );
+    expect(res.headers.get("cache-control")).toContain("no-store");
+  });
+
   it("missing code_challenge redirects with error (not 400)", async () => {
     const res = await app.request(
       `/api/oauth/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`
