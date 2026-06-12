@@ -175,3 +175,13 @@ POST parsed to empty fields in prod while all 166 route tests passed (they call 
 bypassing the adapter — the original-504 blind spot). `reserializeBody()` re-encodes by
 declared content-type; first adapter-level test added. Caught by the deployed-artifact OAuth
 E2E (smoke account: DCR → login → code → PKCE token → /api/mcp).
+
+**Prod hotfix (PR #49) — CSP blocked the login:** the sign-in page's `form-action 'self'`
+blocked the credential POST in a real browser, because CSP form-action polices the entire
+form-initiated navigation including the server's 302 to the redirect_uri (claude.ai). Console:
+"Sending form data … violates form-action 'self'. The request has been blocked." The endpoint
+was healthy (302s in the logs); the browser just never sent the POST. Fix: drop form-action,
+keep frame-ancestors 'none'; the redirect is guarded server-side by redirect_uri allow-listing.
+Caught by Claire's real Cowork connect — curl e2e + route tests don't enforce CSP (a browser
+does), so all green. THIRD instance this project of 'the bug lives where the harness diverges
+from the real client' (after the 504 adapter bug and the form-body adapter bug).

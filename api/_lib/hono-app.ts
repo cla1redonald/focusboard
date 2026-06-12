@@ -1899,7 +1899,14 @@ app.get("/oauth/authorize", async (c: Context<AuthEnv>) => {
     error: null,
   });
 
-  c.header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'");
+  // NB: NO `form-action` directive. CSP form-action governs the ENTIRE
+  // navigation a form submission triggers — including the server's 302 to the
+  // OAuth redirect_uri (claude.ai). `form-action 'self'` blocked that redirect,
+  // so the browser refused to submit the login at all ("violates form-action
+  // 'self'"). The form's action is statically our own endpoint (no XSS to
+  // repoint it) and the post-login redirect is validated server-side against
+  // the registered redirect_uri — that allow-list is the real control.
+  c.header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'");
   return c.html(html, 200);
 });
 
@@ -1946,7 +1953,7 @@ app.post("/oauth/authorize", async (c: Context<AuthEnv>) => {
     .eq("ip", ip)
     .gte("attempted_at", windowStart);
   if ((attemptCount ?? 0) >= OAUTH_LOGIN_MAX_ATTEMPTS) {
-    c.header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'");
+    c.header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'");
     c.header("Retry-After", String(OAUTH_LOGIN_WINDOW_SECONDS));
     return c.html(buildAuthorizeHtml({ clientId, redirectUri, state, codeChallenge, scope, error: "Too many sign-in attempts — please wait a few minutes and try again" }), 429);
   }
@@ -1968,7 +1975,7 @@ app.post("/oauth/authorize", async (c: Context<AuthEnv>) => {
 
   if (authError || !authData.user) {
     // Bad credentials → re-render form with error (HTTP 200 per OAuth convention for login forms).
-    c.header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'");
+    c.header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'");
     return c.html(buildAuthorizeHtml({ clientId, redirectUri, state, codeChallenge, scope, error: "Invalid email or password" }), 200);
   }
 
@@ -1992,7 +1999,7 @@ app.post("/oauth/authorize", async (c: Context<AuthEnv>) => {
 
   if (insertError) {
     console.error("OAuth code insert error:", insertError.message);
-    c.header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; form-action 'self'; frame-ancestors 'none'");
+    c.header("Content-Security-Policy", "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'");
     return c.html(buildAuthorizeHtml({ clientId, redirectUri, state, codeChallenge, scope, error: "Server error — please try again" }), 500);
   }
 

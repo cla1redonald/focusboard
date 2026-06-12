@@ -472,6 +472,19 @@ describe("GET /api/oauth/authorize", () => {
     expect(res.headers.get("content-security-policy")).toContain("frame-ancestors 'none'");
   });
 
+  it("the login-page CSP must NOT set form-action (it blocks the OAuth redirect)", async () => {
+    // A browser enforces form-action over the WHOLE form-initiated navigation,
+    // including the server's 302 to the cross-origin redirect_uri — so
+    // form-action 'self' silently blocks the login. Node tests can only assert
+    // the header STRING (they have no browser to enforce it); this pins the
+    // header so the directive can't quietly return. The real redirect guard is
+    // server-side redirect_uri allow-listing, tested separately.
+    const res = await app.request(
+      `/api/oauth/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}&code_challenge=abc&code_challenge_method=S256`
+    );
+    expect(res.headers.get("content-security-policy")).not.toContain("form-action");
+  });
+
   it("missing code_challenge redirects with error (not 400)", async () => {
     const res = await app.request(
       `/api/oauth/authorize?response_type=code&client_id=${CLIENT_ID}&redirect_uri=${encodeURIComponent(REDIRECT_URI)}`
