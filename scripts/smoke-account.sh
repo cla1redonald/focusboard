@@ -100,6 +100,16 @@ if [ "${1:-}" = "--gh-secret" ]; then
   # stdin only when --body is absent). This bug shipped a Bearer "-" to CI once.
   printf '%s' "$TOKEN" | gh secret set FOCUSBOARD_SMOKE_TOKEN --repo cla1redonald/focusboard
   say "GitHub secret FOCUSBOARD_SMOKE_TOKEN updated"
+  # Email + password for the real-browser OAuth smoke (scripts/oauth-smoke.mjs).
+  # Read the password back from the creds file (the run may not have generated one).
+  SMOKE_PW=$(jq -r '.password // empty' "$CREDS_FILE")
+  printf '%s' "$SMOKE_EMAIL" | gh secret set FOCUSBOARD_SMOKE_EMAIL --repo cla1redonald/focusboard
+  if [ -n "$SMOKE_PW" ]; then
+    printf '%s' "$SMOKE_PW" | gh secret set FOCUSBOARD_SMOKE_PASSWORD --repo cla1redonald/focusboard
+    say "GitHub secrets FOCUSBOARD_SMOKE_EMAIL + FOCUSBOARD_SMOKE_PASSWORD updated"
+  else
+    say "WARNING: no smoke password in ${CREDS_FILE} — FOCUSBOARD_SMOKE_PASSWORD not set (the OAuth smoke needs it)"
+  fi
 fi
 
 say "done — verification can now run as ${SMOKE_EMAIL} (token in ${CREDS_FILE})"
