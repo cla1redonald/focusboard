@@ -1,6 +1,6 @@
 # Focusboard API
 
-Focusboard provides APIs for adding cards from external automation tools and for capturing tasks from any channel with AI-powered parsing.
+Focusboard exposes a single HTTP API for capturing tasks from any channel, reading the board, mutating cards, running focus sessions, and driving everything from the CLI / a hosted MCP server. Almost every route lives in one Hono router (`api/index.ts` → `api/_lib/hono-app.ts`); a few signature-sensitive endpoints (Slack, the legacy webhook, the internal capture processor, feedback) are standalone Vercel functions.
 
 ## Base URL
 
@@ -8,407 +8,447 @@ Focusboard provides APIs for adding cards from external automation tools and for
 https://focusboard-claire-donalds-projects.vercel.app
 ```
 
-## Authentication
-
-Endpoints use one of two authentication methods:
-
-- **Webhook secret** -- A shared secret passed in the request body (used by the Add Card and Capture endpoints for external channels)
-- **Bearer token** -- A Supabase access token passed in the `Authorization` header (used by the Capture endpoint for in-app calls and by the Feedback endpoint)
-
-## Endpoints
-
-### Add Card
-
-Add a new card to the board.
-
-**Endpoint:** `POST /api/webhook/add-card`
-
-**Request Body:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `title` | string | Yes | Card title (will be trimmed) |
-| `secret` | string | Yes | Webhook secret for authentication |
-| `column` | string | No | Target column ID (default: `"backlog"`) |
-| `source` | string | No | Source label for the note (default: `"Webhook"`) |
-
-**Default Columns:**
-
-| ID | Title |
-|----|-------|
-| `backlog` | Backlog |
-| `design` | Design & Planning |
-| `todo` | To Do |
-| `doing` | Doing |
-| `blocked` | Blocked |
-| `done` | Done |
-
-**Success Response (200):**
-
-```json
-{
-  "success": true,
-  "message": "Added \"Buy coffee\" to backlog",
-  "cardId": "abc123xyz"
-}
-```
-
-**Error Responses:**
-
-| Status | Response | Cause |
-|--------|----------|-------|
-| 400 | `{"error": "Title is required"}` | Missing or empty title |
-| 401 | `{"error": "Invalid secret"}` | Wrong or missing secret |
-| 405 | `{"error": "Method not allowed"}` | Not a POST request |
-| 500 | `{"error": "..."}` | Server configuration or database error |
+The `-claire-donalds-projects` segment is the Vercel team slug — preview and prod deploys both live under `focusboard[-<hash>]-claire-donalds-projects.vercel.app`, and CORS trusts only that suffix (plus `focusboard.vercel.app`, `focusboard-alpha.vercel.app`, and localhost).
 
 ---
 
-## Example Requests
+## Authentication
 
-### cURL
+Auth is enforced app-wide by `enforceRouteScopes` (registered with `app.use("*")`) against the `ROUTE_SCOPES` table — the single source of truth for API policy. A matched route with **no** table entry is **denied** (deny-by-default, fails closed). A test asserts every registered route has an entry, so a missing policy fails CI before it fails a request.
+
+### Principal kinds
+
+`authenticate()` resolves the request's `Authorization` header into one principal, in strict priority order:
+
+| Priority | Kind | Credential | Scopes |
+|----------|------|------------|--------|
+| 1 | `pat` | `Authorization: Bearer fb_pat_...` (Personal Access Token) | the scopes stored on the token |
+| 2 | `oauth` | `Authorization: Bearer fb_oat_...` (OAuth access token) | the token's granted scopes (refresh token is `fb_ort_...`) |
+| 3 | `webhook` | shared secret in the JSON body `secret` field (not a header) | `capture:read`, `capture:write` |
+| 4 | `session` | `Authorization: Bearer <supabase access JWT>` | `ALL` (a signed-in web session holds every scope) |
+
+Notes:
+
+- A token whose prefix is recognised (`fb_pat_` / `fb_oat_`) but whose lookup fails (revoked / expired) returns 401 and does **not** fall through to session auth.
+- Only PATs persist `last_used_at`. Tokens are stored as SHA-256 hashes; the plaintext is shown once at creation and never recoverable.
+- The webhook secret is verified with a constant-time compare against `WEBHOOK_SECRET`, and the principal's `userId` is `FOCUSBOARD_USER_ID`.
+
+### Scope vocabulary
+
+| Scope | Grants |
+|-------|--------|
+| `capture:read` | read the capture inbox, `GET /api/me`, enter `POST /api/mcp` |
+| `capture:write` | create / snooze / dismiss / batch captures |
+| `board:read` | `today`, `cards`, `wip`, `review/*` |
+| `focus:read` | focus status + history |
+| `focus:write` | start / stop focus sessions |
+| `card:write` | create / patch / move / done / batch-move cards; confirmations |
+
+### Route classes
+
+Beyond a plain scope string, a `ROUTE_SCOPES` entry can be:
+
+- **`SESSION_ONLY`** — only a `session` principal passes (PATs must not manage PATs). Used by all `/api/tokens` routes; non-session principals get `403 SESSION_REQUIRED`.
+- **`INLINE_AUTH`** — the handler authenticates itself because it must read the request body first. The **only** such route is `POST /api/capture` (webhook auth reads the body's `secret`, which middleware must not consume).
+- **`PUBLIC`** — no auth. Used by `GET /api/health/deep`, the OAuth endpoints, the well-known discovery docs, the `GET`/`DELETE /api/mcp` 405 stubs, and the `PUT`/`PATCH`/`HEAD /api/capture` 405 stubs.
+
+---
+
+## Response envelope
+
+Every Hono route returns the same envelope (`api/_lib/envelope.ts`):
+
+```jsonc
+// success
+{ "ok": true, "data": { /* route-specific */ } }
+
+// failure
+{ "ok": false, "error": { "code": "VALIDATION", "message": "...", "hint": "optional" } }
+```
+
+Error codes are **stable** — clients and agents branch on `error.code`. New codes may be added; existing ones are never renamed.
+
+| `code` | HTTP | Meaning |
+|--------|------|---------|
+| `VALIDATION` | 400 | Bad input |
+| `NOT_AUTHENTICATED` | 401 | No / invalid credentials |
+| `INSUFFICIENT_SCOPE` | 403 | Principal lacks the route's scope |
+| `SESSION_REQUIRED` | 403 | A non-session principal hit a `SESSION_ONLY` route |
+| `FORBIDDEN` | 403 | Fail-closed (route missing from the scope table) |
+| `NOT_FOUND` | 404 | Card / token / board / capture not found |
+| `METHOD_NOT_ALLOWED` | 405 | Unsupported method on a route |
+| `STALE_STATE` | 409 | Optimistic-concurrency conflict (re-read and retry) |
+| `ALREADY_ACTIVE` | 409 | A focus session is already running |
+| `RATE_LIMITED` | 429 | Per-user capture rate limit exceeded |
+| `CONFIRM_NOT_FOUND` | 404 | Confirmation token expired / used / not yours |
+| `INTERNAL` | 500 | Unexpected server error |
+
+**Envelope-exempt:** the OAuth endpoints (`/api/oauth/*`) and the `/.well-known/*` discovery docs return **raw RFC-shaped JSON** (RFC 6749 / RFC 7591), not the `{ ok, ... }` envelope. The standalone functions (Slack, `webhook/add-card`, `capture/process`, `feedback/submit`) predate the envelope and return their own ad-hoc `{ success | error }` shapes (documented per-route below).
+
+---
+
+## Routes
+
+Scopes shown are the `ROUTE_SCOPES` policy. All paths are prefixed `/api`.
+
+### System
+
+#### `GET /api/health/deep` · `PUBLIC`
+
+Multi-segment liveness probe (deliberately two path segments — a routing regression on multi-segment paths fails the deploy gate here). Returns `{ ok: true, data: { deep: true } }`.
+
+#### `GET /api/me` · `capture:read`
+
+Identity / token-validation check for `fb auth status` and login.
+
+```json
+{ "ok": true, "data": { "userId": "...", "kind": "pat", "scopes": ["capture:read", "..."] } }
+```
+
+`scopes` is `["*"]` for a session principal.
+
+---
+
+### Board reads · `board:read`
+
+These import the web app's own `today.ts` / `filters.ts` / `review.ts` so the API can't drift from the web. All 404 (`NOT_FOUND`, with a hint to open the web app once) if the user has no board.
+
+#### `GET /api/today`
+
+The day plan: `date`, `activeCount`, `dailyPlan` (`main`, `support[]`, `completedCount`, `plannedCount`), `recommendations[]` (`card`, `reasons[]`, `score`), `attention` (`overdue`/`dueToday`/`blocked`/`stale` card arrays), and `wipPressure[]`.
+
+#### `GET /api/cards`
+
+Active cards (terminal-column cards excluded), filtered with the web's matcher.
+
+| Query | Default | Notes |
+|-------|---------|-------|
+| `column` | — | Must be a valid column id (else `400 VALIDATION` listing valid ids) |
+| `q` | — | Search string |
+| `swimlane` | — | Exact match against `work` / `personal` |
+| `limit` | 100 | Clamped to 1–200 |
+
+Returns `{ total, items: [{ ...slimCard, version }], columns: [{ id, title, wipLimit, isTerminal }] }`.
+
+#### `GET /api/cards/:id`
+
+A single card (including archived ones): `{ card: { ...slimCard, archived, version } }`. `404 NOT_FOUND` if absent.
+
+#### `GET /api/wip`
+
+Per-column WIP counts: `{ columns: [{ id, title, count, limit, atLimit, isTerminal }], activeCount }`.
+
+---
+
+### Card mutation · `card:write`
+
+External writes go through the `fb_add_card` / `fb_mutate_card` Postgres functions: one transaction, the `app_state` row locked, a per-card **version** compare-and-swap against the cards mirror. The blob update fires the existing realtime path, so an open web tab reflects the change live.
+
+**Optimistic-concurrency contract.** `PATCH /api/cards/:id`, `POST /api/cards/:id/move`, and `POST /api/cards/:id/done` **require** a `version` field in the body:
+
+- Pass the integer `version` you last read (from `GET /api/cards/:id` or `GET /api/cards`) → CAS check.
+- Pass `version: null` to deliberately skip the conflict check.
+- **Omit `version` entirely → `400 VALIDATION`** (forcing callers to take a position prevents silent clobbers).
+
+A stale version → **`409 STALE_STATE`**: re-read the card and retry with the fresh `version`.
+
+#### `POST /api/cards`
+
+Create a card. `version` is not used (the card is new).
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `title` | yes | trimmed, ≤300 chars |
+| `column` | no | default `backlog`; must be a valid column id |
+| `swimlane` | no | `work` (default) or `personal` |
+| `tags` | no | array of tag **names** (resolved to ids; unknown name → `400`) |
+| `dueDate` | no | ISO date `YYYY-MM-DD` |
+| `notes` | no | ≤5000 chars |
+
+`201` with `{ card: { ...slimCard, version: 1 } }`.
+
+#### `PATCH /api/cards/:id`
+
+Partial update. Body: `version` (required) plus any of `title`, `notes` (string|null), `dueDate` (ISO|null), `blockedReason` (string|null), `tags` (array of names). Empty patch → `400 VALIDATION`. Returns `{ card: { ...slimCard, version } }`.
+
+#### `POST /api/cards/:id/move`
+
+Body: `version` (required), `column` (required, valid id). Moving into a terminal column stamps `completedAt`. Returns the updated card.
+
+#### `POST /api/cards/:id/done`
+
+Body: `version` (required). Moves the card to the first terminal column and stamps `completedAt`. `400` if the board has no terminal column.
+
+#### `POST /api/cards/batch-move`
+
+Body: `{ moves: [{ id, to }] }`, 1–20 moves, no duplicate ids. The whole plan is validated up front (unknown column → `400`, unknown card → `404`). Execution is **sequential per-card CAS** and **deliberately not transactional** — partial success is reported honestly. Versions are read at execution time.
+
+```json
+{ "ok": true, "data": {
+  "total": 3, "moved": 2,
+  "results": [
+    { "id": "...", "title": "...", "to": "doing", "ok": true, "version": 4 },
+    { "id": "...", "title": "...", "to": "done", "ok": false, "error": "STALE_STATE" }
+  ]
+}}
+```
+
+Per-result `error` is one of `STALE_STATE`, `NOT_FOUND`, `INTERNAL`.
+
+---
+
+### Capture
+
+#### `GET /api/capture` · `capture:read`
+
+The triage inbox: up to 50 capture rows in `TRIAGE_STATUSES`, excluding snoozed-in-the-future items. Returns `{ items: [...], total }`.
+
+`PUT /api/capture`, `PATCH /api/capture`, and `HEAD /api/capture` are `PUBLIC` stubs returning `405 METHOD_NOT_ALLOWED` — non-POST methods are accepted by the router but rejected as method guards (POST is the only real verb here).
+
+#### `POST /api/capture` · `INLINE_AUTH`
+
+Capture raw content. The handler authenticates itself (priority: **PAT > webhook secret > session**) because the webhook path reads `secret` from the body.
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `content` | yes | trimmed, truncated to 10,000 chars |
+| `source` | no | one of `email`, `slack`, `shortcut`, `browser`, `whatsapp`, `in_app` (default; invalid → `in_app`) |
+| `metadata` | no | object; dropped if its JSON serializes over 5 KB |
+| `secret` | conditional | webhook secret — only when not using a Bearer token |
+
+There is **no `user_id` body field** — the user is derived from the principal. The legacy `action` field is **rejected** (`400 VALIDATION`, pointing at the dedicated snooze/dismiss routes).
+
+PAT-authenticated captures additionally get:
+
+- **Per-user rate limit:** 30 captures / 60 s rolling window → `429 RATE_LIMITED`.
+- **Idempotency:** send an `Idempotency-Key` header; a repeat returns the original `{ captureId, duplicate: true }` instead of inserting again.
+
+Success: `{ captureId, source }` (or `{ captureId, duplicate: true }`). After insert, the handler fires `POST /api/capture/process` via `waitUntil` with `internal_secret` and `auto_add` — **`auto_add` is `false` for PAT captures** (they always land in the inbox for review) and `true` for session/webhook captures.
+
+#### `POST /api/capture/:id/snooze` · `capture:write`
+
+Body: `{ minutes }` (default 60, clamped 1–43200). Sets `snoozed_until`. `404 NOT_FOUND` if the capture isn't the principal's. Returns `{ captureId, snoozedUntil }`.
+
+#### `POST /api/capture/:id/dismiss` · `capture:write`
+
+Sets the capture's status to `dismissed`. Returns `{ captureId }`.
+
+#### `POST /api/capture/batch` · `capture:write`
+
+Bulk-insert pre-split items: `{ items: [{ content, source? }] }`, 1–25 items. The agent does the language work (splitting notes); the server just stores ready items — **no AI processing is triggered**. The batch counts as `items.length` against the same 30/60 s per-user window (`429` if it would exceed). With an `Idempotency-Key` header, per-item keys are derived as `sha256(key:index)`. Returns `201` `{ total, captured, results: [{ index, ok, captureId?, duplicate?, error? }] }`.
+
+#### `POST /api/capture/process` (standalone function — internal)
+
+The AI extraction pipeline, fired automatically by `POST /api/capture`. **Not** a Hono route and **not** behind `ROUTE_SCOPES` — it authenticates with a shared `internal_secret` (constant-time compared against `CAPTURE_INTERNAL_SECRET`).
+
+| Field | Required | Notes |
+|-------|----------|-------|
+| `capture_id` | yes | row to process |
+| `user_id` | yes | owner (verified against the row; mismatch → `403`) |
+| `internal_secret` | yes | shared secret; wrong/missing → `401` |
+| `auto_add` | no | default `true`; when `false` the result never becomes `auto_added` (always `ready` for review) |
+
+Pipeline: marks the row `processing`, sends content + board context to Claude Haiku (`claude-3-5-haiku-20241022`) for structured extraction, averages per-card confidence, and — only when `auto_add !== false` and avg ≥ **0.8** — sets `auto_added` and writes cards via `fb_add_card`; otherwise `ready`. Status writes are guarded to `pending`/`processing` rows so a dismissed capture is never resurrected. Returns ad-hoc `{ success, status, confidence, cardCount }`.
+
+---
+
+### Focus sessions
+
+Append-only rows in `focus_sessions` (never blob mutation). One active session per user is enforced by a partial unique index, so a concurrent double-start loses at the database.
+
+#### `GET /api/focus/status` · `focus:read`
+
+The active session (or `null`) plus today's closed-session summary: `{ active, today: { sessions, focusedMinutes } }`.
+
+#### `GET /api/focus/history` · `focus:read`
+
+Query `days` (default 7, clamped 1–90). Returns the aggregate, a `byDay` map, and the raw `sessions[]`.
+
+#### `POST /api/focus/start` · `focus:write`
+
+Body: `{ cardId?, plannedMinutes? }` (`plannedMinutes` clamped 1–480, default 25). A supplied `cardId` is validated against the board (`404` if absent) and its title denormalised. `source` is `cli` for PATs, else `web`. A second concurrent start → **`409 ALREADY_ACTIVE`**. Returns `{ id, cardId, cardTitle, plannedMinutes, startedAt }`.
+
+#### `POST /api/focus/stop` · `focus:write`
+
+Body: `{ outcome?, note? }`. `outcome` ∈ `progressed` (default), `blocked`, `completed`, `abandoned` (invalid → `400`). `note` ≤1000 chars. `404 NOT_FOUND` if no session is active. Returns the closed session including computed `actualMinutes`.
+
+---
+
+### Reviews · `board:read`
+
+Composite digests built from the web's own `review.ts`. Focus data is exposed as **aggregates only** — raw session rows stay behind `focus:read`.
+
+#### `GET /api/review/daily`
+
+Daily shutdown summary: `date`, `isComplete`, `completedToday`, `focus` (aggregate), and card arrays `slipped`, `blocked`, `stale`, `tomorrowCandidates`.
+
+#### `GET /api/review/weekly`
+
+Weekly review: `weekKey`, `isComplete`, `completedThisWeek`, `focus` (aggregate), and card arrays `blocked`, `staleBacklog`, `proposedCommitments`.
+
+---
+
+### Tokens · `SESSION_ONLY`
+
+PAT management. Non-session principals get `403 SESSION_REQUIRED` — a PAT cannot mint or revoke PATs.
+
+#### `GET /api/tokens`
+
+List the principal's tokens (id, name, scopes, `last_used_at`, `created_at`, `revoked_at`).
+
+#### `POST /api/tokens`
+
+Body: `{ name, scopes? }`. `name` required, ≤100 chars. `scopes` defaults to all six (`capture:read`, `capture:write`, `board:read`, `focus:read`, `focus:write`, `card:write`); any unknown scope → `400`. Returns `201` `{ token, id, name }` — the plaintext `token` is shown **once**.
+
+#### `DELETE /api/tokens/:id`
+
+Soft-revoke (sets `revoked_at`). `404 NOT_FOUND` if not found / already revoked.
+
+---
+
+### Confirmations · `card:write`
+
+Durable Tier-3 confirmation gate for the hosted MCP server (replaces the old in-memory map). Both routes require `card:write` — every gated tool mutates cards.
+
+#### `POST /api/confirmations`
+
+Body: `{ tool, args, preview }`. `tool` must be in the allowlist (`add_card`, `move_card`, `done_card`, `update_card`, `move_cards`); `preview` ≤2000 chars; `args` an object. Mints a single-use token (5-minute TTL; only its hash is stored). Returns `201` `{ confirm_token, expires_in_seconds, preview }`.
+
+#### `POST /api/confirmations/confirm`
+
+Body: `{ confirm_token }`. Atomically claims the token (single-use, unexpired, same `user_id`) and executes the mapped operation in-process via the Hono app — the caller's own `Authorization` rides along, so `card:write` is re-enforced on the executed route, and the fresh card version is read at confirm time (preserving the CAS contract). A bad/expired/used token → **`404 CONFIRM_NOT_FOUND`**. The executed route's own errors (e.g. `409 STALE_STATE`) propagate.
+
+---
+
+### OAuth 2.1 (single-principal) — envelope-exempt, all `PUBLIC`
+
+RFC-shaped JSON, not the `{ ok }` envelope. The flow authenticates via Supabase password (server-side `signInWithPassword`), not Bearer tokens. Supported scopes match the six PAT scopes; PKCE `S256` only.
+
+| Route | Purpose |
+|-------|---------|
+| `POST /api/oauth/register` | Dynamic Client Registration (RFC 7591). Body `{ redirect_uris[], client_name? }` (https or `http://localhost` only). Returns RFC 7591 client metadata. |
+| `GET /api/oauth/authorize` | Renders the sign-in HTML form. Query: `response_type=code`, `client_id`, `redirect_uri`, `state?`, `code_challenge`, `code_challenge_method=S256`, `scope?`. Bad client/redirect → 400 text; other errors → redirect with `?error=`. |
+| `POST /api/oauth/authorize` | Processes the form (`application/x-www-form-urlencoded`). Per-IP throttle (15 attempts / 10 min → `429`). On success → `302` to `redirect_uri?code=...&state=...`. |
+| `POST /api/oauth/token` | Exchanges `authorization_code` (with PKCE verifier) or rotates a `refresh_token`. Accepts form or JSON. Returns RFC 6749 token response (`fb_oat_` access + `fb_ort_` refresh, `expires_in: 3600`). |
+
+#### Discovery (well-known) — envelope-exempt, `PUBLIC`
+
+Served by a separate Hono app mounted before the `/api` base path; the `vercel.json` rewrite routes `/.well-known/(.*)` → `/api`.
+
+- `GET /.well-known/oauth-authorization-server` — RFC 8414 metadata (issuer, endpoints, `code_challenge_methods_supported: ["S256"]`, `scopes_supported`).
+- `GET /.well-known/oauth-protected-resource` (and `/.../*`) — `{ resource: ".../api/mcp", authorization_servers: [...] }`.
+
+---
+
+### Hosted MCP
+
+#### `POST /api/mcp` · `capture:read`
+
+Stateless JSON-RPC MCP endpoint. `capture:read` is only the bar to *enter*; per-tool scope is enforced during in-process dispatch (`ROUTE_SCOPES` re-fires on each sub-request). `GET /api/mcp` and `DELETE /api/mcp` return `405 METHOD_NOT_ALLOWED` — both are `PUBLIC` method guards; MCP uses POST only (connectors probe with them).
+
+The server exposes **19 `focusboard_*` tools** that map onto the routes above:
+
+```
+focusboard_capture            focusboard_capture_actions    focusboard_inbox
+focusboard_snooze_capture     focusboard_today              focusboard_cards
+focusboard_wip                focusboard_focus_history      focusboard_shutdown
+focusboard_week               focusboard_focus_status       focusboard_start_focus_session
+focusboard_stop_focus_session focusboard_add_card           focusboard_move_card
+focusboard_complete_card      focusboard_update_card        focusboard_move_cards
+focusboard_confirm
+```
+
+---
+
+## Standalone functions (legacy, ad-hoc responses)
+
+Vercel matches literal function files **before** the `/api/(.*)` rewrite, so these keep working unchanged outside the Hono router and its envelope.
+
+### `POST /api/webhook/add-card`
+
+Add a single card directly to the board via the `fb_add_card` Postgres function. Seeds a default board if the user has none.
+
+**Auth:** `secret` in the body, compared against `WEBHOOK_SECRET`.
+
+| Field | Type | Required | Description |
+|-------|------|----------|-------------|
+| `title` | string | yes | Card title (trimmed) |
+| `secret` | string | yes | Webhook secret |
+| `column` | string | no | Target column id (default `backlog`) |
+| `source` | string | no | Note label (default `Webhook`) — stored as `Added from {source}` |
+| `swimlane` | string | no | `work` (default) or `personal` |
+
+**Default columns:** `backlog`, `design`, `todo`, `doing`, `blocked`, `done`.
+
+Success `200`: `{ success: true, message: "Added \"...\" to backlog", cardId }`. Errors: `400` (title required), `401` (invalid secret), `405` (non-POST), `500` (config / DB).
 
 ```bash
 curl -X POST https://focusboard-claire-donalds-projects.vercel.app/api/webhook/add-card \
   -H "Content-Type: application/json" \
-  -d '{
-    "title": "Buy more coffee",
-    "secret": "your-webhook-secret",
-    "source": "Terminal"
-  }'
+  -d '{ "title": "Buy more coffee", "secret": "your-webhook-secret", "source": "Terminal", "swimlane": "personal" }'
 ```
 
-### Python
+### `POST /api/slack/actions`
 
-```python
-import requests
+Slack message-action endpoint ("right-click a message → Add to FocusBoard"). Standalone with `bodyParser: false` so the **raw bytes** are read for HMAC verification (the Hono adapter re-encodes form bodies, which would break Slack's signature).
 
-response = requests.post(
-    "https://focusboard-claire-donalds-projects.vercel.app/api/webhook/add-card",
-    json={
-        "title": "Review quarterly report",
-        "secret": "your-webhook-secret",
-        "column": "todo",
-        "source": "Python Script"
-    }
-)
-print(response.json())
-```
+**Auth:** Slack v0 request signature (`x-slack-signature` / `x-slack-request-timestamp`) verified against `SLACK_SIGNING_SECRET`, with a 5-minute replay window. The body is `payload=<url-encoded JSON>` (`message_action`). Captures the message text for `FOCUSBOARD_USER_ID` (source `slack`), idempotent on `team:channel:message-ts`. Non-`message_action` interactions are ack'd `200`. Bad signature → `401`.
 
-### JavaScript (Node.js)
+### `POST /api/feedback/submit`
 
-```javascript
-const response = await fetch(
-  "https://focusboard-claire-donalds-projects.vercel.app/api/webhook/add-card",
-  {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      title: "Finish documentation",
-      secret: "your-webhook-secret",
-      source: "Node Script"
-    })
-  }
-);
-const data = await response.json();
-console.log(data);
-```
+Submit a bug report or feature request; adds a tagged card to the feedback owner's backlog.
 
-### Apple Shortcuts
-
-1. Create a new Shortcut
-2. Add action: **Get Contents of URL**
-3. Configure:
-   - **URL:** `https://focusboard-claire-donalds-projects.vercel.app/api/webhook/add-card`
-   - **Method:** POST
-   - **Headers:** `Content-Type: application/json`
-   - **Request Body:** JSON
-   - Add fields (lowercase keys required):
-     - `title`: Shortcut Input or text
-     - `secret`: your webhook secret
-     - `source`: "Shortcuts" (optional)
-
-**Important:** JSON keys must be lowercase (`title`, `secret`, `source`), not capitalized.
-
-### Zapier
-
-1. Create a new Zap
-2. Add action: **Webhooks by Zapier > POST**
-3. Configure:
-   - **URL:** `https://focusboard-claire-donalds-projects.vercel.app/api/webhook/add-card`
-   - **Payload Type:** json
-   - **Data:**
-     - `title`: (your trigger data)
-     - `secret`: your-webhook-secret
-     - `source`: "Zapier"
-
----
-
-### Capture Task
-
-Send raw content from any channel. The AI pipeline parses it into structured card(s) and either auto-adds them to the board (confidence >= 0.8) or queues them in the Capture Inbox for review.
-
-**Endpoint:** `POST /api/capture`
-
-**Authentication:** Webhook secret (external channels) OR Bearer token (in-app).
-
-**Request Body:**
+**Auth:** `Authorization: Bearer <supabase access token>` (verified via `verifySession`).
 
 | Field | Type | Required | Description |
 |-------|------|----------|-------------|
-| `content` | string | Yes | Raw text to capture (max 10,000 characters) |
-| `source` | string | No | Channel identifier (default: `"in_app"`) |
-| `metadata` | object | No | Source-specific context (default: `{}`) |
-| `secret` | string | Conditional | Webhook secret -- required when not using Bearer auth |
-| `user_id` | string | Conditional | Supabase user UUID -- required when using webhook secret auth |
+| `type` | string | yes | `"bug"` or `"feature"` |
+| `title` | string | yes | Feedback title |
+| `description` | string | no | Detail |
 
-**Valid `source` values:** `email`, `slack`, `shortcut`, `browser`, `whatsapp`, `in_app`
-
-**Success Response (200):**
-
-```json
-{
-  "success": true,
-  "message": "Captured from slack",
-  "captureId": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
-}
-```
-
-**Error Responses:**
-
-| Status | Response | Cause |
-|--------|----------|-------|
-| 400 | `{"error": "Content is required"}` | Missing or empty content |
-| 400 | `{"error": "User ID required"}` | No user_id and no FOCUSBOARD_USER_ID fallback |
-| 401 | `{"error": "Invalid secret"}` | Wrong or missing webhook secret |
-| 401 | `{"error": "Unauthorized"}` | Missing or invalid Bearer token |
-| 405 | `{"error": "Method not allowed"}` | Not a POST request |
-| 500 | `{"error": "Failed to save capture"}` | Database insert failed |
-| 500 | `{"error": "Internal server error"}` | Unexpected server error |
-
-**Processing:** After a successful capture, the endpoint fires an asynchronous request to `POST /api/capture/process` to run AI extraction. The caller does not need to wait for processing to complete.
-
-#### Example Requests
-
-**Slack (via Zapier webhook):**
-
-```bash
-curl -X POST https://focusboard-claire-donalds-projects.vercel.app/api/capture \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "We need to redesign the onboarding flow before launch",
-    "source": "slack",
-    "metadata": {"channel": "#product", "sender": "alice"},
-    "secret": "your-webhook-secret",
-    "user_id": "your-user-uuid"
-  }'
-```
-
-**Email (via Zapier webhook):**
-
-```bash
-curl -X POST https://focusboard-claire-donalds-projects.vercel.app/api/capture \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "Subject: Q3 budget review\n\nPlease review the attached spreadsheet and send comments by Friday.",
-    "source": "email",
-    "metadata": {"from": "finance@example.com", "subject": "Q3 budget review"},
-    "secret": "your-webhook-secret",
-    "user_id": "your-user-uuid"
-  }'
-```
-
-**Browser extension:**
-
-```bash
-curl -X POST https://focusboard-claire-donalds-projects.vercel.app/api/capture \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "Interesting approach to state management in this article",
-    "source": "browser",
-    "metadata": {"url": "https://example.com/article", "pageTitle": "Modern State Management"},
-    "secret": "your-webhook-secret",
-    "user_id": "your-user-uuid"
-  }'
-```
-
-**Apple Shortcuts / iOS Share Sheet:**
-
-```bash
-curl -X POST https://focusboard-claire-donalds-projects.vercel.app/api/capture \
-  -H "Content-Type: application/json" \
-  -d '{
-    "content": "Pick up groceries: milk, eggs, bread",
-    "source": "shortcut",
-    "secret": "your-webhook-secret",
-    "user_id": "your-user-uuid"
-  }'
-```
-
-**In-app (Bearer auth):**
-
-```bash
-curl -X POST https://focusboard-claire-donalds-projects.vercel.app/api/capture \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer <supabase_access_token>" \
-  -d '{
-    "content": "Set up CI pipeline for staging environment",
-    "source": "in_app"
-  }'
-```
+Cards are tagged "Bug Report" / "Feature Request" and routed to `FEEDBACK_OWNER_USER_ID`. Errors: `400` (bad type / missing title), `401` (auth), `500` (`FEEDBACK_OWNER_USER_ID` not set).
 
 ---
 
-### Process Capture (Internal)
+## Card data model (`slimCard`)
 
-Runs the AI extraction pipeline on a queued capture item. This endpoint is called automatically by `POST /api/capture` and is not intended to be called directly by external clients.
-
-**Endpoint:** `POST /api/capture/process`
-
-**Request Body:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `capture_id` | string (UUID) | Yes | ID of the capture_queue row to process |
-| `user_id` | string (UUID) | Yes | Supabase user UUID |
-
-**Processing Pipeline:**
-
-1. Marks the capture_queue row as `processing`
-2. Fetches the raw content and the user's current board state for context
-3. Sends the content to Claude Haiku for structured extraction
-4. Receives one or more parsed cards, each with a confidence score (0.0--1.0)
-5. Calculates average confidence across all extracted cards
-6. If average confidence >= 0.8: sets status to `auto_added` and writes cards directly to the board
-7. If average confidence < 0.8: sets status to `ready` for manual review in the Capture Inbox
-
-**Confidence Scoring Guide:**
-
-| Range | Meaning | Outcome |
-|-------|---------|---------|
-| 0.9+ | Clear, unambiguous single task | Auto-added to board |
-| 0.7--0.9 | Reasonable extraction, some ambiguity | Depends on average |
-| Below 0.7 | Vague content, unclear action items | Queued for review |
-
-**Success Response (200):**
-
-```json
-{
-  "success": true,
-  "status": "auto_added",
-  "confidence": 0.92,
-  "cardCount": 1
-}
-```
-
-**Error Responses:**
-
-| Status | Response | Cause |
-|--------|----------|-------|
-| 400 | `{"error": "capture_id and user_id required"}` | Missing required fields |
-| 404 | `{"error": "Capture item not found"}` | Invalid capture_id |
-| 405 | `{"error": "Method not allowed"}` | Not a POST request |
-| 500 | `{"error": "ANTHROPIC_API_KEY not configured"}` | Missing API key |
-| 500 | `{"error": "Processing failed"}` | AI extraction or database error |
-
----
-
-### Submit Feedback
-
-Submit a bug report or feature request. Requires user authentication (logged in).
-
-**Endpoint:** `POST /api/feedback/submit`
-
-**Headers:**
-
-| Header | Required | Description |
-|--------|----------|-------------|
-| `Authorization` | Yes | `Bearer <supabase_access_token>` |
-| `Content-Type` | Yes | `application/json` |
-
-**Request Body:**
-
-| Field | Type | Required | Description |
-|-------|------|----------|-------------|
-| `type` | string | Yes | Either `"bug"` or `"feature"` |
-| `title` | string | Yes | Feedback title |
-| `description` | string | No | Detailed description |
-
-**Success Response (200):**
-
-```json
-{
-  "success": true,
-  "message": "Thank you for your feedback!"
-}
-```
-
-**Error Responses:**
-
-| Status | Response | Cause |
-|--------|----------|-------|
-| 400 | `{"error": "Title is required"}` | Missing or empty title |
-| 400 | `{"error": "Invalid type..."}` | Type must be "bug" or "feature" |
-| 401 | `{"error": "Authentication required"}` | Missing or invalid auth token |
-| 500 | `{"error": "FEEDBACK_OWNER_USER_ID not configured"}` | Missing env variable |
-| 500 | `{"error": "..."}` | Server configuration error |
-
-**Notes:**
-
-- Feedback is automatically added to the owner's backlog (configured via `FEEDBACK_OWNER_USER_ID`)
-- Cards are tagged with "Bug Report" or "Feature Request" tags
-- The submitter's email and timestamp are recorded in the card notes
-
----
-
-## Card Data Model
-
-Cards created via webhook have the following structure:
+Board read/mutation routes project cards to a slim shape:
 
 ```typescript
 {
-  id: string;           // Auto-generated unique ID (nanoid)
-  column: string;       // Target column ID
-  title: string;        // Card title
-  order: 0;             // Placed at top of column
-  createdAt: string;    // ISO timestamp
-  updatedAt: string;    // ISO timestamp
-  tags: [];             // Empty array
-  checklist: [];        // Empty array
-  notes?: string;       // "Added from {source}" if source provided
-  columnHistory: [{     // Movement history
-    from: null,
-    to: column,
-    at: timestamp
-  }];
-  // The following fields exist on the Card type but are NOT set by the webhook:
-  // archivedAt?: string;    // Set when card is archived (manually or auto-archive)
-  // completedAt?: string;   // Set when card moves to a terminal column
-  // links?: CardLink[];     // Multiple links with labels
-  // attachments?: Attachment[]; // File attachments
+  id: string;
+  title: string;
+  column: string;
+  swimlane: "work" | "personal";   // defaults to "work"
+  order: number;
+  dueDate?: string;                  // ISO date, only when set
+  tags: string[];                    // resolved to tag NAMES (not ids)
+  blockedReason?: string;            // only when set
+  notes?: string;                    // truncated to 280 chars
+  createdAt: string;
+  updatedAt: string;
 }
 ```
+
+Mutation/read responses wrap this as `{ card: { ...slimCard, version } }` (and `archived` on `GET /api/cards/:id`). The full stored `Card` type additionally carries `archivedAt`, `completedAt`, `checklist`, `columnHistory`, `links`, and `attachments`, which the slim projection omits.
 
 ---
 
 ## Environment Variables
 
-The API endpoints require these Vercel environment variables:
-
 | Variable | Description |
 |----------|-------------|
-| `WEBHOOK_SECRET` | Shared secret for webhook and capture authentication |
-| `FOCUSBOARD_USER_ID` | Your Supabase user UUID (fallback for webhook/capture endpoints) |
-| `FEEDBACK_OWNER_USER_ID` | Your Supabase user UUID (receives feedback submissions) |
 | `SUPABASE_URL` | Supabase project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | Supabase service role key (server-side) |
-| `ANTHROPIC_API_KEY` | Anthropic API key (required for Capture Hub AI processing) |
+| `SUPABASE_SERVICE_ROLE_KEY` | Service-role key (server-side; bypasses RLS — token/board/focus reads & writes) |
+| `SUPABASE_ANON_KEY` / `VITE_SUPABASE_ANON_KEY` | Anon key — used by the OAuth authorize handler's `signInWithPassword` |
+| `WEBHOOK_SECRET` | Shared secret for webhook + body-secret capture auth |
+| `FOCUSBOARD_USER_ID` | The webhook/Slack principal's Supabase user UUID |
+| `FEEDBACK_OWNER_USER_ID` | Recipient of feedback submissions |
+| `CAPTURE_INTERNAL_SECRET` | Shared secret authenticating the internal `POST /api/capture/process` trigger |
+| `ANTHROPIC_API_KEY` | Required for the capture AI extraction pipeline |
+| `SLACK_SIGNING_SECRET` | Slack request-signature verification for `POST /api/slack/actions` |
 
-**Finding your User ID:**
-
-1. Go to your Supabase dashboard
-2. Navigate to Authentication > Users
-3. Find your account and copy the UUID from the "UID" column
+**Finding your User ID:** Supabase dashboard → Authentication → Users → copy the UID.
 
 See [SUPABASE.md](./SUPABASE.md) for database setup.
 
@@ -416,65 +456,44 @@ See [SUPABASE.md](./SUPABASE.md) for database setup.
 
 ## Extending the API
 
-To add new endpoints, create files in the `api/` directory:
+The API is a **single Hono router**: `api/index.ts` is the only function entry point, and `vercel.json` rewrites `/api/(.*)` → `/api` so every `/api` path that no literal file matches reaches it. All route logic lives in `api/_lib/hono-app.ts`; `index.ts` only bridges Vercel's Node `(req, res)` model to Hono's Web `Request`/`Response` (the Node runtime is deliberate — PAT hashing uses `node:crypto`).
 
-```
-api/
-├── capture/
-│   ├── index.ts       # POST /api/capture
-│   └── process.ts     # POST /api/capture/process
-├── feedback/
-│   └── submit.ts      # POST /api/feedback/submit
-└── webhook/
-    └── add-card.ts    # POST /api/webhook/add-card
-```
+To add a route:
 
-Each file exports a default handler function:
+1. Register the handler on `app` in `api/_lib/hono-app.ts`.
+2. Add its `METHOD /api/path` entry to `ROUTE_SCOPES` in `api/_lib/auth-middleware.ts` — **a route with no entry is denied**, and `route-scopes.test.ts` fails CI if any registered route is missing.
+3. Return via the `ok` / `fail` envelope helpers.
 
-```typescript
-import type { VercelRequest, VercelResponse } from "@vercel/node";
+The router **deliberately imports `src/app/*`** (`today.ts`, `filters.ts`, `review.ts`, `captureTypes.ts`, …) so the API renders from the same logic as the web app and can't drift. This reverses the old "API files must be self-contained, never import from `src/`" rule — that guidance applied to the previous per-file Vercel functions and is now obsolete.
 
-export default async function handler(
-  req: VercelRequest,
-  res: VercelResponse
-) {
-  // Handle request
-}
-```
+The remaining standalone functions exist only where the single-router model can't apply:
 
-**Important:** API route files must be self-contained. Do not import from `src/` directory as this breaks Vercel's serverless function bundling. Inline all types and utilities.
+- `api/capture/process.ts` — internal AI pipeline, secret-authed, not on the envelope.
+- `api/slack/actions.ts` — needs `bodyParser: false` to preserve raw bytes for HMAC.
+- `api/webhook/add-card.ts`, `api/feedback/submit.ts` — predate the router; left untouched.
+- `api/ai/*` — AI helper functions.
 
 ---
 
 ## Troubleshooting
 
-### Cards not appearing in the app
+### `403 FORBIDDEN` "Route is not registered in the scope table"
+You added a Hono route without a `ROUTE_SCOPES` entry. Add `METHOD /api/path` to the table.
 
-1. Check that cloud sync is enabled (Supabase credentials configured)
-2. Verify RLS policies are set up correctly
-3. Refresh the app - cards sync on page load
+### `400 VALIDATION` "version is required" on a mutation
+`PATCH`/move/done require a `version`. Pass the integer from `GET /api/cards/:id`, or `version: null` to skip the conflict check.
 
-### 404 NOT_FOUND errors
+### `409 STALE_STATE`
+The card changed since you read it. Re-read it and retry with the fresh `version`.
 
-1. Ensure deployment protection is disabled or bypassed
-2. Check that the API file exists in `api/webhook/add-card.ts`
-3. Verify the URL path matches exactly
+### `429 RATE_LIMITED` on capture
+You exceeded 30 captures in 60 s for this user. Retry after the window.
 
-### 401 Invalid secret
+### `401` on `POST /api/capture/process`
+That endpoint is internal — it requires `internal_secret` matching `CAPTURE_INTERNAL_SECRET`. It's normally only called by `POST /api/capture`.
 
-1. Verify `WEBHOOK_SECRET` is set in Vercel environment variables
-2. Ensure the secret in your request matches exactly (case-sensitive)
-3. Use lowercase JSON keys in requests
+### 404 on a multi-segment path
+Confirm `vercel.json` still rewrites `/api/(.*)` → `/api`; multi-segment paths only reach the router through that rewrite (the `GET /api/health/deep` gate guards against regressions).
 
-### 500 Server errors
-
-1. Check Vercel function logs: `vercel logs --prod`
-2. Verify all required environment variables are set
-3. Confirm Supabase connection is working
-
-### Captured tasks not appearing
-
-1. Check that the `capture_queue` table exists (see [SUPABASE.md](./SUPABASE.md))
-2. Verify `ANTHROPIC_API_KEY` is set in Vercel environment variables
-3. Confirm real-time is enabled for `capture_queue` (see [SUPABASE.md](./SUPABASE.md))
-4. If auto-add is not working, check that confidence threshold (0.8) is being met -- lower-confidence items appear in the Capture Inbox instead
+### Cards not appearing
+Cloud sync must be enabled (Supabase creds configured) and the web app opened once to seed the board. Mutations fire the realtime path; refresh an open tab if it didn't update live.

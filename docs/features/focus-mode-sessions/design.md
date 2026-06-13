@@ -1,5 +1,7 @@
 # Focus Mode Sessions
 
+> **Stale note:** "Persist completed session history lightly in metrics" was superseded by Phase 3, which extracted focus history into the dedicated append-only `focus_sessions` table (see [SUPABASE.md](../../SUPABASE.md)).
+
 Date: 2026-06-08
 
 ## Context
