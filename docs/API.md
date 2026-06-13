@@ -408,6 +408,37 @@ Submit a bug report or feature request; adds a tagged card to the feedback owner
 
 Cards are tagged "Bug Report" / "Feature Request" and routed to `FEEDBACK_OWNER_USER_ID`. Errors: `400` (bad type / missing title), `401` (auth), `500` (`FEEDBACK_OWNER_USER_ID` not set).
 
+### AI endpoints (`api/ai/*`)
+
+Five standalone Vercel functions backing the web app's AI helpers. They are **not** Hono routes, **not** in `ROUTE_SCOPES`, and do **not** use the `{ ok, ... }` envelope — each returns ad-hoc `{ success: true, ... }` on success or `{ error }` on failure.
+
+**Shared contract (all five):**
+
+- **Method:** `POST` only (`OPTIONS` handled for CORS; any other method → `405 { error: "Method not allowed" }`).
+- **Auth:** `Authorization: Bearer <supabase access JWT>` verified by `verifySession` — a **session principal only** (no PATs, no webhook secret). Missing/invalid → `401 { error: "Unauthorized" }`.
+- **LLM:** every endpoint calls **Anthropic Claude Haiku** (`claude-3-5-haiku-20241022`) — these are billable on each request. If `ANTHROPIC_API_KEY` is unset → `500`. Each prompts for JSON and falls back to a deterministic heuristic if the model's output won't parse, so a malformed LLM reply still returns a usable result.
+- **Errors:** `400` (missing required input), `500 { error }` (unexpected).
+
+#### `POST /api/ai/breakdown`
+
+Break a task into 3–8 ordered, actionable subtasks for the board. Body: `{ title* (required), notes?, tags?: string[], existingChecklist?: string[] }`. Returns `{ success, subtasks: [{ text, estimatedEffort: "quick"|"medium"|"large" }], suggestion? }`. `max_tokens` 500. Falls back to a generic 3-step checklist if nothing parses.
+
+#### `POST /api/ai/daily-focus`
+
+Pick the top 3–5 cards to focus on today. Body: `{ cards*: CardInput[], completedToday?, avgCycleTime?, wipLimit? }` — blocked/done cards are filtered out first. Returns `{ success, suggestions: [{ cardId, reason, priority: 1|2|3 }], insight? }`; suggestions are validated to reference real card ids. Empty board → friendly insight, no LLM call. `max_tokens` 400.
+
+#### `POST /api/ai/parse-card`
+
+Parse a natural-language task request into structured card fields. Body: `{ input* (required), availableColumns?: {id,title}[], availableTags?: {id,name}[] }`. Returns `{ success, card: { title, column?, tags?, dueDate?, swimlane?, notes? } }`. `max_tokens` 300; falls back to using the raw `input` as the title if parsing fails.
+
+#### `POST /api/ai/suggest`
+
+Suggest 1–3 tags for a card title. Body: `{ title* (required), availableTags?: {id,name}[] }`. Returns `{ success, suggestedTags: string[] }` (tag **names**). `max_tokens` 150.
+
+#### `POST /api/ai/weekly-plan`
+
+Assign due dates across the coming week to unscheduled cards. Body: `{ cards*: CardInput[], weekStart?, avgThroughput?, existingCommitments?: {date,count}[] }` — only cards with no due date and not blocked/done are planned. Returns `{ success, suggestions: [{ cardId, suggestedDate, reason }], weeklyGoal?, capacityWarning? }`; suggestions are validated to reference real cards and dates within the planned week. `max_tokens` 500.
+
 ---
 
 ## Card data model (`slimCard`)

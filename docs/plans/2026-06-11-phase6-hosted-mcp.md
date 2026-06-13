@@ -144,7 +144,8 @@ fresh-version reads, shared tool registry (cli/src/mcp-tools.ts), stdio server s
 pendingOps Map deleted. 23 new API tests (128 total).
 
 **6.2 BUILT (branch phase6-2-hosted-mcp):** OAuth 2.1 stub + hosted MCP endpoint.
-Migration: supabase/migrations/20260612120000_oauth_stub.sql (NOT applied — manual step).
+Migration: supabase/migrations/20260612120000_oauth_stub.sql (was a manual step; **applied
+to prod 2026-06-12** and in active use — confirmed live: oauth_clients 13, oauth_tokens 16).
 New routes: POST /api/oauth/register (DCR, RFC 7591), GET+POST /api/oauth/authorize (PKCE
 login page — Supabase signInWithPassword server-side), POST /api/oauth/token (auth_code +
 refresh grants, S256 PKCE, token rotation), POST /api/mcp (stateless JSON-RPC, 17-tool
