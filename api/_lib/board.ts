@@ -1,5 +1,6 @@
 import { createClient } from "@supabase/supabase-js";
 import type { AppState, Card, Column, Tag } from "../../src/app/types.js";
+import { NOTES_MAX_LENGTH } from "./constants.js";
 
 /**
  * Read-only board access for the API (Phase 2, re-pointed in Phase 4b).
@@ -89,7 +90,7 @@ export function slimCard(card: Card, resolveTags: (ids?: string[]) => string[]):
     ...(card.dueDate ? { dueDate: card.dueDate } : {}),
     tags: resolveTags(card.tags),
     ...(card.blockedReason ? { blockedReason: card.blockedReason } : {}),
-    ...(card.notes ? { notes: card.notes.slice(0, 280) } : {}),
+    ...(card.notes ? { notes: card.notes.slice(0, NOTES_MAX_LENGTH) } : {}),
     createdAt: card.createdAt,
     updatedAt: card.updatedAt,
   };

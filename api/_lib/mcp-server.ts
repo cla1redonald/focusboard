@@ -20,6 +20,7 @@ import { randomBytes } from "crypto";
 import type { Context } from "hono";
 import type { AuthEnv } from "./auth-middleware.js";
 import type { Principal } from "./auth-middleware.js";
+import { NOTES_MAX_LENGTH } from "./constants.js";
 
 // ── Tool table ─────────────────────────────────────────────────────────────────
 // Each entry mirrors the CLI registry's name/description/inputSchema tier
@@ -294,7 +295,7 @@ export const HOSTED_TOOLS: HostedToolDef[] = [
         swimlane: { type: "string", enum: ["work", "personal"] },
         due_date: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$", description: "Due date YYYY-MM-DD" },
         tags: { type: "array", items: { type: "string" }, description: "Existing tag NAMES" },
-        notes: { type: "string", maxLength: 5000 },
+        notes: { type: "string", maxLength: NOTES_MAX_LENGTH },
       },
       required: ["title"],
     },
@@ -345,7 +346,7 @@ export const HOSTED_TOOLS: HostedToolDef[] = [
       properties: {
         card_id: { type: "string", description: "Card id (from focusboard_cards)" },
         title: { type: "string", minLength: 1, maxLength: 300 },
-        notes: { type: "string", maxLength: 5000 },
+        notes: { type: "string", maxLength: NOTES_MAX_LENGTH },
         due_date: { type: "string", pattern: "^\\d{4}-\\d{2}-\\d{2}$" },
         tags: { type: "array", items: { type: "string" }, description: "Existing tag NAMES (replaces the set)" },
         blocked_reason: { type: "string", maxLength: 500 },
