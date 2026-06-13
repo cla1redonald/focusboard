@@ -33,6 +33,7 @@ import { ok, fail } from "./envelope.js";
 import { TRIAGE_STATUSES } from "../../src/app/captureTypes.js";
 import { loadBoard, slimCard, tagNameResolver } from "./board.js";
 import { loadFocusSessions, loadMetrics, aggregateFocusSessions } from "./focus-data.js";
+import { NOTES_MAX_LENGTH } from "./constants.js";
 import { buildTodayPlan, buildTodayDailyPlan, getActiveCards } from "../../src/app/today.js";
 import { buildDailyShutdownSummary, buildWeeklyReviewSummary } from "../../src/app/review.js";
 import { filterCards, DEFAULT_FILTER } from "../../src/app/filters.js";
@@ -649,7 +650,7 @@ app.post("/cards", async (c: Context<AuthEnv>) => {
       swimlane,
       title,
       order,
-      ...(typeof body.notes === "string" && body.notes ? { notes: body.notes.slice(0, 5000) } : {}),
+      ...(typeof body.notes === "string" && body.notes ? { notes: body.notes.slice(0, NOTES_MAX_LENGTH) } : {}),
       ...(dueDate ? { dueDate } : {}),
       ...(tagResult.ids.length ? { tags: tagResult.ids } : {}),
       checklist: [],
@@ -752,7 +753,7 @@ app.patch("/cards/:id", async (c: Context<AuthEnv>) => {
       if (body.notes !== null && typeof body.notes !== "string") {
         return fail(c, 400, "VALIDATION", "notes must be a string or null");
       }
-      patch.notes = body.notes === null ? null : (body.notes as string).slice(0, 5000);
+      patch.notes = body.notes === null ? null : (body.notes as string).slice(0, NOTES_MAX_LENGTH);
     }
     if (body.dueDate !== undefined) {
       if (body.dueDate !== null && (typeof body.dueDate !== "string" || !/^\d{4}-\d{2}-\d{2}/.test(body.dueDate))) {

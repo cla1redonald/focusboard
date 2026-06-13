@@ -190,6 +190,33 @@ describe("GET /api/cards", () => {
     const body = await res.json() as { data: { items: { id: string }[] } };
     expect(body.data.items.map((i) => i.id)).toEqual(["b"]);
   });
+
+  // Regression: notes serialization must match the write-side cap. slimCard
+  // once truncated to 280 while the validator accepted 5000, so notes of
+  // 281–5000 chars were stored but silently lost on read. See focusboard#55.
+  it("returns notes longer than 280 chars in full (not truncated)", async () => {
+    const longNotes = "n".repeat(400);
+    mockBoardState = boardState([card("a", { notes: longNotes })]);
+    const res = await get("/api/cards/a");
+    const body = await res.json() as { data: { card: { notes: string } } };
+    expect(body.data.card.notes).toBe(longNotes);
+    expect(body.data.card.notes.length).toBe(400);
+  });
+
+  it("caps notes at the shared NOTES_MAX_LENGTH (5000) on serialization", async () => {
+    mockBoardState = boardState([card("a", { notes: "n".repeat(6000) })]);
+    const res = await get("/api/cards/a");
+    const body = await res.json() as { data: { card: { notes: string } } };
+    expect(body.data.card.notes.length).toBe(5000);
+  });
+
+  it("returns full >280-char notes on the list endpoint too (same slimCard path)", async () => {
+    const longNotes = "n".repeat(400);
+    mockBoardState = boardState([card("a", { notes: longNotes })]);
+    const res = await get("/api/cards");
+    const body = await res.json() as { data: { items: { notes: string }[] } };
+    expect(body.data.items[0]!.notes).toBe(longNotes);
+  });
 });
 
 describe("GET /api/wip", () => {

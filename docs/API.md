@@ -165,6 +165,8 @@ Create a card. `version` is not used (the card is new).
 | `dueDate` | no | ISO date `YYYY-MM-DD` |
 | `notes` | no | ≤5000 chars |
 
+> The `notes` cap (`NOTES_MAX_LENGTH = 5000`, `api/_lib/constants.ts`) is enforced identically on write **and** on read serialization (`slimCard`). These previously disagreed — reads truncated at 280 — silently dropping notes of 281–5000 chars on round-trip ([#55](https://github.com/cla1redonald/focusboard/issues/55)).
+
 `201` with `{ card: { ...slimCard, version: 1 } }`.
 
 #### `PATCH /api/cards/:id`
