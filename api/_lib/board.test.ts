@@ -209,6 +209,14 @@ describe("GET /api/cards", () => {
     const body = await res.json() as { data: { card: { notes: string } } };
     expect(body.data.card.notes.length).toBe(5000);
   });
+
+  it("returns full >280-char notes on the list endpoint too (same slimCard path)", async () => {
+    const longNotes = "n".repeat(400);
+    mockBoardState = boardState([card("a", { notes: longNotes })]);
+    const res = await get("/api/cards");
+    const body = await res.json() as { data: { items: { notes: string }[] } };
+    expect(body.data.items[0]!.notes).toBe(longNotes);
+  });
 });
 
 describe("GET /api/wip", () => {
