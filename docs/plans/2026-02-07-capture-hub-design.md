@@ -1,3 +1,14 @@
+> **⚠️ Superseded / design-era doc.** This captures the original design intent,
+> not what shipped. The **core did ship**: the capture queue/table, the
+> `POST /api/capture` ingestion endpoint, the AI processing pipeline, and the
+> Capture Inbox UI. But the **5 intake channels** (Slack app, Gmail+Zapier,
+> WhatsApp, Chrome extension, etc.) and the **`CaptureSettings` UI** described
+> here were **not built as specified**. In reality: token management lives in
+> **Settings → API Tokens**, and the capture channels are the personal
+> prototype documented in [`../CAPTURE.md`](../CAPTURE.md) (the productised
+> target is [`../MULTI-USER-CAPTURE.md`](../MULTI-USER-CAPTURE.md)). Read the
+> rest of this doc as historical design context.
+
 # Capture Hub — Universal Task Ingestion for FocusBoard
 
 **Date:** 2026-02-07

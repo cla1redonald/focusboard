@@ -20,5 +20,21 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0   # need history to diff against the base branch
-      - name: Check docs kept in sync with code
+      - name: Check docs kept in sync with code (touch gate)
         run: bash .shipit-gates/check-docs-sync.sh "origin/${{ github.base_ref }}"
+
+  # CONTENT-coverage gate: asserts docs/API.md mentions every ROUTE_SCOPES route and
+  # docs/SUPABASE.md mentions every migration table/function. Catches the drift the
+  # touch gate above cannot (an unrelated doc edit satisfies the touch gate while
+  # API.md/SUPABASE.md silently go stale — the FocusBoard Phase 3–6 incident).
+  docs-coverage:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Check docs cover every route + table
+        env:
+          SHIPIT_DOCS_COVERAGE_BASE: origin/${{ github.base_ref }}
+        run: bash .shipit-gates/check-docs-coverage.sh
