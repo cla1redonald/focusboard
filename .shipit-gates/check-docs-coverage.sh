@@ -20,6 +20,8 @@
 #   Built-in manifests (auto-skipped if the source path doesn't exist, so this is
 #   safe to run on any repo):
 #     ROUTES  — "METHOD /path" keys from an API route table  → must appear in docs/API.md
+#     FUNCS   — standalone serverless functions under api/ (export-default handlers,
+#               excl. _lib/index/tests); derived /api/<path> → must appear in docs/API.md
 #     DB      — table + function names from supabase/migrations/*.sql → docs/SUPABASE.md
 #
 # OVERRIDE: put [no-docs] in any commit message in the range to bypass (parity with
@@ -30,6 +32,8 @@
 #                       (default: api/_lib/auth-middleware.ts — the ROUTE_SCOPES map)
 #   SHIPIT_ROUTES_DOC   doc that must mention every route   (default: docs/API.md)
 #   SHIPIT_ROUTES_RE    ERE capturing "METHOD /path" route keys
+#   SHIPIT_FUNCS_DIR    serverless-functions dir            (default: api)
+#   SHIPIT_FUNCS_DOC    doc that must mention each function (default: docs/API.md)
 #   SHIPIT_DB_GLOB      migrations glob                     (default: supabase/migrations/*.sql)
 #   SHIPIT_DB_DOC       doc that must mention every table/fn (default: docs/SUPABASE.md)
 #
@@ -44,6 +48,8 @@ ROUTES_SRC="${SHIPIT_ROUTES_SRC:-api/_lib/auth-middleware.ts}"
 ROUTES_DOC="${SHIPIT_ROUTES_DOC:-docs/API.md}"
 # Matches the ROUTE_SCOPES keys: "GET /api/cards/:id", "POST /api/oauth/token", …
 ROUTES_RE="${SHIPIT_ROUTES_RE:-(GET|POST|PUT|PATCH|DELETE)[[:space:]]+/api/[A-Za-z0-9/:_.-]+}"
+FUNCS_DIR="${SHIPIT_FUNCS_DIR:-api}"; FUNCS_DIR="${FUNCS_DIR#./}"  # normalise a leading ./
+FUNCS_DOC="${SHIPIT_FUNCS_DOC:-$ROUTES_DOC}"
 DB_GLOB="${SHIPIT_DB_GLOB:-supabase/migrations/*.sql}"
 DB_DOC="${SHIPIT_DB_DOC:-docs/SUPABASE.md}"
 
@@ -96,6 +102,24 @@ if [ -f "$ROUTES_SRC" ]; then
     else
       report_missing "API routes" "$ROUTES_DOC" "$routes" || fail=1
     fi
+  fi
+fi
+
+# ── FUNCS manifest (standalone serverless functions) → docs/API.md ──────────────
+# Vercel functions are files under $FUNCS_DIR that export a default handler.
+# Their HTTP path is derived from the file path: api/ai/parse-card.ts →
+# /api/ai/parse-card. These live OUTSIDE the ROUTE_SCOPES table, so without this
+# manifest they rot undocumented (exactly how the 5 api/ai/* endpoints slipped
+# through). Excluded: _lib helpers, node_modules, *.test/*.spec, and the router
+# entrypoint — assumed to be $FUNCS_DIR/index.ts. (A router NOT named index.ts is
+# treated as an undocumented function, by design: name it index.ts, or doc /
+# [no-docs] it.) The sed tolerates a leading "./" on grep output.
+if [ -d "$FUNCS_DIR" ]; then
+  func_routes=$(grep -rlE 'export[[:space:]]+default' "$FUNCS_DIR" --include='*.ts' 2>/dev/null \
+                  | grep -vE "(^|/)(_lib|node_modules)/|/index\.ts$|\.test\.ts$|\.spec\.ts$" \
+                  | sed -E "s#^(\./)?${FUNCS_DIR%/}/(.*)\.ts\$#/${FUNCS_DIR%/}/\2#" | sort -u)
+  if [ -n "$func_routes" ]; then
+    report_missing "standalone function routes" "$FUNCS_DOC" "$func_routes" || fail=1
   fi
 fi
 
