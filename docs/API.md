@@ -457,7 +457,7 @@ Board read/mutation routes project cards to a slim shape:
   dueDate?: string;                  // ISO date, only when set
   tags: string[];                    // resolved to tag NAMES (not ids)
   blockedReason?: string;            // only when set
-  notes?: string;                    // truncated to 280 chars
+  notes?: string;                    // capped at NOTES_MAX_LENGTH (5000 chars)
   createdAt: string;
   updatedAt: string;
 }
