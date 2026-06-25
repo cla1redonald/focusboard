@@ -13,6 +13,7 @@ import { useAI } from "../app/useAI";
 import { Swimlane } from "./Swimlane";
 import { TopStrip } from "./TopStrip";
 import { FilterBar } from "./FilterBar";
+import { CommandBar } from "./CommandBar";
 import { WipModal } from "./WipModal";
 import { ConfettiBurst } from "./ConfettiBurst";
 
@@ -526,6 +527,10 @@ export function Board({
         resultCount={filteredCards.length}
         totalCount={cards.length}
       />
+
+      <div className="mb-3">
+        <CommandBar columns={sortedColumns} tagDefinitions={tagDefinitions} />
+      </div>
 
       <DndContext sensors={sensors} onDragStart={onDragStart} onDragEnd={onDragEnd} onDragCancel={onDragCancel}>
         <div ref={scrollContainerRef} className="flex-1 overflow-y-auto pb-6 relative">

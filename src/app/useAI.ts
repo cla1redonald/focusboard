@@ -117,6 +117,19 @@ type CardForPlan = {
   swimlane: string;
 };
 
+export type AgentCommandStep = {
+  tool: string;
+  args: Record<string, unknown>;
+  ok: boolean;
+  error?: string;
+};
+
+export type AgentCommandResult = {
+  summary: string;
+  steps: AgentCommandStep[];
+  stoppedAtCap: boolean;
+};
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null;
 }
@@ -166,6 +179,15 @@ function isPlanSuggestion(value: unknown): value is PlanSuggestion {
     typeof value.cardId === "string" &&
     typeof value.suggestedDate === "string" &&
     typeof value.reason === "string"
+  );
+}
+
+function isAgentCommandResult(value: unknown): value is AgentCommandResult {
+  if (!isRecord(value)) return false;
+  return (
+    typeof value.summary === "string" &&
+    Array.isArray(value.steps) &&
+    typeof value.stoppedAtCap === "boolean"
   );
 }
 
@@ -417,12 +439,58 @@ export function useAI({ availableTags = [], availableColumns = [] }: UseAIOption
     []
   );
 
+  // Natural-language board command — runs the server-side agent tool loop.
+  // The agent may make several model round-trips, so this uses a longer timeout
+  // than the single-shot endpoints. Board changes arrive via Supabase realtime,
+  // so callers don't need to manually refresh after this resolves.
+  const runBoardCommand = React.useCallback(
+    async (instruction: string): Promise<AgentCommandResult | null> => {
+      if (!instruction.trim()) return null;
+
+      setIsLoading(true);
+      setError(null);
+
+      try {
+        const response = await fetchWithTimeout(
+          "/api/ai/agent",
+          {
+            method: "POST",
+            headers: await getAuthHeaders(),
+            body: JSON.stringify({ instruction }),
+          },
+          90000
+        );
+
+        const data: unknown = await response.json();
+        if (!response.ok) {
+          // The Hono app wraps errors as { ok:false, error:{ message } }.
+          const errObj = isRecord(data) && isRecord(data.error) ? data.error : null;
+          const message = errObj && typeof errObj.message === "string" ? errObj.message : "Command failed";
+          throw new Error(message);
+        }
+
+        // Success envelope: { ok:true, data: AgentCommandResult }.
+        const payload = isRecord(data) ? data.data : null;
+        return isAgentCommandResult(payload) ? payload : null;
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        logger.error("Board command failed", { action: "runBoardCommand" }, err);
+        setError(message);
+        return null;
+      } finally {
+        setIsLoading(false);
+      }
+    },
+    []
+  );
+
   return {
     suggestTags,
     parseCard,
     breakdownTask,
     getDailyFocus,
     getWeeklyPlan,
+    runBoardCommand,
     isLoading,
     error,
   };

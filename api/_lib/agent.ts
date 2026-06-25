@@ -21,7 +21,7 @@ import Anthropic from "@anthropic-ai/sdk";
 import type { Hono } from "hono";
 import type { AuthEnv } from "./auth-middleware.js";
 import { executeConfirmedOp } from "./confirm-executor.js";
-import { loadBoard, slimCard, tagNameResolver } from "./board.js";
+import { loadBoard, slimCard, tagNameResolver, type BoardData } from "./board.js";
 import { filterCards, DEFAULT_FILTER } from "../../src/app/filters.js";
 import { getActiveCards } from "../../src/app/today.js";
 
@@ -58,6 +58,8 @@ export interface RunBoardAgentOptions {
   instruction: string;
   /** Injectable for tests; defaults to a real client from ANTHROPIC_API_KEY. */
   client?: Pick<Anthropic, "messages">;
+  /** Injectable board reader (the list_cards source); defaults to loadBoard. */
+  loadBoardFn?: (userId: string) => Promise<BoardData | null>;
 }
 
 const READ_TOOL = "list_cards";
@@ -171,10 +173,11 @@ function buildSystemPrompt(): string {
 
 /** Read tool: load the board fresh and project it the way GET /api/cards does. */
 async function runListCards(
+  loadBoardFn: (userId: string) => Promise<BoardData | null>,
   userId: string,
   input: { column?: string; q?: string; swimlane?: string }
 ): Promise<unknown> {
-  const board = await loadBoard(userId);
+  const board = await loadBoardFn(userId);
   if (!board) return { total: 0, items: [], columns: [], tags: [], note: "No board found for this user." };
 
   let cards = filterCards(getActiveCards(board.cards, board.columns), {
@@ -209,13 +212,18 @@ async function runListCards(
  * shared in-process executor (immediate, scope-enforced).
  */
 async function executeTool(
-  opts: { app: AppLike; authHeader: string; userId: string },
+  opts: {
+    app: AppLike;
+    authHeader: string;
+    userId: string;
+    loadBoardFn: (userId: string) => Promise<BoardData | null>;
+  },
   name: string,
   input: Record<string, unknown>
 ): Promise<{ ok: boolean; result: unknown; error?: string }> {
   try {
     if (name === READ_TOOL) {
-      const result = await runListCards(opts.userId, input as { column?: string; q?: string; swimlane?: string });
+      const result = await runListCards(opts.loadBoardFn, opts.userId, input as { column?: string; q?: string; swimlane?: string });
       return { ok: true, result };
     }
     // All other tools are mutations on the confirmation allowlist.
@@ -229,6 +237,7 @@ async function executeTool(
 
 export async function runBoardAgent(opts: RunBoardAgentOptions): Promise<AgentResult> {
   const client = opts.client ?? new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
+  const loadBoardFn = opts.loadBoardFn ?? loadBoard;
   const messages: Anthropic.MessageParam[] = [{ role: "user", content: opts.instruction }];
   const steps: AgentStep[] = [];
   let summary = "";
@@ -265,7 +274,7 @@ export async function runBoardAgent(opts: RunBoardAgentOptions): Promise<AgentRe
     for (const tu of toolUses) {
       const input = (tu.input ?? {}) as Record<string, unknown>;
       const outcome = await executeTool(
-        { app: opts.app, authHeader: opts.authHeader, userId: opts.userId },
+        { app: opts.app, authHeader: opts.authHeader, userId: opts.userId, loadBoardFn },
         tu.name,
         input
       );
