@@ -41,6 +41,7 @@ import type { Card } from "../../src/app/types.js";
 import { createHash, randomBytes } from "crypto";
 import { CONFIRMATION_TOOL_ALLOWLIST, executeConfirmedOp } from "./confirm-executor.js";
 import { handleMcpRpc } from "./mcp-server.js";
+import { runBoardAgent } from "./agent.js";
 
 // ── Allowed origins ────────────────────────────────────────────────────────────
 
@@ -1545,6 +1546,41 @@ app.post("/confirmations/confirm", async (c: Context<AuthEnv>) => {
   } catch (err) {
     console.error("Confirmation confirm unexpected error:", err);
     return fail(c, 500, "INTERNAL", "Internal server error");
+  }
+});
+
+// ── POST /api/ai/agent — natural-language board command agent ──────────────────
+// A hand-rolled Anthropic tool-use loop: Claude calls board tools, we execute
+// them immediately in-process, feed results back, and loop until it's done.
+app.post("/ai/agent", async (c: Context<AuthEnv>) => {
+  const principal = c.get("principal");
+  const authHeader = c.req.header("authorization") ?? "";
+
+  let body: { instruction?: unknown };
+  try {
+    body = (await c.req.json()) as typeof body;
+  } catch {
+    body = {};
+  }
+
+  const instruction = typeof body.instruction === "string" ? body.instruction.trim() : "";
+  if (!instruction) return fail(c, 400, "VALIDATION", "instruction is required");
+  if (instruction.length > 1000) {
+    return fail(c, 400, "VALIDATION", "instruction too long (max 1000 characters)");
+  }
+  if (!process.env.ANTHROPIC_API_KEY) {
+    return fail(c, 500, "INTERNAL", "ANTHROPIC_API_KEY not configured");
+  }
+
+  try {
+    const result = await runBoardAgent({ app, authHeader, userId: principal.userId, instruction });
+    return ok(c, result);
+  } catch (err) {
+    console.error("Board agent error:", err);
+    const e = err as { status?: number; code?: string; message?: string; hint?: string };
+    const status = (e.status ?? 500) as 400 | 404 | 409 | 500;
+    const code = (e.code ?? "INTERNAL") as Parameters<typeof fail>[2];
+    return fail(c, status, code, e.message ?? "Agent failed", e.hint);
   }
 });
 

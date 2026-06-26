@@ -65,6 +65,9 @@ export const ROUTE_SCOPES: Record<string, string> = {
   // (every gated tool mutates cards).
   "POST /api/confirmations": SCOPES.CARD_WRITE,
   "POST /api/confirmations/confirm": SCOPES.CARD_WRITE,
+  // Board command agent — runs an immediate (no-confirm) tool loop that mutates
+  // cards, so it requires card:write like the gated mutations it performs.
+  "POST /api/ai/agent": SCOPES.CARD_WRITE,
   // Phase 6.2: OAuth endpoints — RFC-shaped responses, envelope-exempt.
   // All PUBLIC (the authorization flow authenticates via Supabase creds, not Bearer).
   "POST /api/oauth/register": "PUBLIC",
