@@ -19,7 +19,8 @@
     "smoke:oauth": "node scripts/oauth-smoke.mjs",
     "token:scopes": "bash scripts/token-scopes.sh",
     "build:cli": "npm --prefix cli run build",
-    "typecheck:api": "tsc --noEmit -p tsconfig.api.json"
+    "typecheck:api": "tsc --noEmit -p tsconfig.api.json",
+    "check:models": "tsx scripts/check-models.mts"
   },
   "dependencies": {
     "@anthropic-ai/sdk": "^0.98.0",
