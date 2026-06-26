@@ -25,9 +25,10 @@ import { loadBoard, slimCard, tagNameResolver, type BoardData } from "./board.js
 import { filterCards, DEFAULT_FILTER } from "../../src/app/filters.js";
 import { getActiveCards } from "../../src/app/today.js";
 
-// Sonnet 4 for reliable multi-step tool use. Swap to a Haiku id to cut cost if
-// the instructions in practice stay simple — the loop is model-agnostic.
-const MODEL = "claude-sonnet-4-20250514";
+// Current Sonnet for reliable multi-step tool use. Swap to a Haiku id
+// (claude-haiku-4-5) to cut cost if instructions stay simple — the loop is
+// model-agnostic. (Was claude-sonnet-4-20250514, EOL 2026-06-15.)
+const MODEL = "claude-sonnet-4-6";
 const MAX_STEPS = 10; // hard cap on API round-trips (cost + runaway-loop guard)
 const MAX_TOKENS = 1024;
 const MAX_LIST_ITEMS = 80; // cap board rows fed back per list_cards call (token guard)
