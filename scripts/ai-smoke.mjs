@@ -32,7 +32,8 @@ function skip(msg) { console.log(`ai-smoke: SKIP — ${msg}`); process.exit(0); 
 function fromEnvLocal(name) {
   if (process.env[name]) return process.env[name];
   if (!existsSync(".env.local")) return undefined;
-  const m = readFileSync(".env.local", "utf8").match(new RegExp(`^${name}=(.*)$`, "m"));
+  const escaped = name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  const m = readFileSync(".env.local", "utf8").match(new RegExp(`^${escaped}=(.*)$`, "m"));
   return m ? m[1].replace(/^["']|["']$/g, "").trim() : undefined;
 }
 
@@ -60,10 +61,14 @@ const main = async () => {
     method: "POST",
     headers: { "content-type": "application/json", apikey: anonKey },
     body: JSON.stringify({ email, password }),
+    signal: AbortSignal.timeout(15_000),
   });
   const authJson = await auth.json().catch(() => ({}));
   if (auth.status !== 200 || !authJson.access_token) {
-    fail(`Supabase login failed (${auth.status}): ${authJson.error_description || authJson.msg || JSON.stringify(authJson)}`);
+    // A 401 here means the smoke ACCOUNT/secret is stale, not the code under test —
+    // it's a hard block by design (a CI gate must fail loudly), so the on-call fix
+    // is to rotate FOCUSBOARD_SMOKE_PASSWORD, not to touch the deploy.
+    fail(`Supabase login failed (${auth.status}): ${authJson.error_description || authJson.message || JSON.stringify(authJson)}`);
   }
   ok("Supabase session token acquired ✓");
 
@@ -76,6 +81,7 @@ const main = async () => {
       availableColumns: [{ id: "backlog", title: "Backlog" }, { id: "todo", title: "To Do" }],
       availableTags: [],
     }),
+    signal: AbortSignal.timeout(20_000),
   });
 
   if (res.status === 401) fail("AI endpoint returned 401 — the session token was rejected (auth/verifySession regression).");
