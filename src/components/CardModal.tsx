@@ -297,6 +297,8 @@ export function CardModal({
   const { breakdownTask, isLoading: aiLoading } = useAI();
   const [aiSuggestions, setAiSuggestions] = React.useState<{ text: string; estimatedEffort?: string }[]>([]);
   const [aiSuggestion, setAiSuggestion] = React.useState<string | undefined>();
+  // Surface a failed breakdown instead of the button silently doing nothing.
+  const [breakdownFailed, setBreakdownFailed] = React.useState(false);
 
   // File attachments
   const [isDragOver, setIsDragOver] = React.useState(false);
@@ -918,6 +920,7 @@ export function CardModal({
                 type="button"
                 onClick={async () => {
                   const existingItems = (draft.checklist ?? []).map((item) => item.text);
+                  setBreakdownFailed(false);
                   const result = await breakdownTask(draft.title, {
                     notes: draft.notes,
                     tags: draft.tags,
@@ -926,6 +929,8 @@ export function CardModal({
                   if (result) {
                     setAiSuggestions(result.subtasks);
                     setAiSuggestion(result.suggestion);
+                  } else {
+                    setBreakdownFailed(true);
                   }
                 }}
                 disabled={aiLoading}
@@ -943,6 +948,12 @@ export function CardModal({
                   </>
                 )}
               </button>
+
+              {breakdownFailed && (
+                <p className="text-xs text-amber-700 dark:text-amber-400">
+                  Couldn&apos;t break this down right now — try again.
+                </p>
+              )}
 
               {aiSuggestions.length > 0 && (
                 <div className="rounded-lg border border-emerald-200 bg-emerald-50/50 p-3 dark:border-emerald-800 dark:bg-emerald-900/20">

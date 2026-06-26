@@ -52,6 +52,8 @@ export function WeeklyPlanPanel({
   const [capacityWarning, setCapacityWarning] = React.useState<string | undefined>();
   const [appliedSuggestions, setAppliedSuggestions] = React.useState<Set<string>>(new Set());
   const [hasLoaded, setHasLoaded] = React.useState(false);
+  // Surface a failed AI call instead of silently showing an empty plan.
+  const [loadFailed, setLoadFailed] = React.useState(false);
 
   // Calculate week days
   const weekDays = React.useMemo(() => {
@@ -85,35 +87,38 @@ export function WeeklyPlanPanel({
     );
   }, [cards]);
 
-  // Load suggestions when panel opens
+  const loadSuggestions = React.useCallback(async () => {
+    const cardData = cards.map((c) => ({
+      id: c.id,
+      title: c.title,
+      column: c.column,
+      dueDate: c.dueDate,
+      tags: c.tags ?? [],
+      swimlane: c.swimlane ?? "work",
+    }));
+
+    setLoadFailed(false);
+    const result = await getWeeklyPlan(cardData, {
+      weekStart: formatDate(weekStart),
+      avgThroughput,
+    });
+
+    if (result) {
+      setSuggestions(result.suggestions);
+      setWeeklyGoal(result.weeklyGoal);
+      setCapacityWarning(result.capacityWarning);
+      setHasLoaded(true);
+    } else {
+      // getWeeklyPlan returns null on any API error — surface it.
+      setLoadFailed(true);
+    }
+  }, [cards, getWeeklyPlan, weekStart, avgThroughput]);
+
+  // Load suggestions when the panel opens (once).
   React.useEffect(() => {
     if (!open || hasLoaded) return;
-
-    const loadSuggestions = async () => {
-      const cardData = cards.map((c) => ({
-        id: c.id,
-        title: c.title,
-        column: c.column,
-        dueDate: c.dueDate,
-        tags: c.tags ?? [],
-        swimlane: c.swimlane ?? "work",
-      }));
-
-      const result = await getWeeklyPlan(cardData, {
-        weekStart: formatDate(weekStart),
-        avgThroughput,
-      });
-
-      if (result) {
-        setSuggestions(result.suggestions);
-        setWeeklyGoal(result.weeklyGoal);
-        setCapacityWarning(result.capacityWarning);
-        setHasLoaded(true);
-      }
-    };
-
     void loadSuggestions();
-  }, [open, hasLoaded, cards, getWeeklyPlan, weekStart, avgThroughput]);
+  }, [open, hasLoaded, loadSuggestions]);
 
   // Reset when panel closes or week changes
   React.useEffect(() => {
@@ -123,6 +128,7 @@ export function WeeklyPlanPanel({
       setWeeklyGoal(undefined);
       setCapacityWarning(undefined);
       setAppliedSuggestions(new Set());
+      setLoadFailed(false);
     }
   }, [open]);
 
@@ -213,6 +219,22 @@ export function WeeklyPlanPanel({
             </div>
           ) : (
             <>
+              {/* AI failure — surfaced, not silently hidden */}
+              {loadFailed && (
+                <div className="mb-4 flex items-center justify-between gap-3 rounded-lg bg-amber-50 p-3 text-sm text-amber-800 dark:bg-amber-900/20 dark:text-amber-300">
+                  <span className="flex items-center gap-2">
+                    <AlertTriangle size={16} />
+                    Couldn&apos;t generate AI suggestions right now.
+                  </span>
+                  <button
+                    onClick={() => void loadSuggestions()}
+                    className="shrink-0 rounded-md bg-amber-600 px-3 py-1 text-xs font-medium text-white hover:bg-amber-700"
+                  >
+                    Try again
+                  </button>
+                </div>
+              )}
+
               {/* Weekly Goal */}
               {weeklyGoal && (
                 <div className="mb-4 rounded-lg bg-emerald-50 p-3 text-sm text-emerald-700 dark:bg-emerald-900/20 dark:text-emerald-400">

@@ -1,0 +1,46 @@
+name: Model liveness
+
+# Catches the failure mode that took down all AI features in June 2026: a model
+# id (claude-3-5-haiku-20241022) reached end-of-life on 2026-02-19 and started
+# returning 404, but nobody deployed for months so it surfaced only when a user
+# hit it. A nightly ping of every model id the app uses turns "silent for months"
+# into "a failed run tonight". Also runs on PRs that touch the model config so a
+# bad id can't merge.
+#
+# Needs repo secret ANTHROPIC_API_KEY (a key with credits). Cost: ~1 token per
+# model per run — effectively free.
+
+on:
+  schedule:
+    - cron: "0 7 * * *" # 07:00 UTC daily
+  workflow_dispatch: {}
+  pull_request:
+    paths:
+      - "api/_lib/models.ts"
+      - "api/ai/**"
+      - "api/capture/process.ts"
+      - "scripts/check-models.mts"
+
+permissions:
+  contents: read
+
+jobs:
+  liveness:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - name: Ping every model id
+        env:
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+        run: |
+          if [ -z "$ANTHROPIC_API_KEY" ]; then
+            echo "::warning::ANTHROPIC_API_KEY secret not set — skipping model liveness check."
+            exit 0
+          fi
+          npm run check:models
