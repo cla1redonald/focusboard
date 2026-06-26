@@ -65,6 +65,12 @@ jobs:
           # Absent -> the script fails clearly; present -> full browser chain runs.
           FOCUSBOARD_SMOKE_EMAIL: ${{ secrets.FOCUSBOARD_SMOKE_EMAIL }}
           FOCUSBOARD_SMOKE_PASSWORD: ${{ secrets.FOCUSBOARD_SMOKE_PASSWORD }}
+          # Authed-AI smoke (scripts/ai-smoke.mjs via E2E_CMD): a real Supabase
+          # session token -> /api/ai/parse-card -> 200. These two are PUBLIC
+          # values (anon key + project URL), set as repo secrets/vars so CI can
+          # mint a session token. Absent -> the AI rung skips cleanly.
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_ANON_KEY: ${{ secrets.SUPABASE_ANON_KEY }}
         run: |
           set -a; . .shipit-gates/smoke.conf; set +a
           bash .shipit-gates/runtime-smoke-test.sh

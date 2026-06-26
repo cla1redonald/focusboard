@@ -17,6 +17,7 @@
     "test:cli": "npm --prefix cli run test",
     "smoke:setup": "bash scripts/smoke-account.sh",
     "smoke:oauth": "node scripts/oauth-smoke.mjs",
+    "smoke:ai": "node scripts/ai-smoke.mjs",
     "token:scopes": "bash scripts/token-scopes.sh",
     "build:cli": "npm --prefix cli run build",
     "typecheck:api": "tsc --noEmit -p tsconfig.api.json",
