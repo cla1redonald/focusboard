@@ -1,5 +1,5 @@
 import React from "react";
-import { X, Sparkles, Loader2, Play, XCircle } from "lucide-react";
+import { X, Sparkles, Loader2, Play, XCircle, AlertCircle } from "lucide-react";
 import type { Card, Column } from "../app/types";
 import { useAI } from "../app/useAI";
 import { getUrgencyLevel } from "../app/urgency";
@@ -34,43 +34,49 @@ export function FocusSuggestionPanel({
   const [insight, setInsight] = React.useState<string | undefined>();
   const [dismissed, setDismissed] = React.useState<Set<string>>(new Set());
   const [hasLoaded, setHasLoaded] = React.useState(false);
+  // Distinguish a genuine "nothing to focus on" from a failed AI call — without
+  // this, an error renders as the cheerful empty state ("Great job!").
+  const [loadFailed, setLoadFailed] = React.useState(false);
 
   // Get the "doing" column's WIP limit
   const doingColumn = columns.find((c) => c.id === "doing");
   const wipLimit = doingColumn?.wipLimit ?? 3;
 
-  // Load suggestions when panel opens
+  const loadSuggestions = React.useCallback(async () => {
+    const cardData = cards.map((c) => ({
+      id: c.id,
+      title: c.title,
+      column: c.column,
+      dueDate: c.dueDate,
+      tags: c.tags ?? [],
+      urgencyLevel: getUrgencyLevel(c),
+      createdAt: c.createdAt,
+      blockedReason: c.blockedReason,
+    }));
+
+    setLoadFailed(false);
+    const result = await getDailyFocus(cardData, {
+      completedToday,
+      avgCycleTime,
+      wipLimit,
+    });
+
+    if (result) {
+      setSuggestions(result.suggestions);
+      setInsight(result.insight);
+      setHasLoaded(true);
+    } else {
+      // getDailyFocus returns null on any API error — surface it, don't pretend
+      // there's nothing to do.
+      setLoadFailed(true);
+    }
+  }, [cards, getDailyFocus, completedToday, avgCycleTime, wipLimit]);
+
+  // Load suggestions when the panel opens (once).
   React.useEffect(() => {
     if (!open || hasLoaded) return;
-
-    const loadSuggestions = async () => {
-      // Prepare cards for the API
-      const cardData = cards.map((c) => ({
-        id: c.id,
-        title: c.title,
-        column: c.column,
-        dueDate: c.dueDate,
-        tags: c.tags ?? [],
-        urgencyLevel: getUrgencyLevel(c),
-        createdAt: c.createdAt,
-        blockedReason: c.blockedReason,
-      }));
-
-      const result = await getDailyFocus(cardData, {
-        completedToday,
-        avgCycleTime,
-        wipLimit,
-      });
-
-      if (result) {
-        setSuggestions(result.suggestions);
-        setInsight(result.insight);
-        setHasLoaded(true);
-      }
-    };
-
     void loadSuggestions();
-  }, [open, hasLoaded, cards, getDailyFocus, completedToday, avgCycleTime, wipLimit]);
+  }, [open, hasLoaded, loadSuggestions]);
 
   // Reset when panel closes
   React.useEffect(() => {
@@ -79,6 +85,7 @@ export function FocusSuggestionPanel({
       setSuggestions([]);
       setInsight(undefined);
       setDismissed(new Set());
+      setLoadFailed(false);
     }
   }, [open]);
 
@@ -129,6 +136,19 @@ export function FocusSuggestionPanel({
               <p className="mt-3 text-sm text-gray-500 dark:text-gray-400">
                 Analyzing your tasks...
               </p>
+            </div>
+          ) : loadFailed ? (
+            <div className="flex flex-col items-center justify-center py-12 text-center">
+              <AlertCircle size={32} className="text-amber-500" />
+              <p className="mt-3 text-gray-700 dark:text-gray-300">
+                Couldn't load suggestions right now.
+              </p>
+              <button
+                onClick={() => void loadSuggestions()}
+                className="mt-4 rounded-lg bg-emerald-600 px-4 py-2 text-sm font-medium text-white transition hover:bg-emerald-700"
+              >
+                Try again
+              </button>
             </div>
           ) : visibleSuggestions.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-12 text-center">

@@ -1,5 +1,6 @@
 import type { VercelRequest, VercelResponse } from "@vercel/node";
 import Anthropic from "@anthropic-ai/sdk";
+import { MODELS, createMessageHealing } from "../_lib/models.js";
 import { verifySession } from "../_lib/auth.js";
 import { setCorsHeaders, handlePreflight } from "../_lib/cors.js";
 
@@ -83,8 +84,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       })
       .join("\n");
 
-    const response = await client.messages.create({
-      model: "claude-haiku-4-5-20251001",
+    const response = await createMessageHealing(client, {
+      model: MODELS.HAIKU,
       max_tokens: 400,
       messages: [{
         role: "user",
