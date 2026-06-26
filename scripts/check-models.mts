@@ -19,7 +19,7 @@ import { MODELS } from "../api/_lib/models.js";
 if (!process.env.ANTHROPIC_API_KEY && existsSync(".env.local")) {
   for (const line of readFileSync(".env.local", "utf8").split("\n")) {
     const m = line.match(/^ANTHROPIC_API_KEY=(.*)$/);
-    if (m) process.env.ANTHROPIC_API_KEY = m[1].replace(/^["']|["']$/g, "").trim();
+    if (m) { process.env.ANTHROPIC_API_KEY = m[1].replace(/^["']|["']$/g, "").trim(); break; }
   }
 }
 if (!process.env.ANTHROPIC_API_KEY) {

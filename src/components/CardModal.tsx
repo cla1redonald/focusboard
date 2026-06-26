@@ -329,6 +329,7 @@ export function CardModal({
     setCustomUrl("");
     setAiSuggestions([]);
     setAiSuggestion(undefined);
+    setBreakdownFailed(false);
     setSignedUrls({});
     setUploadError(null);
   }, [card]);
