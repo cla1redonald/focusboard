@@ -397,6 +397,7 @@ export function WeeklyPlanPanel({
                 setHasLoaded(false);
                 setSuggestions([]);
                 setAppliedSuggestions(new Set());
+                setLoadFailed(false);
               }}
               className="text-emerald-600 hover:text-emerald-700 dark:text-emerald-400"
             >
