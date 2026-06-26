@@ -44,7 +44,10 @@ describe("DailyShutdownPanel", () => {
     );
 
     expect(screen.getByRole("dialog", { name: "Daily shutdown" })).toBeInTheDocument();
-    await user.click(screen.getByRole("button", { name: /Active task/i }));
+    // The same card legitimately appears under multiple lenses (e.g. a tomorrow
+    // candidate that is also stale), so there can be several matching buttons —
+    // clicking any opens the card. Target the first.
+    await user.click(screen.getAllByRole("button", { name: /Active task/i })[0]);
     await user.click(screen.getByRole("button", { name: "Mark complete" }));
 
     expect(onOpenCard).toHaveBeenCalledWith(expect.objectContaining({ id: "card-1" }));
