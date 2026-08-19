@@ -68,13 +68,22 @@ if [ -z "$INPUT" ]; then
   exit 0
 fi
 
+# Webhook secret is read from an untracked local file; never commit secrets to this repo.
+# Create it with: mkdir -p ~/.config/focusboard &amp;&amp; printf '%s' '&lt;secret&gt;' &gt; ~/.config/focusboard/webhook_secret
+FB_SECRET="$(cat "$HOME/.config/focusboard/webhook_secret" 2&gt;/dev/null)"
+
+if [ -z "$FB_SECRET" ]; then
+  osascript -e 'display alert "FocusBoard" message "Secret missing. Create ~/.config/focusboard/webhook_secret"'
+  exit 1
+fi
+
 # Escape for JSON
 ESCAPED=$(echo "$INPUT" | python3 -c 'import sys,json; print(json.dumps(sys.stdin.read().strip()))')
 
 # POST to FocusBoard
 RESULT=$(curl -s -X POST "https://focusboard-claire-donalds-projects.vercel.app/api/capture" \
   -H "Content-Type: application/json" \
-  -d "{\"content\":${ESCAPED},\"source\":\"shortcut\",\"secret\":\"a0e9c519d5464330ef2570e4c546aee22f5f651dff1732265350e51372dc40b5\"}")
+  -d "{\"content\":${ESCAPED},\"source\":\"shortcut\",\"secret\":\"${FB_SECRET}\"}")
 
 # Show confirmation
 if echo "$RESULT" | grep -q '"success":true'; then
