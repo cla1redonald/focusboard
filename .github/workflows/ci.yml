@@ -10,6 +10,16 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+
+      # This repo is why the gate was hardened: a webhook credential lived in
+      # output/Send to FocusBoard.workflow for ~8 months and the warn-only
+      # PostToolUse hook never blocked it. Runs before the Node setup because
+      # it is language-agnostic and should fail fast.
+      - name: Secret scan
+        run: |
+          bash .shipit-gates/detect-secrets.test.sh
+          bash .shipit-gates/detect-secrets.sh --scan .
+
       - uses: actions/setup-node@v5
         with:
           node-version: 20
