@@ -38,7 +38,9 @@ expect_clean() {
 
 # --- fixtures. Values are assembled at runtime so this file holds no literal
 # --- credential of its own.
-HEX="$(printf 'a0e9c519d5464330ef2570e4c546aee2%s' '2f5f651dff1732265350e51372dc40b5')"
+# Split so this file contains no 32+ char hex run of its own; the scanner is
+# supposed to flag those, and it should stay honest about its own source.
+HEX="$(printf '%s%s%s' 'a0e9c519d5464330ef25' '70e4c546aee22f5f651d' 'ff1732265350e51372dc40b5')"
 
 printf '  -d "{\\"content\\":$X,\\"secret\\":\\"%s\\"}"\n' "$HEX" > "$TMP/escaped-json.sh"
 printf 'WEBHOOK=%s\n' "$HEX" > "$TMP/bare-assignment.sh"

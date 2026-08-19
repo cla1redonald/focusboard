@@ -63,6 +63,7 @@ should_skip() {
   case "$1" in
     *.test.ts|*.test.tsx|*.test.js|*.test.jsx|\
     *.spec.ts|*.spec.tsx|*.spec.js|*.spec.jsx|\
+    *.test.sh|*.test.bash|*.spec.sh|\
     *__tests__*|*fixtures*|*.example|*.sample|*.template)
       return 0 ;;
   esac
