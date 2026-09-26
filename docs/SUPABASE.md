@@ -18,7 +18,7 @@ Supabase provides:
 | `cards` | Per-card rows — **sole source of truth for cards** | `20260609230000_cards_mirror.sql`, `20260610100000_web_row_writes.sql`, `20260610130000_retire_blob_cards.sql` |
 | `capture_queue` | Universal task ingestion queue for the Capture Hub | `20260207170000_capture_queue.sql` (+ later) |
 | `focus_sessions` | Append-only focus session events; one active per user | `20260609220000_focus_sessions.sql` |
-| `api_tokens` | Hashed personal access tokens for CLI/MCP | `20260609090000_api_tokens.sql` |
+| `api_tokens` | Hashed personal access tokens for CLI/MCP (service-role RLS) | `20260609090000_api_tokens.sql`, `20260926120000_api_tokens_service_role_only.sql` |
 | `mcp_confirmations` | Durable Tier-3 MCP confirmation gate | `20260612090000_mcp_confirmations.sql` |
 | `oauth_clients` / `oauth_codes` / `oauth_tokens` / `oauth_login_attempts` | OAuth 2.1 (DCR + PKCE) stub for single-principal MCP auth | `20260612120000_oauth_stub.sql` |
 
@@ -259,7 +259,7 @@ CREATE INDEX api_tokens_user_id_idx ON api_tokens (user_id);
 | `created_at` | TIMESTAMPTZ | Creation timestamp |
 | `revoked_at` | TIMESTAMPTZ | Set when revoked; `NULL` = active |
 
-The web settings page manages a user's own tokens via their session (own-row RLS); the settings UI selects `id/name/scopes/timestamps` only and never receives `token_hash`. The API resolver looks tokens up by hash with the **service-role key** (bypasses RLS).
+Token mint/list/revoke go through the Hono API (`SESSION_ONLY` routes) with the **service-role key**. RLS is enabled with **no user policies** (`20260926120000_api_tokens_service_role_only.sql`) so the browser anon key cannot INSERT/UPDATE/SELECT token rows directly (which would bypass soft-revoke and scope checks). The API resolver looks tokens up by hash with the service-role key.
 
 #### `mcp_confirmations`
 
@@ -449,14 +449,14 @@ Per-row, per-card compare-and-swap:
 
 RLS is enabled on every table. Two patterns are used:
 
-1. **Own-row RLS** (`auth.uid() = user_id`) — `app_state`, `metrics`, `cards`, `capture_queue`, `focus_sessions`, `api_tokens`. Clients reach these through the anon/authenticated key scoped to their own rows.
-2. **Service-role-only RLS** — `mcp_confirmations`, `oauth_clients`, `oauth_codes`, `oauth_tokens`, `oauth_login_attempts`. See below.
+1. **Own-row RLS** (`auth.uid() = user_id`) — `app_state`, `metrics`, `cards`, `capture_queue`, `focus_sessions`. Clients reach these through the anon/authenticated key scoped to their own rows.
+2. **Service-role-only RLS** — `api_tokens`, `mcp_confirmations`, `oauth_clients`, `oauth_codes`, `oauth_tokens`, `oauth_login_attempts`. See below.
 
 > **Service role bypasses RLS inherently.** The Vercel serverless functions use the service-role key, which is not subject to RLS at all. There is **no** permissive "Service role full access" policy — adding `USING(true)` would nullify per-user isolation for the anon/authenticated roles. (An early `USING(true)` policy on `capture_queue` was removed by `20260207180000_drop_service_role_policy.sql`.)
 
 ### Service-Role-Only RLS Pattern
 
-`mcp_confirmations` and the four `oauth_*` tables enable RLS **with zero user policies**. With RLS on and no policy granting access, the anon and authenticated roles can read/write **nothing**. Only the service-role key — which bypasses RLS — can touch these tables. Agents never hit Supabase directly; they go through the API layer (Hono), which uses the service-role key exclusively. This is the intended contract for a future hosted-MCP endpoint.
+`api_tokens`, `mcp_confirmations`, and the four `oauth_*` tables enable RLS **with zero user policies**. With RLS on and no policy granting access, the anon and authenticated roles can read/write **nothing**. Only the service-role key — which bypasses RLS — can touch these tables. Agents never hit Supabase directly; they go through the API layer (Hono), which uses the service-role key exclusively. This is the intended contract for a future hosted-MCP endpoint.
 
 ```sql
 ALTER TABLE mcp_confirmations ENABLE ROW LEVEL SECURITY;
@@ -474,7 +474,7 @@ CREATE POLICY "Users can update own state" ON app_state FOR UPDATE USING (auth.u
 CREATE POLICY "Users can delete own state" ON app_state FOR DELETE USING (auth.uid() = user_id);
 ```
 
-`metrics` has SELECT/INSERT/UPDATE (no DELETE). `cards`, `capture_queue`, `focus_sessions`, and `api_tokens` each have all four (SELECT/INSERT/UPDATE/DELETE), all gated on `auth.uid() = user_id`.
+`metrics` has SELECT/INSERT/UPDATE (no DELETE). `cards`, `capture_queue`, and `focus_sessions` each have all four (SELECT/INSERT/UPDATE/DELETE), all gated on `auth.uid() = user_id`. `api_tokens` is service-role-only (no user policies).
 
 ---
 

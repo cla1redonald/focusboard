@@ -9,6 +9,10 @@ name: Model liveness
 #
 # Needs repo secret ANTHROPIC_API_KEY (a key with credits). Cost: ~1 token per
 # model per run — effectively free.
+#
+# Security: on pull_request we check out the PR *base* (trusted scripts/lockfile)
+# and only overlay api/_lib/models.ts from the head. Never run npm from an
+# untrusted head with ANTHROPIC_API_KEY in the environment (pwn-request).
 
 on:
   schedule:
@@ -30,6 +34,17 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v5
+        with:
+          # Trusted tree for npm ci + check-models.mts. PR heads must not supply
+          # package.json scripts or the checker while the Anthropic secret is set.
+          ref: ${{ github.event_name == 'pull_request' && github.event.pull_request.base.sha || github.sha }}
+
+      - name: Overlay PR model id map only
+        if: github.event_name == 'pull_request'
+        run: |
+          git fetch --depth=1 origin "${{ github.event.pull_request.head.sha }}"
+          git checkout "${{ github.event.pull_request.head.sha }}" -- api/_lib/models.ts
+
       - uses: actions/setup-node@v5
         with:
           node-version: 20
