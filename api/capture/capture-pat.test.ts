@@ -39,31 +39,47 @@ let mockQueryResult: { data: Record<string, unknown>[] | null; error: { message:
 let orCallArg = "";
 let inCallArg: string[] = [];
 
+// Session JWT resolution (supabase.auth.getUser). null = not a valid session.
+let mockSessionUser: { id: string } | null = null;
+
 // ─── Module mocks ──────────────────────────────────────────────────────────────
 
-vi.mock("../_lib/token.js", () => ({
-  resolveApiToken: vi.fn(async () => mockResolvedToken),
-  hasScope: vi.fn((resolved: { scopes: string[] }, scope: string) =>
-    resolved.scopes.includes(scope)
-  ),
-  SCOPES: {
-    CAPTURE_READ: "capture:read",
-    CAPTURE_WRITE: "capture:write",
-    CARD_WRITE: "card:write",
-  },
-  isPat: vi.fn((token: string | undefined) =>
-    typeof token === "string" && token.startsWith("fb_pat_")
-  ),
-  isOAuthToken: vi.fn((token: string | undefined) =>
-    typeof token === "string" && token.startsWith("fb_oat_")
-  ),
-  resolveOAuthToken: vi.fn(async () => mockResolvedOAuthToken),
-  generateToken: vi.fn(() => ({ plaintext: "fb_pat_generated", hash: "hashed" })),
-  hashToken: vi.fn((t: string) => t + "_hashed"),
-  bearerToken: vi.fn((authHeader: string | undefined | null) =>
-    typeof authHeader === "string" ? authHeader.replace(/^Bearer\s+/i, "") : undefined
-  ),
-}));
+// The token helpers mirror the REAL ones in token.ts where it matters for auth
+// decisions: bearerToken() returns undefined unless the header starts with
+// "Bearer ", and each resolver only resolves a header carrying its own prefix.
+// (A looser mock would let a malformed header "authenticate" in tests only.)
+vi.mock("../_lib/token.js", () => {
+  const bearer = (authHeader: string | undefined | null) => {
+    if (typeof authHeader !== "string") return undefined;
+    const stripped = authHeader.replace(/^Bearer\s+/i, "");
+    return stripped === authHeader ? undefined : stripped;
+  };
+  const isPat = (token: string | undefined | null) =>
+    typeof token === "string" && token.startsWith("fb_pat_");
+  const isOAuthToken = (token: string | undefined | null) =>
+    typeof token === "string" && token.startsWith("fb_oat_");
+  return {
+    resolveApiToken: vi.fn(async (authHeader: string | undefined | null) =>
+      isPat(bearer(authHeader)) ? mockResolvedToken : null
+    ),
+    resolveOAuthToken: vi.fn(async (authHeader: string | undefined | null) =>
+      isOAuthToken(bearer(authHeader)) ? mockResolvedOAuthToken : null
+    ),
+    hasScope: vi.fn((resolved: { scopes: string[] }, scope: string) =>
+      resolved.scopes.includes(scope)
+    ),
+    SCOPES: {
+      CAPTURE_READ: "capture:read",
+      CAPTURE_WRITE: "capture:write",
+      CARD_WRITE: "card:write",
+    },
+    isPat: vi.fn(isPat),
+    isOAuthToken: vi.fn(isOAuthToken),
+    generateToken: vi.fn(() => ({ plaintext: "fb_pat_generated", hash: "hashed" })),
+    hashToken: vi.fn((t: string) => t + "_hashed"),
+    bearerToken: vi.fn(bearer),
+  };
+});
 
 vi.mock("@vercel/functions", () => ({
   waitUntil: vi.fn(),
@@ -134,7 +150,11 @@ vi.mock("@supabase/supabase-js", () => ({
         update: vi.fn(() => updateChain),
       })),
       auth: {
-        getUser: vi.fn(async () => ({ data: { user: null }, error: { message: "no user" } })),
+        getUser: vi.fn(async () =>
+          mockSessionUser
+            ? { data: { user: mockSessionUser }, error: null }
+            : { data: { user: null }, error: { message: "no user" } }
+        ),
       },
     };
   }),
@@ -202,6 +222,7 @@ function resetState() {
     tokenId: "token-1",
   };
   mockResolvedOAuthToken = null;
+  mockSessionUser = null;
   process.env.SUPABASE_URL = "https://test.supabase.co";
   process.env.SUPABASE_SERVICE_ROLE_KEY = "service-key";
   process.env.WEBHOOK_SECRET = "webhook-secret-value";
@@ -390,9 +411,22 @@ describe("Hono /api/capture — POST capture (OAuth auth path)", () => {
     expect(lastInsertPayload).toBeNull();
   });
 
+  // Contract pin only: this was already a 401 before the dead-token branch existed
+  // (it reached session auth and failed there). The two tests below, which add a
+  // valid webhook secret, are the ones that prove the dead-token branch itself.
   it("returns 401 NOT_AUTHENTICATED for an expired or revoked OAuth token and inserts nothing", async () => {
     mockResolvedOAuthToken = null;
     const res = await postCapture({ content: "test" }, { Authorization: OAUTH_TOKEN });
+    expect(res.status).toBe(401);
+    const body = await res.json() as ErrBody;
+    expect(body.error.code).toBe("NOT_AUTHENTICATED");
+    expect(lastInsertPayload).toBeNull();
+  });
+
+  it("an fb_oat_ value WITHOUT the Bearer scheme is not treated as an OAuth token", async () => {
+    // The resolver would return a user for this token if it were consulted with a
+    // well-formed header. A malformed header must not reach that outcome.
+    const res = await postCapture({ content: "test" }, { Authorization: "fb_oat_testtokenvalue" });
     expect(res.status).toBe(401);
     const body = await res.json() as ErrBody;
     expect(body.error.code).toBe("NOT_AUTHENTICATED");
@@ -491,6 +525,69 @@ describe("Hono /api/capture — POST capture (OAuth auth path)", () => {
     expect(res.status).toBe(200);
     expect(lastInsertPayload).toMatchObject({ user_id: "user-abc" });
     expect(vi.mocked(resolveOAuthToken)).not.toHaveBeenCalled();
+  });
+});
+
+// ─── POST capture tests: webhook + session paths still work ───────────────────
+//
+// The OAuth and dead-token branches sit ahead of these two in the handler. These
+// prove legitimate non-token callers are not swallowed by the new branches.
+
+describe("Hono /api/capture — POST capture (webhook and session paths)", () => {
+  let fetchSpy: MockInstance;
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetState();
+    mockResolvedToken = null;
+    fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ success: true }), { status: 200 })
+    );
+  });
+
+  async function autoAddSentToProcess(): Promise<{ auto_add: boolean; user_id: string }> {
+    const { waitUntil } = await import("@vercel/functions");
+    const calls = (vi.mocked(waitUntil) as MockInstance).mock.calls;
+    expect(calls.length).toBeGreaterThan(0);
+    await calls[0][0];
+    return JSON.parse((fetchSpy.mock.calls[0][1] as { body: string }).body);
+  }
+
+  it("a valid webhook secret with no Authorization header still captures, with auto_add on", async () => {
+    const res = await app.request("/api/capture", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "From the shortcut", secret: "webhook-secret-value" }),
+    });
+    expect(res.status).toBe(200);
+    expect(lastInsertPayload).toMatchObject({ user_id: "webhook-user-id", raw_content: "From the shortcut" });
+    const sent = await autoAddSentToProcess();
+    expect(sent).toMatchObject({ auto_add: true, user_id: "webhook-user-id" });
+    fetchSpy.mockRestore();
+  });
+
+  it("a wrong webhook secret is rejected (401) and inserts nothing", async () => {
+    const res = await app.request("/api/capture", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ content: "test", secret: "not-the-secret" }),
+    });
+    expect(res.status).toBe(401);
+    expect(lastInsertPayload).toBeNull();
+    fetchSpy.mockRestore();
+  });
+
+  it("a Supabase session JWT still captures as that user, with auto_add on", async () => {
+    mockSessionUser = { id: "user-session" };
+    const res = await postCapture(
+      { content: "From the web app" },
+      { Authorization: "Bearer eyJhbGciOiJIUzI1NiJ9.session.jwt" }
+    );
+    expect(res.status).toBe(200);
+    expect(lastInsertPayload).toMatchObject({ user_id: "user-session", raw_content: "From the web app" });
+    const sent = await autoAddSentToProcess();
+    expect(sent).toMatchObject({ auto_add: true, user_id: "user-session" });
+    fetchSpy.mockRestore();
   });
 });
 

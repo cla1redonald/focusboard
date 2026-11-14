@@ -252,7 +252,9 @@ app.post("/capture/:id/dismiss", async (c: Context<AuthEnv>) => {
 //
 // INLINE_AUTH in ROUTE_SCOPES: the webhook path authenticates with a secret in the
 // JSON body, so this handler must read the body before it can resolve a principal.
-// Auth priority mirrors authenticate(): PAT > webhook secret > session.
+// Auth priority mirrors authenticate(): PAT > OAuth access token > webhook
+// secret > session. A recognised fb_pat_/fb_oat_ token that fails lookup is a
+// 401 and never falls through to the webhook or session branches.
 
 app.post("/capture", async (c: Context<AuthEnv>) => {
   let body: Record<string, unknown>;
