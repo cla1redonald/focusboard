@@ -20,6 +20,9 @@ import { app } from "../_lib/hono-app.js";
 // ─── Shared mock state ────────────────────────────────────────────────────────
 
 let mockResolvedToken: { userId: string; scopes: string[]; tokenId: string } | null = null;
+// OAuth access token (fb_oat_...) resolution. null = unknown, expired or revoked,
+// which is exactly what the real resolveOAuthToken returns for those cases.
+let mockResolvedOAuthToken: { userId: string; scopes: string[]; tokenId: string } | null = null;
 
 let lastInsertPayload: Record<string, unknown> | null = null;
 let mockSelectCount = 0;
@@ -54,7 +57,7 @@ vi.mock("../_lib/token.js", () => ({
   isOAuthToken: vi.fn((token: string | undefined) =>
     typeof token === "string" && token.startsWith("fb_oat_")
   ),
-  resolveOAuthToken: vi.fn(async () => null),
+  resolveOAuthToken: vi.fn(async () => mockResolvedOAuthToken),
   generateToken: vi.fn(() => ({ plaintext: "fb_pat_generated", hash: "hashed" })),
   hashToken: vi.fn((t: string) => t + "_hashed"),
   bearerToken: vi.fn((authHeader: string | undefined | null) =>
@@ -198,6 +201,7 @@ function resetState() {
     scopes: ["capture:write"],
     tokenId: "token-1",
   };
+  mockResolvedOAuthToken = null;
   process.env.SUPABASE_URL = "https://test.supabase.co";
   process.env.SUPABASE_SERVICE_ROLE_KEY = "service-key";
   process.env.WEBHOOK_SECRET = "webhook-secret-value";
@@ -339,6 +343,154 @@ describe("Hono /api/capture — POST capture (PAT auth path)", () => {
     );
 
     fetchSpy.mockRestore();
+  });
+});
+
+// ─── POST capture tests: OAuth path ───────────────────────────────────────────
+//
+// POST /api/capture is the one INLINE_AUTH route: it resolves its own principal
+// instead of going through authenticate(). It used to have no OAuth branch, so an
+// fb_oat_ token (the claude.ai connector) fell through to the session branch and
+// came back NOT_AUTHENTICATED. These pin the OAuth branch and its safety posture.
+
+describe("Hono /api/capture — POST capture (OAuth auth path)", () => {
+  const OAUTH_TOKEN = "Bearer fb_oat_testtokenvalue";
+
+  beforeEach(() => {
+    vi.clearAllMocks();
+    resetState();
+    // No PAT on these requests: the caller presents an OAuth access token only.
+    mockResolvedToken = null;
+    mockResolvedOAuthToken = {
+      userId: "user-oauth",
+      scopes: ["capture:read", "capture:write"],
+      tokenId: "oat-1",
+    };
+  });
+
+  it("accepts a valid OAuth token with capture:write and inserts a pending row for that user", async () => {
+    const res = await postCapture({ content: "From the connector" }, { Authorization: OAUTH_TOKEN });
+    expect(res.status).toBe(200);
+    const body = await res.json() as OkBody<{ captureId: string }>;
+    expect(body.ok).toBe(true);
+    expect(body.data.captureId).toBe("capture-123");
+    expect(lastInsertPayload).toMatchObject({
+      user_id: "user-oauth",
+      status: "pending",
+      raw_content: "From the connector",
+    });
+  });
+
+  it("returns 403 INSUFFICIENT_SCOPE when the OAuth token lacks capture:write", async () => {
+    mockResolvedOAuthToken = { userId: "user-oauth", scopes: ["capture:read"], tokenId: "oat-1" };
+    const res = await postCapture({ content: "test" }, { Authorization: OAUTH_TOKEN });
+    expect(res.status).toBe(403);
+    const body = await res.json() as ErrBody;
+    expect(body.error.code).toBe("INSUFFICIENT_SCOPE");
+    expect(lastInsertPayload).toBeNull();
+  });
+
+  it("returns 401 NOT_AUTHENTICATED for an expired or revoked OAuth token and inserts nothing", async () => {
+    mockResolvedOAuthToken = null;
+    const res = await postCapture({ content: "test" }, { Authorization: OAUTH_TOKEN });
+    expect(res.status).toBe(401);
+    const body = await res.json() as ErrBody;
+    expect(body.error.code).toBe("NOT_AUTHENTICATED");
+    expect(lastInsertPayload).toBeNull();
+  });
+
+  it("a dead OAuth token is rejected outright, even alongside a valid webhook secret, and never reaches session auth", async () => {
+    mockResolvedOAuthToken = null;
+    const { createClient } = await import("@supabase/supabase-js");
+    const res = await postCapture(
+      { content: "test", secret: "webhook-secret-value" },
+      { Authorization: OAUTH_TOKEN }
+    );
+    expect(res.status).toBe(401);
+    const body = await res.json() as ErrBody;
+    expect(body.error.code).toBe("NOT_AUTHENTICATED");
+    expect(lastInsertPayload).toBeNull();
+    // No Supabase client at all: the token was never handed to auth.getUser().
+    expect(vi.mocked(createClient)).not.toHaveBeenCalled();
+  });
+
+  it("a dead PAT is rejected outright too, matching authenticate()", async () => {
+    mockResolvedToken = null;
+    mockResolvedOAuthToken = null;
+    const { createClient } = await import("@supabase/supabase-js");
+    const res = await postCapture({ content: "test", secret: "webhook-secret-value" });
+    expect(res.status).toBe(401);
+    expect(lastInsertPayload).toBeNull();
+    expect(vi.mocked(createClient)).not.toHaveBeenCalled();
+  });
+
+  it("rate-limits OAuth captures like PAT captures (429 at the limit)", async () => {
+    mockSelectCount = 30;
+    const res = await postCapture({ content: "test" }, { Authorization: OAUTH_TOKEN });
+    expect(res.status).toBe(429);
+    const body = await res.json() as ErrBody;
+    expect(body.error.code).toBe("RATE_LIMITED");
+    expect(lastInsertPayload).toBeNull();
+  });
+
+  it("stores the Idempotency-Key on a first OAuth capture", async () => {
+    const res = await postCapture(
+      { content: "Hello world" },
+      { Authorization: OAUTH_TOKEN, "Idempotency-Key": "oauth-key-1" }
+    );
+    expect(res.status).toBe(200);
+    expect(lastInsertPayload).toMatchObject({ idempotency_key: "oauth-key-1" });
+  });
+
+  it("idempotency: a repeated OAuth capture returns the existing id without re-inserting", async () => {
+    mockExistingRow = { id: "existing-capture-456" };
+    const res = await postCapture(
+      { content: "Hello world" },
+      { Authorization: OAUTH_TOKEN, "Idempotency-Key": "oauth-key-1" }
+    );
+    expect(res.status).toBe(200);
+    const body = await res.json() as OkBody<{ captureId: string; duplicate?: boolean }>;
+    expect(body.data.captureId).toBe("existing-capture-456");
+    expect(body.data.duplicate).toBe(true);
+    expect(lastInsertPayload).toBeNull();
+  });
+
+  it("passes auto_add: false to the process endpoint, so an OAuth capture lands in the inbox", async () => {
+    const fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ success: true }), { status: 200 })
+    );
+    const { waitUntil } = await import("@vercel/functions");
+    const waitUntilSpy = vi.mocked(waitUntil) as MockInstance;
+
+    const res = await postCapture({ content: "Hello world" }, { Authorization: OAUTH_TOKEN });
+    expect(res.status).toBe(200);
+
+    const calls = waitUntilSpy.mock.calls;
+    expect(calls.length).toBeGreaterThan(0);
+    await calls[0][0];
+
+    expect(fetchSpy).toHaveBeenCalledWith(
+      expect.stringContaining("/api/capture/process"),
+      expect.objectContaining({
+        body: expect.stringContaining('"auto_add":false'),
+      })
+    );
+    const processBody = JSON.parse(
+      (fetchSpy.mock.calls[0][1] as { body: string }).body
+    ) as { user_id: string };
+    expect(processBody.user_id).toBe("user-oauth");
+
+    fetchSpy.mockRestore();
+  });
+
+  it("a PAT still wins when both would resolve, and the OAuth resolver is not consulted", async () => {
+    mockResolvedToken = { userId: "user-abc", scopes: ["capture:write"], tokenId: "token-1" };
+    const { resolveOAuthToken } = await import("../_lib/token.js");
+
+    const res = await postCapture({ content: "PAT capture" });
+    expect(res.status).toBe(200);
+    expect(lastInsertPayload).toMatchObject({ user_id: "user-abc" });
+    expect(vi.mocked(resolveOAuthToken)).not.toHaveBeenCalled();
   });
 });
 

@@ -28,7 +28,15 @@ import {
   principalHasScope,
   type AuthEnv,
 } from "./auth-middleware.js";
-import { resolveApiToken, resolveOAuthToken, SCOPES, generateToken } from "./token.js";
+import {
+  resolveApiToken,
+  resolveOAuthToken,
+  bearerToken,
+  isPat,
+  isOAuthToken,
+  SCOPES,
+  generateToken,
+} from "./token.js";
 import { ok, fail } from "./envelope.js";
 import { TRIAGE_STATUSES } from "../../src/app/captureTypes.js";
 import { loadBoard, slimCard, tagNameResolver } from "./board.js";
@@ -272,6 +280,7 @@ app.post("/capture", async (c: Context<AuthEnv>) => {
   let userId: string | null = null;
   let isPatCapture = false;
 
+  const presentedToken = bearerToken(c.req.header("authorization"));
   const patResolved = await resolveApiToken(c.req.header("authorization"));
   // OAuth access tokens (fb_oat_...) authenticate MCP / claude.ai connector
   // callers. The shared authenticate() middleware handles OAuth for every other
@@ -303,6 +312,11 @@ app.post("/capture", async (c: Context<AuthEnv>) => {
     // idempotency-tracked, and auto-add disabled (the capture lands in the inbox
     // for triage rather than jumping onto the board).
     isPatCapture = true;
+  } else if (isPat(presentedToken) || isOAuthToken(presentedToken)) {
+    // A recognised fb_pat_ / fb_oat_ prefix whose lookup failed (revoked or
+    // expired). Same rule as authenticate(): reject here, do NOT fall through
+    // to the webhook or session branches with a dead FocusBoard token.
+    return fail(c, 401, "NOT_AUTHENTICATED", "Missing or invalid credentials");
   } else if (secret) {
     const webhookPrincipal = authenticateWebhook(secret);
     if (!webhookPrincipal) {

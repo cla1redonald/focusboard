@@ -15,7 +15,7 @@
  * re-enforces on every sub-request through the composed server).
  */
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { app } from "./hono-app.js";
 import { HOSTED_TOOLS } from "./mcp-server.js";
 
@@ -59,6 +59,8 @@ vi.mock("@vercel/functions", () => ({ waitUntil: vi.fn() }));
 // and for the confirmations table (POST /api/confirmations).
 let mockAppState: Record<string, unknown> | null = null;
 let mockCardRows: { id: string; title: string; version: number; column_id: string; swimlane_id: string; status: string }[] = [];
+// Every row the capture routes insert into capture_queue, in order.
+let mockCaptureInserts: Record<string, unknown>[] = [];
 
 vi.mock("@supabase/supabase-js", () => ({
   createClient: vi.fn(() => ({
@@ -115,6 +117,27 @@ vi.mock("@supabase/supabase-js", () => ({
           })),
         };
       }
+      if (table === "capture_queue") {
+        // Enough for POST /api/capture and POST /api/capture/batch: the
+        // rate-limit count, the idempotency pre-checks, and the insert.
+        const filter: Record<string, unknown> = {};
+        filter.eq = vi.fn(() => filter);
+        filter.gte = vi.fn(async () => ({ count: 0, error: null }));
+        filter.in = vi.fn(async () => ({ data: [], error: null }));
+        filter.maybeSingle = vi.fn(async () => ({ data: null, error: null }));
+        return {
+          select: vi.fn(() => filter),
+          insert: vi.fn((payload: Record<string, unknown>) => {
+            mockCaptureInserts.push(payload);
+            const id = `capture-${mockCaptureInserts.length}`;
+            return {
+              select: vi.fn(() => ({
+                single: vi.fn(async () => ({ data: { id }, error: null })),
+              })),
+            };
+          }),
+        };
+      }
       // Default
       return {
         select: vi.fn(() => ({
@@ -136,6 +159,7 @@ beforeEach(() => {
   mockResolvedOAuthToken = null;
   mockAppState = null;
   mockCardRows = [];
+  mockCaptureInserts = [];
   process.env.SUPABASE_URL = "https://test.supabase.co";
   process.env.SUPABASE_SERVICE_ROLE_KEY = "service-role-key";
 });
@@ -370,6 +394,125 @@ describe("POST /api/mcp — Tier-3 tool returns confirmation_required", () => {
     expect(text.status).toBe("confirmation_required");
     expect(typeof text.confirm_token).toBe("string");
     expect(text.preview).toContain("My new card");
+  });
+});
+
+// ── tools/call: capture tools as the claude.ai connector (OAuth principal) ────
+//
+// The connector authenticates to /api/mcp with an fb_oat_ access token, and the
+// capture tools forward that same header in-process to the capture routes. Both
+// tools were broken for that caller: POST /api/capture had no OAuth branch
+// (NOT_AUTHENTICATED), and focusboard_capture_actions forwarded bare strings to
+// a batch route that requires [{ content }] (VALIDATION).
+
+describe("POST /api/mcp — capture tools with an OAuth (fb_oat_) principal", () => {
+  type ToolResult = { result: { content: { type: "text"; text: string }[]; isError: boolean } };
+
+  function connectorToken() {
+    // No PAT: the only credential is the OAuth access token.
+    mockResolvedToken = null;
+    mockResolvedOAuthToken = {
+      userId: "user-oauth",
+      scopes: ["capture:read", "capture:write"],
+      tokenId: "oat-1",
+    };
+    return "Bearer fb_oat_connector";
+  }
+
+  let fetchSpy: ReturnType<typeof vi.spyOn>;
+  beforeEach(() => {
+    // The capture routes fire a background POST to /api/capture/process.
+    fetchSpy = vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(JSON.stringify({ success: true }), { status: 200 })
+    );
+  });
+  afterEach(() => {
+    fetchSpy.mockRestore();
+  });
+
+  it("focusboard_capture succeeds and inserts a pending row for the OAuth user", async () => {
+    const res = await mcpPost({
+      jsonrpc: "2.0",
+      id: 20,
+      method: "tools/call",
+      params: { name: "focusboard_capture", arguments: { content: "Ring the accountant" } },
+    }, connectorToken());
+    expect(res.status).toBe(200);
+    const body = await res.json() as ToolResult;
+    const envelope = JSON.parse(body.result.content[0].text) as {
+      ok: boolean; data?: { captureId: string }; error?: { code: string };
+    };
+    expect(envelope.error).toBeUndefined();
+    expect(body.result.isError).toBe(false);
+    expect(envelope.ok).toBe(true);
+    expect(envelope.data?.captureId).toBe("capture-1");
+    expect(mockCaptureInserts).toHaveLength(1);
+    expect(mockCaptureInserts[0]).toMatchObject({
+      user_id: "user-oauth",
+      status: "pending",
+      raw_content: "Ring the accountant",
+    });
+  });
+
+  it("focusboard_capture_actions accepts plain string items, as its schema declares", async () => {
+    const res = await mcpPost({
+      jsonrpc: "2.0",
+      id: 21,
+      method: "tools/call",
+      params: {
+        name: "focusboard_capture_actions",
+        arguments: { items: ["Send the invoice", "Book the venue"] },
+      },
+    }, connectorToken());
+    expect(res.status).toBe(200);
+    const body = await res.json() as ToolResult;
+    const envelope = JSON.parse(body.result.content[0].text) as {
+      ok: boolean; error?: { code: string };
+    };
+    expect(envelope.error).toBeUndefined();
+    expect(body.result.isError).toBe(false);
+    expect(envelope.ok).toBe(true);
+    expect(mockCaptureInserts.map((row) => row.raw_content)).toEqual([
+      "Send the invoice",
+      "Book the venue",
+    ]);
+    expect(mockCaptureInserts.every((row) => row.user_id === "user-oauth")).toBe(true);
+  });
+
+  it("focusboard_capture_actions leaves already-shaped { content } items untouched", async () => {
+    const res = await mcpPost({
+      jsonrpc: "2.0",
+      id: 22,
+      method: "tools/call",
+      params: {
+        name: "focusboard_capture_actions",
+        arguments: { items: [{ content: "Already an object" }, "A bare string"] },
+      },
+    }, connectorToken());
+    expect(res.status).toBe(200);
+    const body = await res.json() as ToolResult;
+    expect(body.result.isError).toBe(false);
+    expect(mockCaptureInserts.map((row) => row.raw_content)).toEqual([
+      "Already an object",
+      "A bare string",
+    ]);
+  });
+
+  it("focusboard_capture is refused when the OAuth token lacks capture:write", async () => {
+    connectorToken();
+    mockResolvedOAuthToken = { userId: "user-oauth", scopes: ["capture:read"], tokenId: "oat-1" };
+    const res = await mcpPost({
+      jsonrpc: "2.0",
+      id: 23,
+      method: "tools/call",
+      params: { name: "focusboard_capture", arguments: { content: "Should not land" } },
+    }, "Bearer fb_oat_connector");
+    expect(res.status).toBe(200);
+    const body = await res.json() as ToolResult;
+    expect(body.result.isError).toBe(true);
+    const envelope = JSON.parse(body.result.content[0].text) as { error?: { code: string } };
+    expect(envelope.error?.code).toBe("INSUFFICIENT_SCOPE");
+    expect(mockCaptureInserts).toHaveLength(0);
   });
 });
 
