@@ -28,7 +28,7 @@ import {
   principalHasScope,
   type AuthEnv,
 } from "./auth-middleware.js";
-import { resolveApiToken, SCOPES, generateToken } from "./token.js";
+import { resolveApiToken, resolveOAuthToken, SCOPES, generateToken } from "./token.js";
 import { ok, fail } from "./envelope.js";
 import { TRIAGE_STATUSES } from "../../src/app/captureTypes.js";
 import { loadBoard, slimCard, tagNameResolver } from "./board.js";
@@ -273,6 +273,14 @@ app.post("/capture", async (c: Context<AuthEnv>) => {
   let isPatCapture = false;
 
   const patResolved = await resolveApiToken(c.req.header("authorization"));
+  // OAuth access tokens (fb_oat_...) authenticate MCP / claude.ai connector
+  // callers. The shared authenticate() middleware handles OAuth for every other
+  // route, but POST /api/capture is INLINE_AUTH and must resolve it here too —
+  // otherwise fb_oat_ tokens fall through to the session branch below and
+  // supabase.auth.getUser() rejects them with a misleading NOT_AUTHENTICATED.
+  const oauthResolved = patResolved
+    ? null
+    : await resolveOAuthToken(c.req.header("authorization"));
 
   if (patResolved) {
     if (!principalHasScope(
@@ -282,6 +290,18 @@ app.post("/capture", async (c: Context<AuthEnv>) => {
       return fail(c, 403, "INSUFFICIENT_SCOPE", `Requires scope ${SCOPES.CAPTURE_WRITE}`);
     }
     userId = patResolved.userId;
+    isPatCapture = true;
+  } else if (oauthResolved) {
+    if (!principalHasScope(
+      { userId: oauthResolved.userId, scopes: oauthResolved.scopes, kind: "oauth" },
+      SCOPES.CAPTURE_WRITE
+    )) {
+      return fail(c, 403, "INSUFFICIENT_SCOPE", `Requires scope ${SCOPES.CAPTURE_WRITE}`);
+    }
+    userId = oauthResolved.userId;
+    // A programmatic caller like a PAT: keep the same safe posture — rate-limited,
+    // idempotency-tracked, and auto-add disabled (the capture lands in the inbox
+    // for triage rather than jumping onto the board).
     isPatCapture = true;
   } else if (secret) {
     const webhookPrincipal = authenticateWebhook(secret);

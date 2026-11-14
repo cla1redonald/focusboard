@@ -545,8 +545,15 @@ export async function dispatchTool(
 
       case "focusboard_capture_actions": {
         const idempotencyKey = generateUUID();
+        // The tool accepts items as plain strings, but POST /api/capture/batch
+        // requires [{ content }] objects. Normalise here so schema-conformant
+        // callers don't fail validation (leave already-shaped objects untouched).
+        const rawItems = Array.isArray(args.items) ? args.items : [];
+        const items = rawItems.map((it) =>
+          typeof it === "string" ? { content: it } : it
+        );
         const { status, body } = await inProcessPost(getFetch, authHeader, "/api/capture/batch",
-          { items: args.items },
+          { items },
           { "idempotency-key": idempotencyKey }
         );
         const env = body as { ok: boolean };
