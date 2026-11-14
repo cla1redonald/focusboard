@@ -28,7 +28,15 @@ import {
   principalHasScope,
   type AuthEnv,
 } from "./auth-middleware.js";
-import { resolveApiToken, SCOPES, generateToken } from "./token.js";
+import {
+  resolveApiToken,
+  resolveOAuthToken,
+  bearerToken,
+  isPat,
+  isOAuthToken,
+  SCOPES,
+  generateToken,
+} from "./token.js";
 import { ok, fail } from "./envelope.js";
 import { TRIAGE_STATUSES } from "../../src/app/captureTypes.js";
 import { loadBoard, slimCard, tagNameResolver } from "./board.js";
@@ -244,7 +252,9 @@ app.post("/capture/:id/dismiss", async (c: Context<AuthEnv>) => {
 //
 // INLINE_AUTH in ROUTE_SCOPES: the webhook path authenticates with a secret in the
 // JSON body, so this handler must read the body before it can resolve a principal.
-// Auth priority mirrors authenticate(): PAT > webhook secret > session.
+// Auth priority mirrors authenticate(): PAT > OAuth access token > webhook
+// secret > session. A recognised fb_pat_/fb_oat_ token that fails lookup is a
+// 401 and never falls through to the webhook or session branches.
 
 app.post("/capture", async (c: Context<AuthEnv>) => {
   let body: Record<string, unknown>;
@@ -272,7 +282,16 @@ app.post("/capture", async (c: Context<AuthEnv>) => {
   let userId: string | null = null;
   let isPatCapture = false;
 
+  const presentedToken = bearerToken(c.req.header("authorization"));
   const patResolved = await resolveApiToken(c.req.header("authorization"));
+  // OAuth access tokens (fb_oat_...) authenticate MCP / claude.ai connector
+  // callers. The shared authenticate() middleware handles OAuth for every other
+  // route, but POST /api/capture is INLINE_AUTH and must resolve it here too —
+  // otherwise fb_oat_ tokens fall through to the session branch below and
+  // supabase.auth.getUser() rejects them with a misleading NOT_AUTHENTICATED.
+  const oauthResolved = patResolved
+    ? null
+    : await resolveOAuthToken(c.req.header("authorization"));
 
   if (patResolved) {
     if (!principalHasScope(
@@ -283,6 +302,23 @@ app.post("/capture", async (c: Context<AuthEnv>) => {
     }
     userId = patResolved.userId;
     isPatCapture = true;
+  } else if (oauthResolved) {
+    if (!principalHasScope(
+      { userId: oauthResolved.userId, scopes: oauthResolved.scopes, kind: "oauth" },
+      SCOPES.CAPTURE_WRITE
+    )) {
+      return fail(c, 403, "INSUFFICIENT_SCOPE", `Requires scope ${SCOPES.CAPTURE_WRITE}`);
+    }
+    userId = oauthResolved.userId;
+    // A programmatic caller like a PAT: keep the same safe posture — rate-limited,
+    // idempotency-tracked, and auto-add disabled (the capture lands in the inbox
+    // for triage rather than jumping onto the board).
+    isPatCapture = true;
+  } else if (isPat(presentedToken) || isOAuthToken(presentedToken)) {
+    // A recognised fb_pat_ / fb_oat_ prefix whose lookup failed (revoked or
+    // expired). Same rule as authenticate(): reject here, do NOT fall through
+    // to the webhook or session branches with a dead FocusBoard token.
+    return fail(c, 401, "NOT_AUTHENTICATED", "Missing or invalid credentials");
   } else if (secret) {
     const webhookPrincipal = authenticateWebhook(secret);
     if (!webhookPrincipal) {

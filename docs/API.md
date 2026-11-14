@@ -209,7 +209,7 @@ The triage inbox: up to 50 capture rows in `TRIAGE_STATUSES`, excluding snoozed-
 
 #### `POST /api/capture` · `INLINE_AUTH`
 
-Capture raw content. The handler authenticates itself (priority: **PAT > webhook secret > session**) because the webhook path reads `secret` from the body.
+Capture raw content. The handler authenticates itself (priority: **PAT > OAuth access token > webhook secret > session**) because the webhook path reads `secret` from the body. It follows the same rule as the shared middleware: a recognised `fb_pat_` / `fb_oat_` token whose lookup fails (revoked or expired) returns `401 NOT_AUTHENTICATED` immediately and does not fall through to the webhook or session branches. An OAuth token needs the `capture:write` scope, exactly like a PAT (`403 INSUFFICIENT_SCOPE` otherwise). This is the path the hosted MCP `focusboard_capture` tool uses for claude.ai connector callers.
 
 | Field | Required | Notes |
 |-------|----------|-------|
@@ -220,12 +220,12 @@ Capture raw content. The handler authenticates itself (priority: **PAT > webhook
 
 There is **no `user_id` body field** — the user is derived from the principal. The legacy `action` field is **rejected** (`400 VALIDATION`, pointing at the dedicated snooze/dismiss routes).
 
-PAT-authenticated captures additionally get:
+PAT- and OAuth-authenticated captures (programmatic callers) additionally get:
 
 - **Per-user rate limit:** 30 captures / 60 s rolling window → `429 RATE_LIMITED`.
 - **Idempotency:** send an `Idempotency-Key` header; a repeat returns the original `{ captureId, duplicate: true }` instead of inserting again.
 
-Success: `{ captureId, source }` (or `{ captureId, duplicate: true }`). After insert, the handler fires `POST /api/capture/process` via `waitUntil` with `internal_secret` and `auto_add` — **`auto_add` is `false` for PAT captures** (they always land in the inbox for review) and `true` for session/webhook captures.
+Success: `{ captureId, source }` (or `{ captureId, duplicate: true }`). After insert, the handler fires `POST /api/capture/process` via `waitUntil` with `internal_secret` and `auto_add`. **`auto_add` is `false` for PAT and OAuth captures** (they always land in the inbox for review) and `true` for session/webhook captures.
 
 #### `POST /api/capture/:id/snooze` · `capture:write`
 
@@ -238,6 +238,8 @@ Sets the capture's status to `dismissed`. Returns `{ captureId }`.
 #### `POST /api/capture/batch` · `capture:write`
 
 Bulk-insert pre-split items: `{ items: [{ content, source? }] }`, 1–25 items. The agent does the language work (splitting notes); the server just stores ready items — **no AI processing is triggered**. The batch counts as `items.length` against the same 30/60 s per-user window (`429` if it would exceed). With an `Idempotency-Key` header, per-item keys are derived as `sha256(key:index)`. Returns `201` `{ total, captured, results: [{ index, ok, captureId?, duplicate?, error? }] }`.
+
+Items must be objects: a bare string fails with `400 VALIDATION`. The hosted MCP `focusboard_capture_actions` tool takes plain strings (its input schema is `items: string[]`) and converts each to `{ content }` before calling this route.
 
 #### `POST /api/capture/process` (standalone function — internal)
 
@@ -319,6 +321,14 @@ Body: `{ tool, args, preview }`. `tool` must be in the allowlist (`add_card`, `m
 #### `POST /api/confirmations/confirm`
 
 Body: `{ confirm_token }`. Atomically claims the token (single-use, unexpired, same `user_id`) and executes the mapped operation in-process via the Hono app — the caller's own `Authorization` rides along, so `card:write` is re-enforced on the executed route, and the fresh card version is read at confirm time (preserving the CAS contract). A bad/expired/used token → **`404 CONFIRM_NOT_FOUND`**. The executed route's own errors (e.g. `409 STALE_STATE`) propagate.
+
+---
+
+### Board agent · `card:write`
+
+#### `POST /api/ai/agent`
+
+Natural-language board commands. Body: `{ instruction }` (required, trimmed, max 1,000 chars; empty or too long → `400 VALIDATION`). Runs a bounded Anthropic tool-use loop in-process: the model calls board tools, each call is executed against this same router with the caller's own `Authorization`, so route scopes are re-enforced on every step. The loop is capped at 10 model round-trips and 1,024 output tokens per turn. Returns `{ summary, steps: [{ tool, args, ok, error? }], stoppedAtCap }`, where `stoppedAtCap` is `true` if the step cap was reached before the model finished. Requires `ANTHROPIC_API_KEY` (`500 INTERNAL` if unset).
 
 ---
 
